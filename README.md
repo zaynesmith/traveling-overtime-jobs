@@ -1,2 +1,3 @@
-# traveling-overtime-jobs
-job board for traveling overtime jobs across all trades
+# TravelingOvertimeJobs.com
+
+Minimal Next.js starter to verify GitHub → Vercel deployment.
