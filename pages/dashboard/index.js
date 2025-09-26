@@ -16,23 +16,22 @@ export default function Dashboard() {
     );
   }
 
-  // IMPORTANT: read role from unsafeMetadata (client-writable)
-  const role = user?.unsafeMetadata?.role || "not set";
+  // READ the role from client-writable metadata
+  const role = (user?.unsafeMetadata?.role || "not set") + "";
 
   async function setRole(next) {
     try {
       setSaving(true);
-      // write to unsafeMetadata (allowed from the client)
-      await user.update({
-        unsafeMetadata: {
-          ...(user.unsafeMetadata || {}),
-          role: next,
-        },
+      // Use Clerk's helper for client-side metadata writes
+      await user.setUnsafeMetadata({
+        ...(user.unsafeMetadata || {}),
+        role: next,
       });
-      // no alert popup; just refresh the UI by reloading the page data
-      window.location.reload();
+
+      // Refresh the user object and re-render (no full page reload needed)
+      await user.reload();
     } catch (e) {
-      console.error(e);
+      console.error("setRole error:", e);
       alert("Could not update role. Please try again.");
     } finally {
       setSaving(false);
@@ -49,7 +48,7 @@ export default function Dashboard() {
 
         <section style={card}>
           <h2 style={{ marginTop: 0 }}>Your Role</h2>
-          <p style={{ marginBottom: 12 }}>Current: <strong>{String(role)}</strong></p>
+          <p style={{ marginBottom: 12 }}>Current: <strong>{role}</strong></p>
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setRole("jobseeker")} style={btn} disabled={saving}>
               Set as Jobseeker
