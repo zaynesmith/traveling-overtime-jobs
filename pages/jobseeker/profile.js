@@ -1,176 +1,304 @@
 // pages/jobseeker/profile.js
-import { SignedIn, SignedOut, useUser } from "@clerk/nextjs";
+import {
+  SignedIn,
+  SignedOut,
+  RedirectToSignIn,
+  useUser,
+  UserButton,
+} from "@clerk/nextjs";
+import { useEffect, useState } from "react";
 
 export default function JobseekerProfile() {
-  return (
-    <main className="page-wrap">
-      {/* If not signed in, nudge to sign in */}
+  const { user, isLoaded, isSignedIn } = useUser();
+  const [resumeUrl, setResumeUrl] = useState("");
+  const [phone, setPhone] = useState("");
+  const [primarySkill, setPrimarySkill] = useState("");
+  const [experience, setExperience] = useState("");
+  const [travel, setTravel] = useState("Yes");
+  const [payType, setPayType] = useState("Hourly");
+  const [bio, setBio] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+    const pm = user.publicMetadata || {};
+    if (pm.resumeUrl) setResumeUrl(String(pm.resumeUrl));
+    if (pm.phone) setPhone(String(pm.phone));
+    if (pm.primarySkill) setPrimarySkill(String(pm.primarySkill));
+    if (pm.experience) setExperience(String(pm.experience));
+    if (pm.travel) setTravel(String(pm.travel));
+    if (pm.payType) setPayType(String(pm.payType));
+    if (pm.bio) setBio(String(pm.bio));
+  }, [isLoaded, user]);
+
+  if (!isLoaded) return null;
+
+  if (!isSignedIn) {
+    return (
       <SignedOut>
-        <div className="card">
-          <h1>Jobseeker Profile</h1>
-          <p>You need to be signed in to view or edit your profile.</p>
-          <p>
-            <a className="btn" href="/sign-in">Sign in</a>{" "}
-            <a className="btn secondary" href="/sign-up">Create account</a>
-          </p>
-        </div>
+        <RedirectToSignIn redirectUrl="/jobseeker/profile" />
       </SignedOut>
+    );
+  }
 
-      {/* If signed in, show the form */}
-      <SignedIn>
-        <ProfileForm />
-      </SignedIn>
+  async function saveProfile(e) {
+    e.preventDefault();
+    if (!user) return;
+    try {
+      setSaving(true);
+      setSaved(false);
+      await user.update({
+        publicMetadata: {
+          ...(user.publicMetadata || {}),
+          role: "jobseeker",
+          resumeUrl: resumeUrl.trim(),
+          phone: phone.trim(),
+          primarySkill,
+          experience,
+          travel,
+          payType,
+          bio,
+        },
+      });
+      setSaved(true);
+      alert("Profile saved!");
+    } catch (err) {
+      console.error(err);
+      alert("Could not save profile.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
-      <style jsx>{`
-        .page-wrap {
-          max-width: 900px;
-          margin: 24px auto;
-          padding: 0 16px 48px;
-        }
-        .card {
-          background: #fff;
-          border: 1px solid #eee;
-          border-radius: 14px;
-          padding: 20px;
-        }
-        h1 { margin: 0 0 10px; }
-        .btn {
-          display: inline-block;
-          text-decoration: none;
-          border: 1px solid #ddd;
-          border-radius: 10px;
-          padding: 8px 12px;
-          font-weight: 600;
-          color: #111;
-          background: #fff;
-        }
-        .btn.secondary { background:#111; color:#fff; border-color:#111; }
-        form { display: grid; gap: 12px; }
-        .row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-        label { font-weight: 600; font-size: 14px; }
-        input, select, textarea {
-          width: 100%;
-          padding: 10px 12px;
-          border: 1px solid #ddd;
-          border-radius: 10px;
-          font-size: 14px;
-        }
-        textarea { min-height: 110px; resize: vertical; }
-        .actions { display: flex; gap: 10px; }
-        .muted { color: #666; font-size: 14px; }
-        @media (max-width: 640px) {
-          .row { grid-template-columns: 1fr; }
-        }
-      `}</style>
-    </main>
-  );
-}
-
-function ProfileForm() {
-  const { user } = useUser();
-
-  // Prefill from Clerk where it makes sense
   const email = user?.primaryEmailAddress?.emailAddress || "";
-  const nameGuess =
+  const fullName =
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
     user?.username ||
     "";
 
-  // NOTE: This form is just a placeholder (no saving yet).
-  // Next steps will wire it to an API route & database.
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    alert(
-      "Profile saving will be added in the next step. For now this confirms navigation works."
-    );
-  };
-
   return (
-    <div className="card">
-      <h1>Jobseeker Profile</h1>
-      <p className="muted">
-        Signed in as <strong>{email || "your email"}</strong>
-      </p>
+    <SignedIn>
+      <main style={wrap}>
+        <header style={header}>
+          <h1 style={{ margin: 0 }}>My Jobseeker Profile</h1>
+          <UserButton afterSignOutUrl="/" />
+        </header>
 
-      <form onSubmit={handleSubmit}>
-        <div className="row">
-          <div>
-            <label>Full name</label>
-            <input name="fullName" defaultValue={nameGuess} />
+        <form onSubmit={saveProfile} style={card}>
+          <div style={{ color: "#666", marginBottom: 8 }}>
+            Signed in as <strong>{email}</strong>
           </div>
-          <div>
-            <label>Phone</label>
-            <input name="phone" placeholder="(555) 555-5555" />
-          </div>
-        </div>
 
-        <div className="row">
-          <div>
-            <label>Primary Skill</label>
-            <select name="primarySkill" defaultValue="">
-              <option value="" disabled>
-                Select one…
-              </option>
-              <option>Electrician</option>
-              <option>HVAC</option>
-              <option>Plumber</option>
-              <option>Welder</option>
-              <option>General Labor</option>
-              <option>Forklift / Warehouse</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <div>
-            <label>Years of Experience</label>
-            <select name="experience" defaultValue="">
-              <option value="" disabled>
-                Select…
-              </option>
-              <option>0–1</option>
-              <option>2–3</option>
-              <option>4–6</option>
-              <option>7–10</option>
-              <option>10+</option>
-            </select>
-          </div>
-        </div>
+          <Row>
+            <Field label="Full Name">
+              <input defaultValue={fullName} style={input} disabled />
+            </Field>
+            <Field label="Phone">
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="(555) 555-5555"
+                style={input}
+              />
+            </Field>
+          </Row>
 
-        <div className="row">
-          <div>
-            <label>Willing to Travel?</label>
-            <select name="travel" defaultValue="Yes">
-              <option>Yes</option>
-              <option>No</option>
-              <option>Maybe</option>
-            </select>
-          </div>
-          <div>
-            <label>Preferred Pay Type</label>
-            <select name="payType" defaultValue="Hourly">
-              <option>Hourly</option>
-              <option>Salary</option>
-              <option>1099</option>
-            </select>
-          </div>
-        </div>
+          <Row>
+            <Field label="Primary Skill">
+              <select
+                value={primarySkill}
+                onChange={(e) => setPrimarySkill(e.target.value)}
+                style={input}
+              >
+                <option value="">Select…</option>
+                <option>Electrician</option>
+                <option>HVAC</option>
+                <option>Plumber</option>
+                <option>Welder</option>
+                <option>Millwright</option>
+                <option>General Labor</option>
+                <option>Other</option>
+              </select>
+            </Field>
 
-        <div>
-          <label>Summary / Bio</label>
-          <textarea
-            name="bio"
-            placeholder="2–4 sentences about your skills, certifications, and where you can travel."
-          />
-        </div>
+            <Field label="Years of Experience">
+              <select
+                value={experience}
+                onChange={(e) => setExperience(e.target.value)}
+                style={input}
+              >
+                <option value="">Select…</option>
+                <option>0–1</option>
+                <option>2–3</option>
+                <option>4–6</option>
+                <option>7–10</option>
+                <option>10+</option>
+              </select>
+            </Field>
+          </Row>
 
-        <div className="actions">
-          <button type="submit" className="btn">Save (placeholder)</button>
-          <a href="/dashboard" className="btn secondary">Back to Dashboard</a>
-        </div>
-      </form>
+          <Row>
+            <Field label="Willing to Travel?">
+              <select
+                value={travel}
+                onChange={(e) => setTravel(e.target.value)}
+                style={input}
+              >
+                <option>Yes</option>
+                <option>No</option>
+                <option>Maybe</option>
+              </select>
+            </Field>
+
+            <Field label="Preferred Pay Type">
+              <select
+                value={payType}
+                onChange={(e) => setPayType(e.target.value)}
+                style={input}
+              >
+                <option>Hourly</option>
+                <option>Salary</option>
+                <option>1099</option>
+              </select>
+            </Field>
+          </Row>
+
+          <Field label="Resume Link (URL)">
+            <input
+              type="url"
+              value={resumeUrl}
+              onChange={(e) => setResumeUrl(e.target.value)}
+              placeholder="Paste Google Drive/Dropbox share link"
+              style={input}
+              required
+            />
+            <small style={{ color: "#666" }}>
+              Tip: upload a PDF to Google Drive, set “Anyone with the link → Viewer”, then paste the link.
+            </small>
+          </Field>
+
+          <Field label="Summary / Bio">
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="2–4 sentences about your skills, certifications, and where you can travel."
+              rows={5}
+              style={textarea}
+            />
+          </Field>
+
+          <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+            <button type="submit" style={btnDark} disabled={saving}>
+              {saving ? "Saving…" : "Save Profile"}
+            </button>
+            <a href="/dashboard" style={btnLight}>Back to Dashboard</a>
+          </div>
+
+          {saved && (
+            <div style={callout}>✅ Saved! Your profile is stored on your account.</div>
+          )}
+        </form>
+      </main>
+    </SignedIn>
+  );
+}
+
+/* --- mini components & styles --- */
+function Field({ label, children }) {
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      <label style={{ fontSize: 13, color: "#444", fontWeight: 600 }}>{label}</label>
+      {children}
     </div>
   );
 }
+
+function Row({ children }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      {children}
+      <style jsx>{`
+        @media (max-width: 720px) {
+          div { grid-template-columns: 1fr; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+const wrap = {
+  minHeight: "100vh",
+  padding: "40px 24px",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: 16,
+  fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial",
+};
+
+const header = {
+  width: "100%",
+  maxWidth: 900,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+};
+
+const card = {
+  width: "100%",
+  maxWidth: 900,
+  background: "#fff",
+  border: "1px solid rgba(0,0,0,0.08)",
+  borderRadius: 12,
+  padding: 20,
+  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+  display: "grid",
+  gap: 14,
+};
+
+const input = {
+  border: "1px solid #ddd",
+  borderRadius: 10,
+  padding: "10px 12px",
+  fontSize: 14,
+};
+
+const textarea = {
+  border: "1px solid #ddd",
+  borderRadius: 10,
+  padding: "10px 12px",
+  fontSize: 14,
+  resize: "vertical",
+};
+
+const btnDark = {
+  background: "#111",
+  color: "#fff",
+  border: "1px solid #111",
+  borderRadius: 10,
+  padding: "10px 14px",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const btnLight = {
+  display: "inline-block",
+  background: "#fff",
+  color: "#111",
+  border: "1px solid #ddd",
+  borderRadius: 10,
+  padding: "10px 14px",
+  fontWeight: 700,
+  textDecoration: "none",
+};
+
+const callout = {
+  marginTop: 10,
+  background: "#f6fff6",
+  border: "1px solid #bfe6bf",
+  color: "#225c22",
+  padding: "10px 12px",
+  borderRadius: 10,
+  fontSize: 14,
+};
