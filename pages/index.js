@@ -16,7 +16,7 @@ export default function Home() {
           <h1 className="title">Traveling Overtime Jobs</h1>
 
           <div className="pill-group">
-            <a href="/search" className="pill">Search Jobs</a>
+            <a href="/jobseeker/search" className="pill">Search Jobs</a>
             <a href="/post" className="pill">Post Jobs</a>
             <a href="/sign-in?role=employer" className="pill">Employer Login</a>
             <a href="/sign-in?role=jobseeker" className="pill">Jobseeker Login</a>
