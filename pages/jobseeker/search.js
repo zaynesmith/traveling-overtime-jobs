@@ -94,7 +94,8 @@ export default function JobseekerSearch() {
                       {j.trade} • Pay {j.pay} • Per Diem {j.perDiem} • OT {j.overtime} • Travel {j.travel}
                     </div>
                   </div>
-                  <a href={`/employer/listings/${j.id}`} style={pillDark}>View</a>
+                  {/* CHANGED: link to the public job page */}
+                  <a href={`/jobs/${j.id}`} style={pillDark}>View &amp; Apply</a>
                 </li>
               ))}
             </ul>
@@ -160,4 +161,3 @@ const pillDark = {
   fontWeight: 600,
   textDecoration: "none",
 };
-
