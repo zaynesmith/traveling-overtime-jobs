@@ -9,6 +9,7 @@ export default function Header() {
 
       <nav style={nav}>
         <Link href="/search" style={link}>Search Jobs</Link>
+        <Link href="/saved" style={link}>Saved</Link>
         <Link href="/employer/post" style={link}>Post Job</Link>
         <Link href="/employer/listings" style={link}>Manage Listings</Link>
         <Link href="/jobseeker/profile" style={link}>My Profile</Link>
