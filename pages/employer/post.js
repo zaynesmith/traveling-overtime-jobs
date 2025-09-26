@@ -6,7 +6,7 @@ import {
   useUser,
   UserButton,
 } from "@clerk/nextjs";
-import { useEffect, useMemo, useState } from "react";
+  import { useEffect, useMemo, useState } from "react";
 
 export default function PostJob() {
   const { user, isLoaded } = useUser();
@@ -29,6 +29,20 @@ export default function PostJob() {
     contactEmail: "",
   });
 
+  // Prefill from Employer Profile (Clerk publicMetadata)
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+    const pm = user.publicMetadata || {};
+    setForm((f) => ({
+      ...f,
+      company: pm.companyName ? String(pm.companyName) : f.company,
+      contactEmail: pm.companyContactEmail
+        ? String(pm.companyContactEmail)
+        : (user.primaryEmailAddress?.emailAddress || f.contactEmail),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, user]);
+
   // Disable submit until minimal fields are filled
   const canSubmit = useMemo(() => {
     return (
@@ -41,8 +55,7 @@ export default function PostJob() {
   }, [form]);
 
   useEffect(() => {
-    // scroll to top on mount so users see the header & title
-    window.scrollTo(0, 0);
+    if (typeof window !== "undefined") window.scrollTo(0, 0);
   }, []);
 
   if (!isLoaded) return null;
@@ -100,8 +113,6 @@ export default function PostJob() {
                 setTimeout(() => {
                   setSaving(false);
                   setSubmitted(true);
-                  // NOTE: Later we will save to a real database (e.g., Supabase/Postgres)
-                  // and redirect to /employer/listings or a "Job posted" page.
                 }, 800);
               }}
               style={{ display: "grid", gap: 12 }}
@@ -206,6 +217,12 @@ export default function PostJob() {
               <p style={{ marginTop: 6, fontSize: 12, color: "#666" }}>
                 * Required fields
               </p>
+
+              {/* Small helper: show where prefills came from */}
+              <div style={hintBox}>
+                Tip: Company Name and Contact Email prefill from your{" "}
+                <a href="/employer/profile">Company Profile</a>. Update them there to change the defaults.
+              </div>
             </form>
           )}
         </section>
@@ -225,7 +242,7 @@ function Success() {
       </p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
         <a href="/employer" style={pillDark}>Back to Employer Area</a>
-        <a href="/dashboard" style={pillLight}>Go to Dashboard</a>
+        <a href="/employer/listings" style={pillLight}>Manage Listings</a>
       </div>
     </div>
   );
@@ -347,4 +364,14 @@ const pillLight = {
   padding: "10px 14px",
   fontWeight: 600,
   textDecoration: "none",
+};
+
+const hintBox = {
+  marginTop: 8,
+  background: "#f9fafb",
+  border: "1px solid #eee",
+  color: "#333",
+  padding: "10px 12px",
+  borderRadius: 10,
+  fontSize: 13,
 };
