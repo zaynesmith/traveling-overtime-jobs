@@ -6,51 +6,51 @@ import {
   useUser,
   UserButton,
 } from "@clerk/nextjs";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/router";
 
-// Minimal demo job lookup (ids 1..3 like the rest of the site)
+// Same demo jobs list used elsewhere
 const DEMO_JOBS = [
-  { id: "1", title: "Journeyman Electrician", company: "ACME Industrial", location: "Houston, TX" },
-  { id: "2", title: "Pipe Welder (TIG)", company: "Gulf Fabrication", location: "Lake Charles, LA" },
-  { id: "3", title: "Millwright", company: "North Plant Services", location: "Toledo, OH" },
+  { id: "j-1001", title: "Journeyman Electrician", company: "ACME Industrial", location: "Houston, TX" },
+  { id: "j-1002", title: "Industrial Millwright",  company: "RiverWorks",      location: "Mobile, AL" },
+  { id: "j-1003", title: "Pipe Welder (TIG)",       company: "GulfFab",         location: "Corpus Christi, TX" },
+  { id: "j-1004", title: "Controls Tech",           company: "NorthBay Energy", location: "Baton Rouge, LA" },
 ];
 
-export default function ApplyToJob() {
+export default function ApplyPage() {
   const router = useRouter();
   const { id } = router.query;
+  const { isLoaded, isSignedIn, user } = useUser();
 
-  const { user, isLoaded, isSignedIn } = useUser();
-  const role = user?.publicMetadata?.role;
+  const listing = useMemo(() => DEMO_JOBS.find(j => j.id === String(id)), [id]);
 
-  const job = useMemo(
-    () => DEMO_JOBS.find((j) => j.id === String(id)),
-    [id]
-  );
+  // Prefill from Clerk publicMetadata (set via /jobseeker/profile)
+  const pm = (user?.publicMetadata || {});
+  const guessedName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+    user?.username || "";
 
-  // Local state (prefill from Clerk if available)
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [resumeUrl, setResumeUrl] = useState("");
-  const [message, setMessage] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [fullName, setFullName]   = useState(guessedName);
+  const [email, setEmail]         = useState(user?.primaryEmailAddress?.emailAddress || "");
+  const [phone, setPhone]         = useState(pm.phone || pm.jobseekerContactEmail || "");
+  const [resumeUrl, setResumeUrl] = useState(pm.resumeUrl || pm.jobseekerResumeUrl || "");
+  const [message, setMessage]     = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    if (!isLoaded || !user) return;
-    setFullName([user.firstName, user.lastName].filter(Boolean).join(" "));
-    if (user.primaryEmailAddress?.emailAddress) {
-      setEmail(user.primaryEmailAddress.emailAddress);
-    }
-    const pm = user.publicMetadata || {};
-    if (pm.resumeUrl) setResumeUrl(String(pm.resumeUrl));
-    if (pm.phone) setPhone(String(pm.phone));
+    if (!isLoaded) return;
+    // Keep fields synced if user loads later
+    setFullName((v) => v || guessedName);
+    setEmail((v) => v || user?.primaryEmailAddress?.emailAddress || "");
+    if (pm.phone && !phone) setPhone(pm.phone);
+    if (pm.jobseekerContactEmail && !phone) setPhone(pm.jobseekerContactEmail);
+    if (pm.resumeUrl && !resumeUrl) setResumeUrl(pm.resumeUrl);
+    if (pm.jobseekerResumeUrl && !resumeUrl) setResumeUrl(pm.jobseekerResumeUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, user]);
 
   if (!isLoaded) return null;
 
-  // Force sign-in and return to this apply page
   if (!isSignedIn) {
     return (
       <SignedOut>
@@ -59,42 +59,80 @@ export default function ApplyToJob() {
     );
   }
 
-  // Require jobseeker role to apply
-  if (role !== "jobseeker") {
+  if (!listing) {
     return (
-      <main style={wrap}>
-        <header style={header}>
-          <h1 style={{ margin: 0 }}>Apply to Job</h1>
-          <UserButton afterSignOutUrl="/" />
-        </header>
-        <section style={card}>
-          <h2 style={{ marginTop: 0 }}>Jobseeker access required</h2>
-          <p>
-            Your current role is <strong>{role || "not set"}</strong>. Switch to the Jobseeker role
-            from your <a href="/dashboard">Dashboard</a> or the{" "}
-            <a href="/jobseeker">Jobseeker Area</a>, then return here.
-          </p>
-          <p>
-            <a href={`/jobs/${id}`} style={pillLight}>← Back to Job</a>
-          </p>
-        </section>
-      </main>
+      <SignedIn>
+        <main style={wrap}>
+          <header style={header}>
+            <h1 style={{ margin: 0 }}>Apply</h1>
+            <UserButton afterSignOutUrl="/" />
+          </header>
+          <section style={card}>
+            <p>We couldn’t find that job.</p>
+            <a href="/jobseeker/search" style={pillLight}>← Back to Search</a>
+          </section>
+        </main>
+      </SignedIn>
     );
   }
 
-  if (!job) {
+  function saveApplicationLocally(app) {
+    try {
+      const key = "myApplications";
+      const raw = localStorage.getItem(key);
+      const arr = raw ? JSON.parse(raw) : [];
+      arr.push(app);
+      localStorage.setItem(key, JSON.stringify(arr));
+    } catch {}
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+
+    // In a future step we’ll POST to an API/database.
+    // For now, keep a local record so the My Applications page shows it.
+    const app = {
+      id: `app-${Date.now()}`,
+      jobId: listing.id,
+      jobTitle: listing.title,
+      company: listing.company,
+      location: listing.location,
+      applicant: {
+        fullName: fullName.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        resumeUrl: resumeUrl.trim(),
+        message: message.trim(),
+      },
+      submittedAt: new Date().toISOString(),
+    };
+
+    saveApplicationLocally(app);
+    setSubmitted(true);
+    // optional: also add to saved applications feed later
+  }
+
+  if (submitted) {
     return (
-      <main style={wrap}>
-        <header style={header}>
-          <h1 style={{ margin: 0 }}>Apply to Job</h1>
-          <UserButton afterSignOutUrl="/" />
-        </header>
-        <section style={card}>
-          <h2 style={{ marginTop: 0 }}>Job not found</h2>
-          <p>We couldn’t find that job.</p>
-          <a href="/search" style={pillLight}>← Back to Search</a>
-        </section>
-      </main>
+      <SignedIn>
+        <main style={wrap}>
+          <header style={header}>
+            <h1 style={{ margin: 0 }}>Application Submitted</h1>
+            <UserButton afterSignOutUrl="/" />
+          </header>
+          <section style={card}>
+            <p>
+              You applied to <strong>{listing.title}</strong> at{" "}
+              <strong>{listing.company}</strong>.
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <a href="/applications" style={btnDark}>View My Applications</a>
+              <a href={`/jobs/${listing.id}`} style={pillLight}>Back to Job</a>
+              <a href="/jobseeker/search" style={pillLight}>Back to Search</a>
+            </div>
+          </section>
+        </main>
+      </SignedIn>
     );
   }
 
@@ -102,113 +140,67 @@ export default function ApplyToJob() {
     <SignedIn>
       <main style={wrap}>
         <header style={header}>
-          <h1 style={{ margin: 0 }}>Apply to: {job.title}</h1>
+          <h1 style={{ margin: 0 }}>Apply: {listing.title}</h1>
           <UserButton afterSignOutUrl="/" />
         </header>
 
         <section style={card}>
-          {submitted ? (
-            <Success id={String(id)} />
-          ) : (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                // No backend yet—simulate submission
-                setSaving(true);
-                setTimeout(() => {
-                  setSaving(false);
-                  setSubmitted(true);
-                }, 800);
-              }}
-              style={{ display: "grid", gap: 12 }}
-            >
-              <div style={{ color: "#666", marginBottom: 6 }}>
-                {job.company} • {job.location}
-              </div>
+          <div style={{ marginBottom: 10, color: "#555" }}>
+            {listing.company} • {listing.location}
+          </div>
 
+          <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12 }}>
+            <Row>
               <Field label="Full Name">
-                <input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  style={input}
-                  required
-                />
+                <input value={fullName} onChange={(e) => setFullName(e.target.value)} style={input} required />
               </Field>
+              <Field label="Email">
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={input} required />
+              </Field>
+            </Row>
 
-              <Row>
-                <Field label="Email">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    style={input}
-                    required
-                  />
-                </Field>
-                <Field label="Phone">
-                  <input
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="(optional)"
-                    style={input}
-                  />
-                </Field>
-              </Row>
-
-              <Field label="Resume Link (URL)">
+            <Row>
+              <Field label="Phone">
+                <input value={phone} onChange={(e) => setPhone(e.target.value)} style={input} />
+              </Field>
+              <Field label="Resume URL">
                 <input
                   type="url"
                   value={resumeUrl}
                   onChange={(e) => setResumeUrl(e.target.value)}
-                  placeholder="Paste a view-only link (Drive/Dropbox/etc.)"
+                  placeholder="Google Drive/Dropbox link"
                   style={input}
                   required
                 />
-                <small style={{ color: "#666" }}>
-                  Tip: Upload a PDF to Google Drive, set “Anyone with the link → Viewer”, then paste the link here.
-                </small>
               </Field>
+            </Row>
 
-              <Field label="Message to Employer">
-                <textarea
-                  rows={5}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Brief note, availability, relevant experience…"
-                  style={textarea}
-                />
-              </Field>
+            <Field label="Message to Employer (optional)">
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Brief note about your availability, certifications, travel, etc."
+                rows={5}
+                style={textarea}
+              />
+            </Field>
 
-              <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-                <button type="submit" style={btnPrimary} disabled={saving}>
-                  {saving ? "Submitting…" : "Submit Application"}
-                </button>
-                <a href={`/jobs/${id}`} style={pillLight}>Cancel</a>
-              </div>
-            </form>
-          )}
+            <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+              <button type="submit" style={btnDark}>Submit Application</button>
+              <a href={`/jobs/${listing.id}`} style={pillLight}>Cancel</a>
+            </div>
+
+            <small style={{ color: "#666" }}>
+              Tip: Update your profile at <a href="/jobseeker/profile">Jobseeker Profile</a> to prefill phone & resume next time.
+            </small>
+          </form>
         </section>
       </main>
     </SignedIn>
   );
 }
 
-/* ---------- tiny UI helpers ---------- */
-function Success({ id }) {
-  return (
-    <div style={{ textAlign: "center" }}>
-      <h2 style={{ marginTop: 0 }}>Application submitted (demo)</h2>
-      <p style={{ marginBottom: 16 }}>
-        We haven’t connected a database or emails yet. This confirms the apply flow works.
-      </p>
-      <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-        <a href={`/jobs/${id}`} style={pillDark}>← Back to Job</a>
-        <a href="/search" style={pillLight}>Go to Search</a>
-      </div>
-    </div>
-  );
-}
-
+/* tiny components & styles */
 function Row({ children }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -221,17 +213,15 @@ function Row({ children }) {
     </div>
   );
 }
-
 function Field({ label, children }) {
   return (
     <div style={{ display: "grid", gap: 6 }}>
-      <label style={labelStyle}>{label}</label>
+      <label style={{ fontSize: 13, color: "#444", fontWeight: 600 }}>{label}</label>
       {children}
     </div>
   );
 }
 
-/* --- styles --- */
 const wrap = {
   minHeight: "100vh",
   padding: "40px 24px",
@@ -241,7 +231,6 @@ const wrap = {
   gap: 16,
   fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial",
 };
-
 const header = {
   width: "100%",
   maxWidth: 900,
@@ -249,24 +238,21 @@ const header = {
   justifyContent: "space-between",
   alignItems: "center",
 };
-
 const card = {
   width: "100%",
   maxWidth: 900,
   background: "#fff",
   border: "1px solid rgba(0,0,0,0.08)",
   borderRadius: 12,
-  padding: 24,
-  boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+  padding: 20,
+  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
 };
-
 const input = {
   border: "1px solid #ddd",
   borderRadius: 10,
   padding: "10px 12px",
   fontSize: 14,
 };
-
 const textarea = {
   border: "1px solid #ddd",
   borderRadius: 10,
@@ -274,29 +260,6 @@ const textarea = {
   fontSize: 14,
   resize: "vertical",
 };
-
-const labelStyle = { fontSize: 13, color: "#444" };
-
-const btnPrimary = {
-  background: "#111",
-  color: "#fff",
-  border: "1px solid #111",
-  borderRadius: 10,
-  padding: "10px 16px",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const pillDark = {
-  display: "inline-block",
-  background: "#111",
-  color: "#fff",
-  borderRadius: 999,
-  padding: "10px 14px",
-  fontWeight: 600,
-  textDecoration: "none",
-};
-
 const pillLight = {
   display: "inline-block",
   background: "#fff",
@@ -306,4 +269,13 @@ const pillLight = {
   padding: "10px 14px",
   fontWeight: 600,
   textDecoration: "none",
+};
+const btnDark = {
+  background: "#111",
+  color: "#fff",
+  border: "1px solid #111",
+  borderRadius: 10,
+  padding: "10px 14px",
+  fontWeight: 700,
+  cursor: "pointer",
 };
