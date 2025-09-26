@@ -86,11 +86,30 @@ export default function SearchPage() {
     return list;
   }, [q, trade, travel, sort]);
 
+  function saveJob(job) {
+    if (typeof window === "undefined") return;
+    try {
+      const key = "savedJobs";
+      const raw = window.localStorage.getItem(key);
+      const arr = raw ? JSON.parse(raw) : [];
+      // avoid duplicates by id
+      if (!arr.find((j) => j.id === job.id)) {
+        arr.push(job);
+        window.localStorage.setItem(key, JSON.stringify(arr));
+        alert(`Saved: ${job.title}`);
+      } else {
+        alert("Already saved.");
+      }
+    } catch {
+      alert("Could not save this job in your browser.");
+    }
+  }
+
   return (
     <main style={wrap}>
       <h1 style={{ margin: "0 0 12px" }}>Search Jobs</h1>
       <p style={{ margin: "0 0 24px", color: "#555" }}>
-        Demo data for now — filters work client-side. Click <strong>View</strong> to open a job, or <strong>Apply</strong> to go straight to the application.
+        Demo data for now — filters work client-side. Click <strong>View</strong> to open a job, <strong>Apply</strong> to apply, or <strong>Save</strong> to keep it in your browser (we’ll add a Saved page next).
       </p>
 
       {/* Controls */}
@@ -126,14 +145,14 @@ export default function SearchPage() {
         {results.length === 0 ? (
           <div style={emptyCard}>No jobs match your filters.</div>
         ) : (
-          results.map((j) => <JobCard key={j.id} job={j} />)
+          results.map((j) => <JobCard key={j.id} job={j} onSave={saveJob} />)
         )}
       </section>
     </main>
   );
 }
 
-function JobCard({ job }) {
+function JobCard({ job, onSave }) {
   return (
     <article style={card}>
       <header style={{ marginBottom: 8 }}>
@@ -155,9 +174,8 @@ function JobCard({ job }) {
 
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <a href={`/jobs/${job.id}`} style={btnDark}>View</a>
-        {/* UPDATED: go straight to the real apply page */}
         <a href={`/jobs/${job.id}/apply`} style={btnLight}>Apply</a>
-        <a href="/sign-in" style={btnLight}>Save</a>
+        <button onClick={() => onSave(job)} style={btnOutline}>Save</button>
       </div>
     </article>
   );
@@ -243,4 +261,14 @@ const btnLight = {
   padding: "10px 14px",
   fontWeight: 700,
   textDecoration: "none",
+};
+
+const btnOutline = {
+  background: "#fff",
+  color: "#111",
+  border: "1px solid #ddd",
+  borderRadius: 10,
+  padding: "10px 14px",
+  fontWeight: 700,
+  cursor: "pointer",
 };
