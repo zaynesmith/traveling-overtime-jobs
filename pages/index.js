@@ -8,8 +8,8 @@ export default function Home() {
         <div className="pill-group">
           <a href="/search" className="pill">Search Jobs</a>
           <a href="/post" className="pill">Post Jobs</a>
-          <a href="/sign-in/employer" className="pill">Employer Login</a>
-          <a href="/sign-in/jobseeker" className="pill">Jobseeker Login</a>
+          <a href="/sign-in" className="pill">Employer Login</a>
+          <a href="/sign-up" className="pill">Jobseeker Login</a>
         </div>
       </section>
     </main>
