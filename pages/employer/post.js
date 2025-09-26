@@ -6,7 +6,7 @@ import {
   useUser,
   UserButton,
 } from "@clerk/nextjs";
-  import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function PostJob() {
   const { user, isLoaded } = useUser();
@@ -36,9 +36,10 @@ export default function PostJob() {
     setForm((f) => ({
       ...f,
       company: pm.companyName ? String(pm.companyName) : f.company,
-      contactEmail: pm.companyContactEmail
-        ? String(pm.companyContactEmail)
-        : (user.primaryEmailAddress?.emailAddress || f.contactEmail),
+      contactEmail:
+        pm.companyContactEmail
+          ? String(pm.companyContactEmail)
+          : user.primaryEmailAddress?.emailAddress || f.contactEmail,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, user]);
@@ -60,7 +61,7 @@ export default function PostJob() {
 
   if (!isLoaded) return null;
 
-  // If not signed in, bounce to sign-in and return here afterward
+  // Not signed in → force sign-in and come back
   if (!user) {
     return (
       <SignedOut>
@@ -69,7 +70,7 @@ export default function PostJob() {
     );
   }
 
-  // If signed in but not employer, show a quick message & link
+  // Must be employer
   if (role !== "employer") {
     return (
       <main style={wrap}>
@@ -92,6 +93,19 @@ export default function PostJob() {
     );
   }
 
+  // Save job to localStorage
+  function saveJobToLocalStorage(job) {
+    try {
+      const key = "myEmployerJobs";
+      const raw = localStorage.getItem(key);
+      const arr = raw ? JSON.parse(raw) : [];
+      arr.push(job);
+      localStorage.setItem(key, JSON.stringify(arr));
+    } catch (e) {
+      console.error("Unable to save job locally", e);
+    }
+  }
+
   // Employer view
   return (
     <SignedIn>
@@ -108,12 +122,36 @@ export default function PostJob() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                // No database yet — just simulate submit
+                if (!canSubmit) return;
+
                 setSaving(true);
+                // Create a job object and save locally
+                const job = {
+                  id: `my-${Date.now()}`,
+                  title: form.title.trim(),
+                  company: form.company.trim(),
+                  trade: form.trade.trim() || "General",
+                  location: form.location.trim(),
+                  payRate: form.payRate.trim(),
+                  perDiem: form.perDiem.trim(),
+                  overtime: form.overtime.trim(),
+                  startDate: form.startDate || "",
+                  travelRequired: form.travelRequired,
+                  description: form.description.trim(),
+                  contactEmail: form.contactEmail.trim(),
+                  status: "Open",
+                  applicants: 0,
+                  postedAt: new Date().toISOString().slice(0, 10),
+                };
+
+                // Save to browser storage (demo)
+                saveJobToLocalStorage(job);
+
+                // Simulate network delay
                 setTimeout(() => {
                   setSaving(false);
                   setSubmitted(true);
-                }, 800);
+                }, 500);
               }}
               style={{ display: "grid", gap: 12 }}
             >
@@ -137,7 +175,7 @@ export default function PostJob() {
                   label="Trade"
                   value={form.trade}
                   onChange={(v) => setForm({ ...form, trade: v })}
-                  placeholder="Electrical / Mechanical / Welding / ... "
+                  placeholder="Electrical / Mechanical / Welding / …"
                 />
                 <Input
                   label="Location*"
@@ -218,7 +256,6 @@ export default function PostJob() {
                 * Required fields
               </p>
 
-              {/* Small helper: show where prefills came from */}
               <div style={hintBox}>
                 Tip: Company Name and Contact Email prefill from your{" "}
                 <a href="/employer/profile">Company Profile</a>. Update them there to change the defaults.
@@ -236,13 +273,14 @@ export default function PostJob() {
 function Success() {
   return (
     <div style={{ textAlign: "center" }}>
-      <h2 style={{ marginTop: 0 }}>Job submitted (demo)</h2>
+      <h2 style={{ marginTop: 0 }}>Job saved (demo)</h2>
       <p style={{ marginBottom: 16 }}>
-        We haven’t connected a database yet. This confirms your form works.
+        This job was saved in your browser’s storage. Next, we’ll have the listings
+        page read from that storage so you can manage it.
       </p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-        <a href="/employer" style={pillDark}>Back to Employer Area</a>
-        <a href="/employer/listings" style={pillLight}>Manage Listings</a>
+        <a href="/employer/listings" style={pillDark}>Go to Manage Listings</a>
+        <a href="/employer/post" style={pillLight}>Post Another</a>
       </div>
     </div>
   );
