@@ -1,9 +1,11 @@
+import "@/styles/globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
-import "../styles/globals.css";
+import Nav from "../components/Nav";
 
-export default function MyApp({ Component, pageProps }) {
+export default function App({ Component, pageProps }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider {...pageProps}>
+      <Nav />
       <Component {...pageProps} />
     </ClerkProvider>
   );
