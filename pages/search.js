@@ -56,7 +56,6 @@ export default function SearchPage() {
   const results = useMemo(() => {
     let list = [...DEMO_JOBS];
 
-    // keyword across title/company/location/description
     const kw = q.trim().toLowerCase();
     if (kw) {
       list = list.filter((j) =>
@@ -67,23 +66,19 @@ export default function SearchPage() {
       );
     }
 
-    // filter by trade
     if (trade !== "All") {
       list = list.filter((j) => j.trade.toLowerCase() === trade.toLowerCase());
     }
 
-    // filter by travel requirement
     if (travel !== "Any") {
       list = list.filter((j) => j.travelRequired === travel);
     }
 
-    // sort
     if (sort === "soonest") {
       list.sort(
         (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
       );
     } else if (sort === "paydesc") {
-      // crude numeric extraction from "$38/hr" etc.
       const rate = (s) => parseFloat((s || "").replace(/[^0-9.]/g, "")) || 0;
       list.sort((a, b) => rate(b.payRate) - rate(a.payRate));
     }
@@ -95,7 +90,7 @@ export default function SearchPage() {
     <main style={wrap}>
       <h1 style={{ margin: "0 0 12px" }}>Search Jobs</h1>
       <p style={{ margin: "0 0 24px", color: "#555" }}>
-        Demo data for now — filters work client-side. Click **View** to open a job detail page.
+        Demo data for now — filters work client-side. Click <strong>View</strong> to open a job, or <strong>Apply</strong> to go straight to the application.
       </p>
 
       {/* Controls */}
@@ -160,7 +155,8 @@ function JobCard({ job }) {
 
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <a href={`/jobs/${job.id}`} style={btnDark}>View</a>
-        <a href="/sign-in" style={btnLight}>Apply</a>
+        {/* UPDATED: go straight to the real apply page */}
+        <a href={`/jobs/${job.id}/apply`} style={btnLight}>Apply</a>
         <a href="/sign-in" style={btnLight}>Save</a>
       </div>
     </article>
