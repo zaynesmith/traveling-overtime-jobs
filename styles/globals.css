@@ -1,29 +1,70 @@
-/* Reset some default browser styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* --- Reset / base --- */
+html, body, #__next { height: 100%; margin: 0; }
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+
+/* --- Hero with background image --- */
+.hero {
+  position: relative;
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: white;
+
+  /* your uploaded image lives in /public */
+  background-image: url('/cover.jpg');
+  background-size: cover;
+  background-position: center;
 }
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-  background-color: #f9f9f9;
-  color: #333;
-  line-height: 1.6;
+/* darken image for text contrast */
+.hero .overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    rgba(0,0,0,0.55),
+    rgba(0,0,0,0.55)
+  );
 }
 
-/* Simple container */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem;
+/* make sure content sits above overlay */
+.hero .title,
+.hero .pill-group { position: relative; z-index: 1; }
+
+.title {
+  font-size: clamp(28px, 6vw, 64px);
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  margin: 0 16px 28px;
 }
 
-/* Links */
-a {
-  color: #0070f3;
+/* --- Button group --- */
+.pill-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;              /* allow wrapping on small screens */
+  justify-content: center;
+  padding: 0 16px 24px;
+}
+
+.pill {
+  background: #fff;
+  color: #111;
+  border-radius: 14px;
+  padding: 10px 16px;
   text-decoration: none;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  transition: transform .08s ease, box-shadow .15s ease;
+  display: inline-block;
 }
-a:hover {
-  text-decoration: underline;
+
+.pill:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,0.22); }
+
+/* --- Mobile: stack as full-width chips --- */
+@media (max-width: 640px) {
+  .pill-group { gap: 10px; }
+  .pill { width: 100%; max-width: 360px; }
 }
