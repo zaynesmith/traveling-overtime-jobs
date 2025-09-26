@@ -1,6 +1,6 @@
 // pages/_app.js
 import { ClerkProvider } from "@clerk/nextjs";
-import "../styles/globals.css"; // use a simple relative path
+import "../styles/globals.css"; // simple relative path; no "@/"
 
 export default function MyApp({ Component, pageProps }) {
   return (
