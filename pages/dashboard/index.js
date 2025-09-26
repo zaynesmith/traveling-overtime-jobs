@@ -1,4 +1,4 @@
-// pages/dashboard.js
+// pages/dashboard/index.js
 import {
   SignedIn,
   SignedOut,
@@ -46,7 +46,6 @@ export default function Dashboard() {
       await user.update({
         publicMetadata: { ...(user.publicMetadata || {}), role: nextRole },
       });
-      // Refresh to reflect new role-specific shortcuts
       if (typeof window !== "undefined") window.location.reload();
     } catch (e) {
       console.error(e);
