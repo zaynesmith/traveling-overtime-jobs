@@ -1,14 +1,13 @@
 // pages/applications.js
 import { useEffect, useState } from "react";
 
-export default function MyApplicationsPage() {
+export default function MyApplications() {
   const [apps, setApps] = useState([]);
 
-  // Load from localStorage on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const raw = window.localStorage.getItem("myApplications");
+      const raw = localStorage.getItem("myApplications");
       setApps(raw ? JSON.parse(raw) : []);
     } catch {
       setApps([]);
@@ -19,15 +18,15 @@ export default function MyApplicationsPage() {
     setApps((prev) => {
       const next = prev.filter((a) => a.id !== id);
       if (typeof window !== "undefined") {
-        window.localStorage.setItem("myApplications", JSON.stringify(next));
+        localStorage.setItem("myApplications", JSON.stringify(next));
       }
       return next;
     });
   }
 
   function clearAll() {
-    if (!confirm("Remove all applications saved in this browser?")) return;
-    if (typeof window !== "undefined") window.localStorage.removeItem("myApplications");
+    if (!confirm("Remove all locally saved applications?")) return;
+    if (typeof window !== "undefined") localStorage.removeItem("myApplications");
     setApps([]);
   }
 
@@ -36,7 +35,7 @@ export default function MyApplicationsPage() {
       <header style={header}>
         <h1 style={{ margin: 0 }}>My Applications</h1>
         <div style={{ display: "flex", gap: 8 }}>
-          <a href="/search" style={pillLight}>← Back to Search</a>
+          <a href="/jobseeker/search" style={pillLight}>← Back to Search</a>
           {apps.length > 0 && (
             <button onClick={clearAll} style={btnOutline}>Clear All</button>
           )}
@@ -45,41 +44,60 @@ export default function MyApplicationsPage() {
 
       {apps.length === 0 ? (
         <section style={emptyCard}>
-          You haven’t submitted any applications (in this browser) yet.
-          Go to <a href="/search">Search</a>, open a job, and click <strong>Apply</strong>.
+          No applications saved on this device yet.
+          Go to <a href="/jobseeker/search">Search</a>, open a job, and click <strong>Apply</strong>.
         </section>
       ) : (
-        <section style={grid}>
+        <section style={list}>
           {apps
             .slice()
             .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
             .map((a) => (
               <article key={a.id} style={card}>
-                <header style={{ marginBottom: 8 }}>
-                  <h3 style={{ margin: "0 0 6px" }}>{a.jobTitle}</h3>
+                <header style={{ marginBottom: 6 }}>
+                  <h3 style={{ margin: "0 0 4px" }}>{a.jobTitle}</h3>
                   <div style={{ color: "#666", fontSize: 14 }}>
                     {a.company} • {a.location}
                   </div>
                 </header>
 
-                <div style={{ color: "#666", fontSize: 12, marginBottom: 10 }}>
+                <div style={{ color: "#666", fontSize: 12, marginBottom: 8 }}>
                   Submitted: {new Date(a.submittedAt).toLocaleString()}
                 </div>
 
-                <dl style={dl}>
-                  <dt>Full Name</dt><dd>{a.applicant.fullName}</dd>
-                  <dt>Email</dt><dd>{a.applicant.email}</dd>
-                  {a.applicant.phone && (<><dt>Phone</dt><dd>{a.applicant.phone}</dd></>)}
-                  <dt>Resume</dt>
-                  <dd>
-                    <a href={a.applicant.resumeUrl} target="_blank" rel="noreferrer">
-                      {a.applicant.resumeUrl}
-                    </a>
-                  </dd>
-                  {a.applicant.message && (<><dt>Message</dt><dd>{a.applicant.message}</dd></>)}
-                </dl>
+                <div style={gridTwo}>
+                  <div>
+                    <Label>Full Name</Label>
+                    <div>{a.applicant.fullName || "—"}</div>
+                  </div>
+                  <div>
+                    <Label>Email</Label>
+                    <div>{a.applicant.email || "—"}</div>
+                  </div>
+                  <div>
+                    <Label>Phone</Label>
+                    <div>{a.applicant.phone || "—"}</div>
+                  </div>
+                  <div>
+                    <Label>Resume</Label>
+                    {a.applicant.resumeUrl ? (
+                      <a href={a.applicant.resumeUrl} target="_blank" rel="noreferrer" style={link}>
+                        Open
+                      </a>
+                    ) : (
+                      <div>—</div>
+                    )}
+                  </div>
+                </div>
 
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                {a.applicant.message && (
+                  <div style={{ marginTop: 8 }}>
+                    <Label>Message</Label>
+                    <div style={{ whiteSpace: "pre-wrap" }}>{a.applicant.message}</div>
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                   <a href={`/jobs/${a.jobId}`} style={btnDark}>View Job</a>
                   <button onClick={() => removeOne(a.id)} style={btnOutline}>Remove</button>
                 </div>
@@ -91,7 +109,11 @@ export default function MyApplicationsPage() {
   );
 }
 
-/* ---- tiny styles ---- */
+function Label({ children }) {
+  return <div style={{ fontSize: 12, color: "#555", marginBottom: 2 }}>{children}</div>;
+}
+
+/* ---- styles ---- */
 const wrap = {
   maxWidth: 1000,
   margin: "32px auto",
@@ -106,10 +128,16 @@ const header = {
   marginBottom: 16,
 };
 
-const grid = {
+const list = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
   gap: 16,
+};
+
+const gridTwo = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 12,
 };
 
 const card = {
@@ -129,23 +157,6 @@ const emptyCard = {
   color: "#666",
 };
 
-const dl = {
-  display: "grid",
-  gridTemplateColumns: "140px 1fr",
-  gap: "6px 12px",
-  alignItems: "baseline",
-  margin: 0,
-};
-
-const btnDark = {
-  textDecoration: "none",
-  background: "#111",
-  color: "#fff",
-  borderRadius: 10,
-  padding: "10px 14px",
-  fontWeight: 700,
-};
-
 const pillLight = {
   display: "inline-block",
   background: "#fff",
@@ -157,6 +168,15 @@ const pillLight = {
   textDecoration: "none",
 };
 
+const btnDark = {
+  textDecoration: "none",
+  background: "#111",
+  color: "#fff",
+  borderRadius: 10,
+  padding: "10px 14px",
+  fontWeight: 700,
+};
+
 const btnOutline = {
   background: "#fff",
   color: "#111",
@@ -166,3 +186,5 @@ const btnOutline = {
   fontWeight: 700,
   cursor: "pointer",
 };
+
+const link = { color: "#111", textDecoration: "underline" };
