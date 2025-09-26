@@ -1,82 +1,83 @@
 // components/Header.js
-import Link from "next/link";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 
 export default function Header() {
   return (
-    <header style={wrap}>
-      <Link href="/" style={brand}>Traveling Overtime Jobs</Link>
+    <>
+      <header className="site-header">
+        <div className="container">
+          <a className="brand" href="/">Traveling Overtime Jobs</a>
 
-      <nav style={nav}>
-        <Link href="/search" style={link}>Search Jobs</Link>
-        <Link href="/saved" style={link}>Saved</Link>
-        <Link href="/applications" style={link}>My Applications</Link>
-        <Link href="/employer/post" style={link}>Post Job</Link>
-        <Link href="/employer/listings" style={link}>Manage Listings</Link>
-        <Link href="/jobseeker/profile" style={link}>My Profile</Link>
+          <nav className="nav">
+            <a href="/search">Search Jobs</a>
+            <a href="/post">Post Jobs</a>
 
-        <SignedOut>
-          <Link href="/sign-in" style={btnLight}>Sign In</Link>
-          <Link href="/sign-up" style={btnDark}>Sign Up</Link>
-        </SignedOut>
+            <SignedOut>
+              <a className="btn" href="/sign-in">Sign in</a>
+              <a className="btn secondary" href="/sign-up">Sign up</a>
+            </SignedOut>
 
-        <SignedIn>
-          <UserButton afterSignOutUrl="/" />
-        </SignedIn>
-      </nav>
-    </header>
+            <SignedIn>
+              <a className="btn" href="/dashboard">Dashboard</a>
+              <UserButton appearance={{ elements: { userButtonPopoverCard: { zIndex: 9999 } } }} />
+            </SignedIn>
+          </nav>
+        </div>
+      </header>
+
+      <style jsx>{`
+        .site-header {
+          position: sticky;
+          top: 0;
+          z-index: 50;
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: saturate(160%) blur(6px);
+          border-bottom: 1px solid #eee;
+        }
+        .container {
+          max-width: 1100px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 16px;
+        }
+        .brand {
+          font-weight: 800;
+          text-decoration: none;
+          color: #111;
+        }
+        .nav {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+        }
+        .nav a {
+          text-decoration: none;
+          color: #333;
+          padding: 6px 8px;
+          border-radius: 8px;
+        }
+        .nav a:hover { background: #f3f3f3; }
+        .btn {
+          font-weight: 600;
+          border: 1px solid #ddd;
+          padding: 6px 10px;
+          border-radius: 10px;
+          background: #fff;
+        }
+        .btn.secondary {
+          background: #111;
+          color: #fff;
+          border-color: #111;
+        }
+
+        @media (max-width: 560px) {
+          .brand { font-size: 14px; }
+          .nav { gap: 6px; }
+          .btn { padding: 6px 8px; }
+        }
+      `}</style>
+    </>
   );
 }
-
-const wrap = {
-  position: "sticky",
-  top: 0,
-  zIndex: 50,
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: "10px 16px",
-  background: "rgba(255,255,255,0.85)",
-  backdropFilter: "saturate(180%) blur(8px)",
-  borderBottom: "1px solid #eee",
-  fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial",
-};
-
-const brand = {
-  fontWeight: 800,
-  color: "#111",
-  textDecoration: "none",
-};
-
-const nav = {
-  display: "flex",
-  gap: 12,
-  alignItems: "center",
-  flexWrap: "wrap",
-};
-
-const link = {
-  color: "#111",
-  textDecoration: "none",
-  padding: "6px 8px",
-  borderRadius: 8,
-};
-
-const btnLight = {
-  textDecoration: "none",
-  background: "#fff",
-  color: "#111",
-  border: "1px solid #ddd",
-  borderRadius: 8,
-  padding: "8px 12px",
-  fontWeight: 700,
-};
-
-const btnDark = {
-  textDecoration: "none",
-  background: "#111",
-  color: "#fff",
-  borderRadius: 8,
-  padding: "8px 12px",
-  fontWeight: 700,
-};
