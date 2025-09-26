@@ -95,7 +95,7 @@ export default function SearchPage() {
     <main style={wrap}>
       <h1 style={{ margin: "0 0 12px" }}>Search Jobs</h1>
       <p style={{ margin: "0 0 24px", color: "#555" }}>
-        Demo data for now — form and filters are fully functional on the client.
+        Demo data for now — filters work client-side. Click **View** to open a job detail page.
       </p>
 
       {/* Controls */}
@@ -159,7 +159,8 @@ function JobCard({ job }) {
       </div>
 
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-        <a href="/sign-in" style={btnDark}>Apply</a>
+        <a href={`/jobs/${job.id}`} style={btnDark}>View</a>
+        <a href="/sign-in" style={btnLight}>Apply</a>
         <a href="/sign-in" style={btnLight}>Save</a>
       </div>
     </article>
@@ -247,18 +248,3 @@ const btnLight = {
   fontWeight: 700,
   textDecoration: "none",
 };
-
-/* Responsive tweaks */
-const mq = `
-@media (max-width: 900px) {
-  .controls { grid-template-columns: 1fr 1fr; }
-  .grid { grid-template-columns: 1fr; }
-}
-`;
-
-// Inject a small responsive style block
-if (typeof document !== "undefined") {
-  const style = document.createElement("style");
-  style.innerHTML = mq.replaceAll(".controls", "section").replaceAll(".grid", "section+section");
-  document.head.appendChild(style);
-}
