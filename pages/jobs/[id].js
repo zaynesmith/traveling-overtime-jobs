@@ -83,7 +83,8 @@ export default function JobDetail() {
         <p style={{ marginTop: 16, lineHeight: 1.6 }}>{job.description}</p>
 
         <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-          <a href="/sign-in" style={btnDark}>Apply</a>
+          {/* UPDATED LINK: go to the real apply page */}
+          <a href={`/jobs/${job.id}/apply`} style={btnDark}>Apply</a>
           <a href="/sign-in" style={btnLight}>Save</a>
           <a href="/search" style={linkBtn}>Back to Search</a>
         </div>
