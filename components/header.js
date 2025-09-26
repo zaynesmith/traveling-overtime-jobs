@@ -9,8 +9,10 @@ export default function Header() {
           <a className="brand" href="/">Traveling Overtime Jobs</a>
 
           <nav className="nav">
-            <a href="/search">Search Jobs</a>
-            <a href="/post">Post Jobs</a>
+            <a href="/jobseeker/search">Search Jobs</a>
+            <a href="/employer/post">Post Jobs</a>
+            <a href="/saved">Saved</a>
+            <a href="/applications">Applications</a>
 
             <SignedOut>
               <a className="btn" href="/sign-in">Sign in</a>
@@ -19,7 +21,10 @@ export default function Header() {
 
             <SignedIn>
               <a className="btn" href="/dashboard">Dashboard</a>
-              <UserButton appearance={{ elements: { userButtonPopoverCard: { zIndex: 9999 } } }} />
+              <UserButton
+                appearance={{ elements: { userButtonPopoverCard: { zIndex: 9999 } } }}
+                afterSignOutUrl="/"
+              />
             </SignedIn>
           </nav>
         </div>
@@ -51,6 +56,7 @@ export default function Header() {
           display: flex;
           gap: 10px;
           align-items: center;
+          flex-wrap: wrap;
         }
         .nav a {
           text-decoration: none;
@@ -71,7 +77,6 @@ export default function Header() {
           color: #fff;
           border-color: #111;
         }
-
         @media (max-width: 560px) {
           .brand { font-size: 14px; }
           .nav { gap: 6px; }
