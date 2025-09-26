@@ -18,8 +18,9 @@ export default function Home() {
           <div className="pill-group">
             <a href="/jobseeker/search" className="pill">Search Jobs</a>
             <a href="/employer/post" className="pill">Post Jobs</a>
-            <a href="/employer" className="pill">Employer Login</a>
-            <a href="/jobseeker" className="pill">Jobseeker Login</a>
+            {/* Send users to Clerk sign-in, then straight to the right dashboard */}
+            <a href="/sign-in?redirect_url=/employer" className="pill">Employer Login</a>
+            <a href="/sign-in?redirect_url=/jobseeker" className="pill">Jobseeker Login</a>
           </div>
         </section>
       </main>
