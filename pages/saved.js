@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 export default function SavedJobsPage() {
   const [saved, setSaved] = useState([]);
 
-  // load from localStorage on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const raw = window.localStorage.getItem("savedJobs");
+      const raw = localStorage.getItem("savedJobs");
       setSaved(raw ? JSON.parse(raw) : []);
     } catch {
       setSaved([]);
@@ -19,15 +18,15 @@ export default function SavedJobsPage() {
     setSaved((prev) => {
       const next = prev.filter((j) => j.id !== id);
       if (typeof window !== "undefined") {
-        window.localStorage.setItem("savedJobs", JSON.stringify(next));
+        localStorage.setItem("savedJobs", JSON.stringify(next));
       }
       return next;
     });
   }
 
   function clearAll() {
-    if (!confirm("Remove all saved jobs?")) return;
-    if (typeof window !== "undefined") window.localStorage.removeItem("savedJobs");
+    if (!confirm("Clear all saved jobs in this browser?")) return;
+    if (typeof window !== "undefined") localStorage.removeItem("savedJobs");
     setSaved([]);
   }
 
@@ -36,39 +35,48 @@ export default function SavedJobsPage() {
       <header style={header}>
         <h1 style={{ margin: 0 }}>Saved Jobs</h1>
         <div style={{ display: "flex", gap: 8 }}>
-          <a href="/search" style={pillLight}>← Back to Search</a>
+          <a href="/jobseeker/search" style={pillLight}>← Back to Search</a>
           {saved.length > 0 && (
             <button onClick={clearAll} style={btnOutline}>Clear All</button>
           )}
         </div>
       </header>
 
-      <section style={grid}>
-        {saved.length === 0 ? (
-          <div style={emptyCard}>
-            You haven’t saved any jobs yet. Go to <a href="/search">Search</a> and click **Save**.
-          </div>
-        ) : (
-          saved.map((j) => (
-            <article key={j.id} style={card}>
-              <header style={{ marginBottom: 8 }}>
-                <h3 style={{ margin: "0 0 6px" }}>{j.title}</h3>
-                <div style={{ color: "#666", fontSize: 14 }}>
-                  {j.company} • {j.trade} • {j.location}
+      {saved.length === 0 ? (
+        <section style={emptyCard}>
+          You haven’t saved any jobs (in this browser) yet.
+          Go to <a href="/jobseeker/search">Search</a> and click <strong>Save</strong> on a job.
+        </section>
+      ) : (
+        <section style={grid}>
+          {saved
+            .slice()
+            .sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt))
+            .map((j) => (
+              <article key={j.id} style={card}>
+                <header style={{ marginBottom: 6 }}>
+                  <h3 style={{ margin: "0 0 4px" }}>{j.title}</h3>
+                  <div style={{ color: "#666", fontSize: 14 }}>
+                    {j.company} • {j.location}
+                  </div>
+                </header>
+
+                <div style={{ color: "#666", fontSize: 12, marginBottom: 8 }}>
+                  Saved: {new Date(j.savedAt).toLocaleString()}
                 </div>
-              </header>
 
-              <p style={{ margin: "8px 0 12px", color: "#333" }}>{j.description}</p>
+                <div style={{ color: "#444", fontSize: 13, marginBottom: 8 }}>
+                  {j.trade} • Pay {j.pay} • Per Diem {j.perDiem} • OT {j.overtime} • Travel {j.travel}
+                </div>
 
-              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                <a href={`/jobs/${j.id}`} style={btnDark}>View</a>
-                <a href={`/jobs/${j.id}/apply`} style={btnLight}>Apply</a>
-                <button onClick={() => removeOne(j.id)} style={btnOutline}>Remove</button>
-              </div>
-            </article>
-          ))
-        )}
-      </section>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <a href={`/jobs/${j.id}`} style={btnDark}>View &amp; Apply</a>
+                  <button onClick={() => removeOne(j.id)} style={btnOutline}>Remove</button>
+                </div>
+              </article>
+            ))}
+        </section>
+      )}
     </main>
   );
 }
@@ -111,25 +119,6 @@ const emptyCard = {
   color: "#666",
 };
 
-const btnDark = {
-  textDecoration: "none",
-  background: "#111",
-  color: "#fff",
-  borderRadius: 10,
-  padding: "10px 14px",
-  fontWeight: 700,
-};
-
-const btnLight = {
-  textDecoration: "none",
-  background: "#fff",
-  color: "#111",
-  border: "1px solid #ddd",
-  borderRadius: 10,
-  padding: "10px 14px",
-  fontWeight: 700,
-};
-
 const pillLight = {
   display: "inline-block",
   background: "#fff",
@@ -139,6 +128,15 @@ const pillLight = {
   padding: "10px 14px",
   fontWeight: 600,
   textDecoration: "none",
+};
+
+const btnDark = {
+  textDecoration: "none",
+  background: "#111",
+  color: "#fff",
+  borderRadius: 10,
+  padding: "10px 14px",
+  fontWeight: 700,
 };
 
 const btnOutline = {
