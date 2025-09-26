@@ -8,7 +8,7 @@ import {
 } from "@clerk/nextjs";
 import { useEffect, useMemo, useState } from "react";
 
-// Demo: pretend these are the jobs you posted
+// Demo: pretend these are existing jobs you posted earlier (static)
 const DEMO_MY_LISTINGS = [
   {
     id: "acme-001",
@@ -18,6 +18,7 @@ const DEMO_MY_LISTINGS = [
     status: "Open",
     applicants: 12,
     postedAt: "2025-09-30",
+    _source: "demo",
   },
   {
     id: "acme-002",
@@ -27,6 +28,7 @@ const DEMO_MY_LISTINGS = [
     status: "Open",
     applicants: 4,
     postedAt: "2025-10-02",
+    _source: "demo",
   },
   {
     id: "acme-003",
@@ -36,21 +38,49 @@ const DEMO_MY_LISTINGS = [
     status: "Closed",
     applicants: 23,
     postedAt: "2025-08-20",
+    _source: "demo",
   },
 ];
 
 export default function EmployerListings() {
   const { user, isLoaded } = useUser();
   const role = user?.publicMetadata?.role;
+
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("All");
-  const [list, setList] = useState(DEMO_MY_LISTINGS);
 
+  // This state will hold BOTH demo & your locally saved jobs
+  const [list, setList] = useState([]);
+
+  // Load from localStorage and merge with demo on mount
   useEffect(() => {
-    // scroll to top on mount
     if (typeof window !== "undefined") window.scrollTo(0, 0);
+
+    // read your posted jobs from localStorage
+    let mine = [];
+    try {
+      const raw = localStorage.getItem("myEmployerJobs");
+      mine = raw ? JSON.parse(raw) : [];
+    } catch {
+      mine = [];
+    }
+
+    // normalize mine and mark as "local"
+    const myNormalized = (mine || []).map((j) => ({
+      id: j.id,
+      title: j.title,
+      company: j.company,
+      location: j.location,
+      status: j.status || "Open",
+      applicants: j.applicants ?? 0,
+      postedAt: j.postedAt || new Date().toISOString().slice(0, 10),
+      _source: "local", // mark as yours
+    }));
+
+    setList([...DEMO_MY_LISTINGS, ...myNormalized]);
   }, []);
 
+  // Filters + sort
   const filtered = useMemo(() => {
     let out = [...list];
 
@@ -110,7 +140,22 @@ export default function EmployerListings() {
     );
   }
 
-  // Employer view
+  // Helper: toggle status; if item is from local storage, persist change
+  function toggleStatus(jobId) {
+    setList((prev) => {
+      const next = prev.map((x) =>
+        x.id === jobId ? { ...x, status: x.status === "Open" ? "Closed" : "Open" } : x
+      );
+
+      // persist back to localStorage for "local" jobs
+      try {
+        const localOnly = next.filter((x) => x._source === "local");
+        localStorage.setItem("myEmployerJobs", JSON.stringify(localOnly));
+      } catch {}
+      return next;
+    });
+  }
+
   return (
     <SignedIn>
       <main style={wrap}>
@@ -152,13 +197,19 @@ export default function EmployerListings() {
                   <th align="left">Status</th>
                   <th align="right">Applicants</th>
                   <th align="left">Posted</th>
+                  <th align="left">Source</th>
                   <th align="left">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((j) => (
                   <tr key={j.id}>
-                    <td>{j.title}</td>
+                    <td>
+                      {j.title}{" "}
+                      {j._source === "local" && (
+                        <span style={tagYou}>(You)</span>
+                      )}
+                    </td>
                     <td>{j.location}</td>
                     <td>
                       <span
@@ -175,22 +226,20 @@ export default function EmployerListings() {
                     </td>
                     <td align="right">{j.applicants}</td>
                     <td>{j.postedAt}</td>
+                    <td style={{ color: "#666" }}>{j._source === "local" ? "Local" : "Demo"}</td>
                     <td>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <a href={`/employer/listings/${j.id}`} style={linkBtn}>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <a
+                          href={`/employer/listings/${j.id}`}
+                          style={linkBtn}
+                          title="View listing details"
+                        >
                           View
                         </a>
                         <button
-                          onClick={() =>
-                            setList((prev) =>
-                              prev.map((x) =>
-                                x.id === j.id
-                                  ? { ...x, status: x.status === "Open" ? "Closed" : "Open" }
-                                  : x
-                              )
-                            )
-                          }
+                          onClick={() => toggleStatus(j.id)}
                           style={outlineBtn}
+                          title="Toggle open/closed"
                         >
                           {j.status === "Open" ? "Close" : "Reopen"}
                         </button>
@@ -284,4 +333,14 @@ const pillDark = {
   padding: "10px 14px",
   fontWeight: 600,
   textDecoration: "none",
+};
+
+const tagYou = {
+  fontSize: 12,
+  marginLeft: 6,
+  color: "#0b5",
+  background: "#eafff1",
+  border: "1px solid #b9f1ce",
+  padding: "2px 6px",
+  borderRadius: 999,
 };
