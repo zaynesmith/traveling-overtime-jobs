@@ -1,62 +1,66 @@
 // pages/jobseeker/index.js
-import {
-  SignedIn,
-  SignedOut,
-  RedirectToSignIn,
-  UserButton,
-} from "@clerk/nextjs";
+import { SignedIn, SignedOut, RedirectToSignIn, UserButton, useUser } from "@clerk/nextjs";
 
 export default function JobseekerHome() {
-  return (
-    <>
+  const { isLoaded, isSignedIn } = useUser();
+  if (!isLoaded) return null;
+
+  if (!isSignedIn) {
+    return (
       <SignedOut>
         <RedirectToSignIn redirectUrl="/jobseeker" />
       </SignedOut>
+    );
+  }
 
-      <SignedIn>
-        <main style={wrap}>
-          <header style={header}>
-            <h1 style={{ margin: 0 }}>Jobseeker Dashboard</h1>
-            <UserButton afterSignOutUrl="/" />
-          </header>
+  return (
+    <SignedIn>
+      <main style={wrap}>
+        <header style={header}>
+          <h1 style={{ margin: 0 }}>Jobseeker Dashboard</h1>
+          <UserButton afterSignOutUrl="/" />
+        </header>
 
-          <section style={grid}>
-            <a href="/jobseeker/search" style={cardLink}>
-              <h2 style={{ marginTop: 0 }}>Search Jobs</h2>
-              <p>Browse and filter jobs by trade, location, or pay.</p>
-            </a>
+        <section style={grid}>
+          <a href="/jobseeker/search" style={{ ...card, textDecoration: "none", color: "#111" }}>
+            <h2 style={{ marginTop: 0 }}>Search Jobs</h2>
+            <p>Filter by trade, location, pay, and more.</p>
+          </a>
 
-            <a href="/jobseeker/saved" style={cardLink}>
-              <h2 style={{ marginTop: 0 }}>Saved Jobs</h2>
-              <p>Quick access to jobs you’ve starred for later.</p>
-            </a>
+          <a href="/jobseeker/saved" style={{ ...card, textDecoration: "none", color: "#111" }}>
+            <h2 style={{ marginTop: 0 }}>Saved Jobs</h2>
+            <p>See jobs you’ve bookmarked (demo for now).</p>
+          </a>
 
-            <a href="/jobseeker/applications" style={cardLink}>
-              <h2 style={{ marginTop: 0 }}>My Applications</h2>
-              <p>Track jobs you’ve applied for.</p>
-            </a>
+          <a href="/jobseeker/applications" style={{ ...card, textDecoration: "none", color: "#111" }}>
+            <h2 style={{ marginTop: 0 }}>My Applications</h2>
+            <p>Track application status (demo for now).</p>
+          </a>
 
-            <a href="/jobseeker/profile" style={cardLink}>
-              <h2 style={{ marginTop: 0 }}>My Profile</h2>
-              <p>Upload your resume, update contact info, and manage settings.</p>
-            </a>
-          </section>
-        </main>
-      </SignedIn>
-    </>
+          <a href="/jobseeker/profile" style={{ ...card, textDecoration: "none", color: "#111" }}>
+            <h2 style={{ marginTop: 0 }}>My Profile</h2>
+            <p>Resume upload and basic info.</p>
+          </a>
+
+          <a href="/" style={{ ...card, textDecoration: "none", color: "#111" }}>
+            <h2 style={{ marginTop: 0 }}>Back to Home</h2>
+            <p>Return to the main site.</p>
+          </a>
+        </section>
+      </main>
+    </SignedIn>
   );
 }
 
-/* ------------ styles ------------ */
+/* styles */
 const wrap = {
   minHeight: "100vh",
   padding: "40px 24px",
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  gap: 20,
-  fontFamily:
-    "system-ui,-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+  gap: 24,
+  fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial",
 };
 
 const header = {
@@ -81,11 +85,4 @@ const card = {
   borderRadius: 12,
   padding: 20,
   boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-};
-
-const cardLink = {
-  ...card,
-  display: "block",
-  textDecoration: "none",
-  color: "#111",
 };
