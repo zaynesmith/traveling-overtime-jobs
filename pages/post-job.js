@@ -1,5 +1,6 @@
+import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const INITIAL_FORM = {
   title: "",
@@ -15,9 +16,37 @@ const INITIAL_FORM = {
   description: "",
 };
 
+const DRAFT_STORAGE_KEY = "public-post-job-draft";
+
 export default function PublicPostJob() {
   const router = useRouter();
+  const { isSignedIn, isLoaded } = useAuth();
   const [form, setForm] = useState(INITIAL_FORM);
+  const hasHydratedDraft = useRef(false);
+
+  useEffect(() => {
+    if (hasHydratedDraft.current || typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      const savedDraft = window.sessionStorage.getItem(DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        const parsedDraft = JSON.parse(savedDraft);
+        if (parsedDraft && typeof parsedDraft === "object") {
+          setForm((prev) => ({ ...prev, ...parsedDraft }));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to restore saved job draft", error);
+    } finally {
+      hasHydratedDraft.current = true;
+    }
+  }, []);
+
+  const redirectUrl = useMemo(() => {
+    return router.asPath ? router.asPath : "/post-job";
+  }, [router.asPath]);
 
   function updateField(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -25,8 +54,25 @@ export default function PublicPostJob() {
 
   function handleSubmit(event) {
     event.preventDefault();
-    alert("Please sign in or create an employer account to publish your job posting.");
-    router.push("/sign-in?role=employer");
+
+    if (!isLoaded) {
+      return;
+    }
+
+    try {
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(form));
+      }
+    } catch (error) {
+      console.error("Failed to save job draft", error);
+    }
+
+    if (!isSignedIn) {
+      router.push({ pathname: "/sign-in", query: { role: "employer", redirect_url: redirectUrl } });
+      return;
+    }
+
+    router.push("/employer/post");
   }
 
   return (
