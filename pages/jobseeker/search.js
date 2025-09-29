@@ -1,355 +1,45 @@
-// pages/jobseeker/search.js
-import { SignedIn, SignedOut, useUser, SignInButton } from "@clerk/nextjs";
-import { useEffect, useMemo, useState } from "react";
+import { SignedIn, SignedOut, RedirectToSignIn, UserButton } from "@clerk/nextjs";
+import { useMemo, useState } from "react";
 
-/** Demo jobs so the page isn't empty */
 const DEMO_JOBS = [
-  {
-    id: "demo-001",
-    title: "Journeyman Electrician",
-    company: "ACME Industrial",
-    trade: "Electrical",
-    location: "Houston, TX",
-    payRate: "$38/hr",
-    perDiem: "$100/day",
-    overtime: "6x10s",
-    travelRequired: "Yes",
-    startDate: "2025-10-21",
-    description:
-      "Industrial shutdown — cable pulls, terminations, MCC work. OSHA10 preferred. Bring hand tools & PPE.",
-    postedAt: "2025-10-01",
-    _source: "demo",
-  },
-  {
-    id: "demo-002",
-    title: "Industrial Instrument Tech",
-    company: "Gulf Process",
-    trade: "Instrumentation",
-    location: "Baton Rouge, LA",
-    payRate: "$42/hr",
-    perDiem: "$120/day",
-    overtime: "OT after 40",
-    travelRequired: "Yes",
-    startDate: "2025-11-05",
-    description:
-      "Loop checks, calibrations, transmitters, DCS work. NCCER a plus. Per diem available.",
-    postedAt: "2025-09-25",
-    _source: "demo",
-  },
+  { id:"j1", title:"Journeyman Electrician", company:"ACME", location:"Houston, TX", pay:"$38/hr", perDiem:"$100/day" },
+  { id:"j2", title:"Welder - TIG", company:"GulfFab", location:"Lake Charles, LA", pay:"$35/hr", perDiem:"$80/day" },
+  { id:"j3", title:"Millwright", company:"SteelCo", location:"Corpus Christi, TX", pay:"$34/hr", perDiem:"$90/day" }
 ];
 
-export default function JobseekerSearch() {
-  const { isSignedIn } = useUser();
-  const [allJobs, setAllJobs] = useState([]);
-  const [saved, setSaved] = useState([]);
+export default function JobSearch() {
   const [q, setQ] = useState("");
-  const [location, setLocation] = useState("");
-  const [trade, setTrade] = useState("");
-
-  // Load jobs & saved ids
-  useEffect(() => {
-    // Load employer-posted jobs from localStorage (if your employer/post flow writes them)
-    let localEmployerJobs = [];
-    try {
-      const raw = localStorage.getItem("myEmployerJobs");
-      localEmployerJobs = raw ? JSON.parse(raw) : [];
-    } catch {
-      localEmployerJobs = [];
-    }
-
-    const normalizedLocal = (localEmployerJobs || []).map((j) => ({
-      id: j.id || `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      title: j.title,
-      company: j.company,
-      trade: j.trade || "General",
-      location: j.location,
-      payRate: j.payRate || "",
-      perDiem: j.perDiem || "",
-      overtime: j.overtime || "",
-      travelRequired: j.travelRequired || "Yes",
-      startDate: j.startDate || "",
-      description: j.description || "",
-      postedAt: j.postedAt || new Date().toISOString().slice(0, 10),
-      _source: "local",
-    }));
-
-    const merged = [...DEMO_JOBS, ...normalizedLocal].sort(
-      (a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()
-    );
-    setAllJobs(merged);
-
-    // Saved IDs
-    try {
-      const rawSaved = localStorage.getItem("savedJobs");
-      setSaved(rawSaved ? JSON.parse(rawSaved) : []);
-    } catch {
-      setSaved([]);
-    }
-  }, []);
-
-  // Apply filters
-  const filtered = useMemo(() => {
-    let list = [...allJobs];
-
+  const results = useMemo(()=>{
     const kw = q.trim().toLowerCase();
-    if (kw) {
-      list = list.filter((j) =>
-        [j.title, j.company, j.trade, j.location, j.description]
-          .join(" ")
-          .toLowerCase()
-          .includes(kw)
-      );
-    }
-    if (location.trim()) {
-      const l = location.trim().toLowerCase();
-      list = list.filter((j) => (j.location || "").toLowerCase().includes(l));
-    }
-    if (trade.trim()) {
-      const t = trade.trim().toLowerCase();
-      list = list.filter((j) => (j.trade || "").toLowerCase().includes(t));
-    }
-    return list;
-  }, [allJobs, q, location, trade]);
-
-  // Save/unsave helpers
-  const isSaved = (id) => saved.includes(id);
-  const toggleSave = (id) => {
-    setSaved((prev) => {
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      try {
-        localStorage.setItem("savedJobs", JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  };
-
-  // Apply helper (writes to localStorage.applications)
-  const applyNow = (job) => {
-    if (!job) return;
-    try {
-      const raw = localStorage.getItem("applications");
-      const apps = raw ? JSON.parse(raw) : [];
-      // don’t duplicate same job application
-      if (apps.some((a) => a.jobId === job.id)) return;
-      const newApp = {
-        id: "app-" + Date.now(),
-        jobId: job.id,
-        title: job.title,
-        company: job.company,
-        location: job.location,
-        submittedAt: new Date().toISOString(),
-        status: "Submitted",
-      };
-      localStorage.setItem("applications", JSON.stringify([...apps, newApp]));
-      alert("Application submitted (demo). Check My Applications.");
-    } catch {
-      alert("Could not save your application. Try again.");
-    }
-  };
+    if (!kw) return DEMO_JOBS;
+    return DEMO_JOBS.filter(j => [j.title,j.company,j.location].join(" ").toLowerCase().includes(kw));
+  }, [q]);
 
   return (
-    <main style={wrap}>
-      <header style={header}>
-        <h1 style={{ margin: 0 }}>Search Jobs</h1>
-      </header>
+    <>
+      <SignedOut><RedirectToSignIn redirectUrl="/jobseeker/search" /></SignedOut>
+      <SignedIn>
+        <main className="container">
+          <header className="max960" style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <h1 style={{ margin: 0 }}>Search Jobs</h1>
+            <UserButton afterSignOutUrl="/" />
+          </header>
 
-      {/* Filters */}
-      <section style={{ ...card, marginBottom: 12 }}>
-        <div style={filters}>
-          <input
-            style={input}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Keyword (title, company, trade)…"
-          />
-          <input
-            style={input}
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="Location (City, State)"
-          />
-          <input
-            style={input}
-            value={trade}
-            onChange={(e) => setTrade(e.target.value)}
-            placeholder="Trade (Electrical, Welding, Instrumentation…)"
-          />
-        </div>
-      </section>
-
-      {/* Results */}
-      <section style={card}>
-        {filtered.length === 0 ? (
-          <div style={{ color: "#666" }}>No jobs match those filters.</div>
-        ) : (
-          <ul style={list}>
-            {filtered.map((j) => (
-              <li key={j.id} style={row}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
-                    <strong>{j.title}</strong>
-                    <span style={{ color: "#555" }}>• {j.company}</span>
-                    <SourceTag source={j._source} />
-                  </div>
-                  <div style={{ color: "#555", marginTop: 4 }}>
-                    {j.location} {j.payRate ? `• ${j.payRate}` : ""}{" "}
-                    {j.perDiem ? `• ${j.perDiem}` : ""}{" "}
-                    {j.overtime ? `• ${j.overtime}` : ""}{" "}
-                    {j.travelRequired ? `• Travel: ${j.travelRequired}` : ""}
-                  </div>
-                  {j.description && (
-                    <p style={{ margin: "8px 0 0 0", color: "#333" }}>
-                      {j.description}
-                    </p>
-                  )}
+          <section className="card max960" style={{ display:"grid", gap:12 }}>
+            <input className="input" placeholder="Title, company, or location…" value={q} onChange={(e)=>setQ(e.target.value)} />
+            {results.map(j=>(
+              <div key={j.id} style={{ border:"1px solid #eee", borderRadius:10, padding:12, display:"grid", gap:6 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <strong>{j.title}</strong>
+                  <a href="#" className="pill-light">Save</a>
                 </div>
-
-                <div style={{ display: "grid", gap: 8, justifyItems: "end" }}>
-                  {/* FIXED: View now points to the jobseeker detail route */}
-                  <a href={`/jobseeker/search/${j.id}`} style={linkBtn}>
-                    View
-                  </a>
-
-                  {/* Save/Unsave — require sign-in for saving */}
-                  <SignedIn>
-                    <button
-                      onClick={() => toggleSave(j.id)}
-                      style={isSaved(j.id) ? btnSaved : btnSave}
-                      aria-label={isSaved(j.id) ? "Unsave job" : "Save job"}
-                    >
-                      {isSaved(j.id) ? "Saved" : "Save"}
-                    </button>
-
-                    {/* Quick Apply — signed-in only (detail page also has Apply) */}
-                    <button onClick={() => applyNow(j)} style={btnApply}>
-                      Apply
-                    </button>
-                  </SignedIn>
-
-                  <SignedOut>
-                    <SignInButton mode="modal">
-                      <button style={btnSave}>Save</button>
-                    </SignInButton>
-                    <SignInButton mode="modal">
-                      <button style={btnApply}>Apply</button>
-                    </SignInButton>
-                  </SignedOut>
-                </div>
-              </li>
+                <div style={{ color:"#555" }}>{j.company} • {j.location}</div>
+                <div style={{ color:"#333" }}>{j.pay} • {j.perDiem}</div>
+              </div>
             ))}
-          </ul>
-        )}
-      </section>
-    </main>
+          </section>
+        </main>
+      </SignedIn>
+    </>
   );
 }
-
-/* ------ tiny components & styles ------ */
-function SourceTag({ source }) {
-  const label = source === "local" ? "Posted here" : "Demo";
-  const style = {
-    fontSize: 12,
-    padding: "2px 6px",
-    borderRadius: 999,
-    border: "1px solid #e5e7eb",
-    background: source === "local" ? "#effdf3" : "#f8fafc",
-    color: source === "local" ? "#0a5" : "#334155",
-  };
-  return <span style={style}>{label}</span>;
-}
-
-const wrap = {
-  minHeight: "100vh",
-  padding: "40px 24px",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: 16,
-  fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial",
-};
-
-const header = {
-  width: "100%",
-  maxWidth: 1100,
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-};
-
-const card = {
-  width: "100%",
-  maxWidth: 1100,
-  background: "#fff",
-  border: "1px solid rgba(0,0,0,0.08)",
-  borderRadius: 12,
-  padding: 16,
-  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-};
-
-const filters = {
-  display: "grid",
-  gridTemplateColumns: "2fr 1fr 1fr",
-  gap: 8,
-};
-const input = {
-  border: "1px solid #ddd",
-  borderRadius: 10,
-  padding: "10px 12px",
-  fontSize: 14,
-};
-
-const list = {
-  listStyle: "none",
-  padding: 0,
-  margin: 0,
-  display: "grid",
-  gap: 12,
-};
-
-const row = {
-  display: "grid",
-  gridTemplateColumns: "1fr auto",
-  gap: 12,
-  alignItems: "start",
-  borderBottom: "1px solid #eee",
-  paddingBottom: 12,
-};
-
-const linkBtn = {
-  display: "inline-block",
-  textDecoration: "none",
-  background: "#111",
-  color: "#fff",
-  borderRadius: 8,
-  padding: "8px 12px",
-  fontWeight: 700,
-  fontSize: 13,
-  textAlign: "center",
-};
-
-const btnSave = {
-  background: "#fff",
-  color: "#111",
-  border: "1px solid #ddd",
-  borderRadius: 8,
-  padding: "8px 12px",
-  fontWeight: 700,
-  fontSize: 13,
-  cursor: "pointer",
-};
-const btnSaved = {
-  ...btnSave,
-  background: "#eefdf3",
-  borderColor: "#bfead1",
-  color: "#0a5",
-};
-const btnApply = {
-  background: "#111",
-  color: "#fff",
-  border: "1px solid #111",
-  borderRadius: 8,
-  padding: "8px 12px",
-  fontWeight: 700,
-  fontSize: 13,
-  cursor: "pointer",
-};
