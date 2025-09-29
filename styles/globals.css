@@ -1,70 +1,54 @@
 /* --- Reset / base --- */
 html, body, #__next { height: 100%; margin: 0; }
-body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
 
 /* --- Hero with background image --- */
 .hero {
   position: relative;
-  min-height: 80vh;
+  min-height: 70vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
   color: white;
-
-  /* your uploaded image lives in /public */
   background-image: url('/cover.jpg');
   background-size: cover;
   background-position: center;
 }
-
-/* darken image for text contrast */
 .hero .overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    rgba(0,0,0,0.55),
-    rgba(0,0,0,0.55)
-  );
+  background: rgba(0,0,0,.35);
 }
-
-/* make sure content sits above overlay */
 .hero .title,
 .hero .pill-group { position: relative; z-index: 1; }
-
-.title {
-  font-size: clamp(28px, 6vw, 64px);
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  margin: 0 16px 28px;
-}
+.title { font-size: clamp(28px, 6vw, 64px); font-weight: 800; margin: 0 16px 18px; }
 
 /* --- Button group --- */
 .pill-group {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;              /* allow wrapping on small screens */
-  justify-content: center;
-  padding: 0 16px 24px;
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; padding: 0 16px 24px;
 }
-
 .pill {
-  background: #fff;
-  color: #111;
-  border-radius: 14px;
-  padding: 10px 16px;
-  text-decoration: none;
-  font-weight: 600;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
-  transition: transform .08s ease, box-shadow .15s ease;
-  display: inline-block;
+  background: #fff; color: #111; border-radius: 999px; padding: 9px 14px; text-decoration: none;
+  font-weight: 600; font-size: 14px; box-shadow: 0 4px 14px rgba(0,0,0,.15);
+  border: 1px solid rgba(0,0,0,.08); transition: transform .08s ease, box-shadow .15s ease;
 }
+.pill:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,.22); }
 
-.pill:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,0.22); }
-
-/* --- Mobile: stack as full-width chips --- */
-@media (max-width: 640px) {
-  .pill-group { gap: 10px; }
-  .pill { width: 100%; max-width: 360px; }
+/* Simple layout helpers used across pages */
+.container { min-height: 100vh; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; gap: 24px; }
+.max960 { width: 100%; max-width: 960px; }
+.card {
+  background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 20px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
 }
+.grid {
+  width: 100%; max-width: 960px; display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;
+}
+.link-card { display:block; text-decoration:none; color:#111; }
+.input { border:1px solid #ddd; border-radius:10px; padding:10px 12px; font-size:14px; }
+.btn { background:#111; color:#fff; border:1px solid #111; border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer; }
+.btn-outline { background:#fff; color:#111; border:1px solid #ddd; border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer; }
+.pill-light { display:inline-block; background:#fff; color:#111; border:1px solid #ddd; border-radius:999px; padding:10px 14px; font-weight:600; text-decoration:none;}
