@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 
 export default function SignInPage() {
   const { query } = useRouter();
-  const role = (query.role === "employer" || query.role === "jobseeker") ? query.role : "jobseeker";
+  const role = query.role === "employer" || query.role === "jobseeker" ? query.role : "jobseeker";
   const redirectUrl = role === "employer" ? "/employer" : "/jobseeker";
 
   return (
