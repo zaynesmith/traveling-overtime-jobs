@@ -3,40 +3,68 @@ import {
   SignedIn,
   SignedOut,
   RedirectToSignIn,
-  useUser,
   UserButton,
+  useUser,
 } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 
 export default function JobseekerProfile() {
   const { isLoaded, isSignedIn, user } = useUser();
-  const role = user?.publicMetadata?.role;
 
-  // local form state (prefill from Clerk publicMetadata if present)
-  const [contactEmail, setContactEmail] = useState("");
-  const [resumeUrl, setResumeUrl] = useState("");
-  const [skills, setSkills] = useState("");
-  const [preferredTrades, setPreferredTrades] = useState("");
-  const [preferredLocations, setPreferredLocations] = useState("");
-  const [willingToTravel, setWillingToTravel] = useState("Yes");
-
+  const [fullName, setFullName] = useState("");
+  const [homeLocation, setHomeLocation] = useState(""); // City, ST
+  const [primaryTrade, setPrimaryTrade] = useState("");
+  const [yearsExp, setYearsExp] = useState("");
+  const [travel, setTravel] = useState("Yes");
+  const [desiredPay, setDesiredPay] = useState("");
+  const [resumeUrl, setResumeUrl] = useState(""); // link to PDF or Google Drive
+  const [about, setAbout] = useState("");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [savedMsg, setSavedMsg] = useState("");
 
+  // Local storage key (per user if available)
+  const lsKey =
+    typeof window !== "undefined"
+      ? `jobseekerProfile_${user?.id || "anon"}`
+      : "jobseekerProfile_anon";
+
+  // Load existing profile from Clerk unsafeMetadata or localStorage
   useEffect(() => {
-    if (!isLoaded || !user) return;
-    const pm = user.publicMetadata || {};
-    setContactEmail(
-      (pm.jobseekerContactEmail as string) ||
-        user.primaryEmailAddress?.emailAddress ||
-        ""
-    );
-    setResumeUrl((pm.jobseekerResumeUrl as string) || "");
-    setSkills((pm.jobseekerSkills as string) || "");
-    setPreferredTrades((pm.jobseekerPreferredTrades as string) || "");
-    setPreferredLocations((pm.jobseekerPreferredLocations as string) || "");
-    setWillingToTravel((pm.jobseekerWillingToTravel as string) || "Yes");
-  }, [isLoaded, user]);
+    if (!isLoaded) return;
+
+    // 1) Try Clerk (unsafeMetadata is client-writable)
+    const um = (user?.unsafeMetadata || {});
+    const fromClerk = {
+      fullName: um.fullName || "",
+      homeLocation: um.homeLocation || "",
+      primaryTrade: um.primaryTrade || "",
+      yearsExp: um.yearsExp || "",
+      travel: um.travel || "Yes",
+      desiredPay: um.desiredPay || "",
+      resumeUrl: um.resumeUrl || "",
+      about: um.about || "",
+    };
+
+    // 2) Try localStorage (fallback)
+    let fromLocal = {};
+    try {
+      const raw = localStorage.getItem(lsKey);
+      fromLocal = raw ? JSON.parse(raw) : {};
+    } catch {
+      fromLocal = {};
+    }
+
+    const merged = { ...fromClerk, ...fromLocal };
+
+    setFullName(merged.fullName || user?.fullName || "");
+    setHomeLocation(merged.homeLocation || "");
+    setPrimaryTrade(merged.primaryTrade || "");
+    setYearsExp(merged.yearsExp || "");
+    setTravel(merged.travel || "Yes");
+    setDesiredPay(merged.desiredPay || "");
+    setResumeUrl(merged.resumeUrl || "");
+    setAbout(merged.about || "");
+  }, [isLoaded, user]); // eslint-disable-line
 
   if (!isLoaded) return null;
 
@@ -50,109 +78,140 @@ export default function JobseekerProfile() {
 
   async function handleSave(e) {
     e.preventDefault();
+    setSaving(true);
+    setSavedMsg("");
+
+    const payload = {
+      fullName: fullName.trim(),
+      homeLocation: homeLocation.trim(),
+      primaryTrade: primaryTrade.trim(),
+      yearsExp: yearsExp.trim(),
+      travel,
+      desiredPay: desiredPay.trim(),
+      resumeUrl: resumeUrl.trim(),
+      about: about.trim(),
+    };
+
+    // Save to localStorage so it's instant & resilient
     try {
-      setSaving(true);
-      setSaved(false);
-      await user.update({
-        publicMetadata: {
-          ...(user.publicMetadata || {}),
-          role: "jobseeker",
-          jobseekerContactEmail: contactEmail.trim(),
-          jobseekerResumeUrl: resumeUrl.trim(),
-          jobseekerSkills: skills.trim(),
-          jobseekerPreferredTrades: preferredTrades.trim(),
-          jobseekerPreferredLocations: preferredLocations.trim(),
-          jobseekerWillingToTravel: willingToTravel,
-        },
+      localStorage.setItem(lsKey, JSON.stringify(payload));
+    } catch {}
+
+    // Best-effort: also save to Clerk unsafeMetadata so it follows the user across devices
+    try {
+      await user.setUnsafeMetadata({
+        ...(user.unsafeMetadata || {}),
+        ...payload,
       });
-      setSaved(true);
+      setSavedMsg("Saved to your account.");
     } catch (err) {
-      console.error(err);
-      alert("Could not save your profile. Please try again.");
+      console.error("Clerk unsafeMetadata save failed (using local only):", err);
+      setSavedMsg("Saved locally on this device.");
     } finally {
       setSaving(false);
     }
   }
 
+  // Optional lightweight file “upload”: stores a small PDF as base64 in localStorage and sets resumeUrl to a blob link.
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!/pdf|text|msword|officedocument/.test(file.type) && !file.name.endsWith(".pdf")) {
+      alert("Please select a PDF or document file.");
+      return;
+    }
+    if (file.size > 2.5 * 1024 * 1024) {
+      alert("File too large for local storage demo (2.5 MB max). Please host it elsewhere and paste a link.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const base64 = String(reader.result || "");
+        const obj = {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          dataUrl: base64,
+          uploadedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(`${lsKey}_resumeFile`, JSON.stringify(obj));
+        setResumeUrl("(Local upload)"); // just a marker; employers can’t fetch localStorage
+        setSavedMsg("Résumé stored locally. Consider also pasting a shareable link.");
+      } catch (err) {
+        console.error(err);
+        alert("Could not store file locally. Paste a public link instead.");
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
   return (
     <SignedIn>
       <main style={wrap}>
-        <Header />
+        <header style={header}>
+          <h1 style={{ margin: 0 }}>My Profile</h1>
+          <UserButton afterSignOutUrl="/" />
+        </header>
+
         <section style={card}>
-          <h2 style={{ marginTop: 0 }}>Jobseeker Profile</h2>
-          <p style={{ color: "#555", marginTop: 4 }}>
-            Save details so they prefill when applying and improve matching.
-          </p>
+          <form onSubmit={handleSave} style={{ display: "grid", gap: 12 }}>
+            <Row>
+              <Input label="Full Name*" value={fullName} onChange={setFullName} placeholder="Jane Doe" required />
+              <Input label="Home Location (City, ST)*" value={homeLocation} onChange={setHomeLocation} placeholder="Houston, TX" required />
+            </Row>
 
-          <form onSubmit={handleSave} style={{ display: "grid", gap: 12, marginTop: 16 }}>
-            <Field label="Contact Email*">
-              <input
-                type="email"
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                placeholder="you@example.com"
-                style={input}
-                required
+            <Row>
+              <Input label="Primary Trade*" value={primaryTrade} onChange={setPrimaryTrade} placeholder="Electrical / Welding / Instrumentation / Millwright…" required />
+              <Input label="Years Experience" value={yearsExp} onChange={setYearsExp} placeholder="5+" />
+            </Row>
+
+            <Row>
+              <Select
+                label="Willing to Travel"
+                value={travel}
+                onChange={setTravel}
+                options={["Yes", "No", "Occasionally"]}
               />
-            </Field>
+              <Input label="Desired Pay" value={desiredPay} onChange={setDesiredPay} placeholder="$38/hr" />
+            </Row>
 
-            <Field label="Resume URL">
-              <input
-                type="url"
-                value={resumeUrl}
-                onChange={(e) => setResumeUrl(e.target.value)}
-                placeholder="Link to Google Drive / Dropbox / PDF"
-                style={input}
+            <Input
+              label="Résumé Link (PDF/Drive/Dropbox)"
+              value={resumeUrl}
+              onChange={setResumeUrl}
+              placeholder="https://…/my_resume.pdf"
+            />
+
+            <div style={{ display: "grid", gap: 6 }}>
+              <label style={label}>Or Upload a Small Résumé (demo)</label>
+              <input type="file" accept=".pdf,.doc,.docx,.txt,application/pdf" onChange={handleFile} />
+              <small style={{ color: "#666" }}>
+                For demo only: stored in your browser. Max 2.5 MB. For real use, paste a public link above.
+              </small>
+            </div>
+
+            <div style={{ display: "grid", gap: 6 }}>
+              <label style={label}>About Me</label>
+              <textarea
+                value={about}
+                onChange={(e) => setAbout(e.target.value)}
+                rows={5}
+                placeholder="Short summary of your skills, certifications, travel readiness, etc."
+                style={textarea}
               />
-            </Field>
+            </div>
 
-            <Field label="Skills (comma-separated)">
-              <input
-                value={skills}
-                onChange={(e) => setSkills(e.target.value)}
-                placeholder="Journeyman, conduit bending, MCC, etc."
-                style={input}
-              />
-            </Field>
-
-            <Field label="Preferred Trades">
-              <input
-                value={preferredTrades}
-                onChange={(e) => setPreferredTrades(e.target.value)}
-                placeholder="Electrical, Mechanical, Welding…"
-                style={input}
-              />
-            </Field>
-
-            <Field label="Preferred Locations">
-              <input
-                value={preferredLocations}
-                onChange={(e) => setPreferredLocations(e.target.value)}
-                placeholder="TX, OK, LA"
-                style={input}
-              />
-            </Field>
-
-            <Field label="Willing to Travel">
-              <select
-                value={willingToTravel}
-                onChange={(e) => setWillingToTravel(e.target.value)}
-                style={input}
-              >
-                <option>Yes</option>
-                <option>No</option>
-              </select>
-            </Field>
-
-            <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+            <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
               <button type="submit" style={btnPrimary} disabled={saving}>
                 {saving ? "Saving…" : "Save Profile"}
               </button>
-              <a href="/jobseeker" style={pillLight}>Back to Jobseeker Area</a>
+              <a href="/jobseeker" style={pillLight}>Back to Jobseeker Dashboard</a>
             </div>
 
-            {saved && (
-              <div style={callout}>✅ Saved! Your profile is stored on your account.</div>
+            {savedMsg && (
+              <div style={callout}>✅ {savedMsg}</div>
             )}
           </form>
         </section>
@@ -161,25 +220,45 @@ export default function JobseekerProfile() {
   );
 }
 
-/* helpers */
-function Header() {
+/* ---- small UI helpers ---- */
+function Row({ children }) {
   return (
-    <header style={header}>
-      <h1 style={{ margin: 0 }}>Jobseeker Profile</h1>
-      <UserButton afterSignOutUrl="/" />
-    </header>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      {children}
+      <style jsx>{`
+        @media (max-width: 720px) {
+          div { grid-template-columns: 1fr; }
+        }
+      `}</style>
+    </div>
   );
 }
-function Field({ label, children }) {
+function Input({ label, value, onChange, placeholder = "", required = false }) {
   return (
     <div style={{ display: "grid", gap: 6 }}>
       <label style={labelStyle}>{label}</label>
-      {children}
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={input}
+        required={required}
+      />
+    </div>
+  );
+}
+function Select({ label, value, onChange, options = [] }) {
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      <label style={labelStyle}>{label}</label>
+      <select value={value} onChange={(e) => onChange(e.target.value)} style={input}>
+        {options.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
+      </select>
     </div>
   );
 }
 
-/* styles */
+/* ---- styles ---- */
 const wrap = {
   minHeight: "100vh",
   padding: "40px 24px",
@@ -202,8 +281,8 @@ const card = {
   background: "#fff",
   border: "1px solid rgba(0,0,0,0.08)",
   borderRadius: 12,
-  padding: 24,
-  boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+  padding: 20,
+  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
 };
 const input = {
   border: "1px solid #ddd",
@@ -211,7 +290,15 @@ const input = {
   padding: "10px 12px",
   fontSize: 14,
 };
+const textarea = {
+  border: "1px solid #ddd",
+  borderRadius: 10,
+  padding: "10px 12px",
+  fontSize: 14,
+  resize: "vertical",
+};
 const labelStyle = { fontSize: 13, color: "#444" };
+const label = { fontSize: 13, color: "#444" };
 const btnPrimary = {
   background: "#111",
   color: "#fff",
@@ -232,7 +319,7 @@ const pillLight = {
   textDecoration: "none",
 };
 const callout = {
-  marginTop: 10,
+  marginTop: 8,
   background: "#f6fff6",
   border: "1px solid #bfe6bf",
   color: "#225c22",
