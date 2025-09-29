@@ -1,26 +1,25 @@
-import Head from "next/head";
+// pages/index.js
+import Link from "next/link";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <>
-      <Head>
-        <title>Traveling Overtime Jobs</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+    <main className="container" style={{ textAlign: "center", padding: "50px" }}>
+      <h1>Welcome to Traveling Overtime Jobs</h1>
+      <p>Please choose how you’d like to log in:</p>
 
-      <main>
-        <section className="hero">
-          <div className="overlay" />
-          <h1 className="title">Traveling Overtime Jobs</h1>
+      <div style={{ marginTop: "30px" }}>
+        <Link href="/sign-in?role=employer">
+          <button style={{ margin: "10px", padding: "10px 20px" }}>
+            Employer Login
+          </button>
+        </Link>
 
-          <div className="pill-group">
-            <a href="/jobseeker/search" className="pill">Search Jobs</a>
-            <a href="/employer/post" className="pill">Post Jobs</a>
-            <a href="/sign-in?role=employer" className="pill">Employer Login</a>
-            <a href="/sign-in?role=jobseeker" className="pill">Jobseeker Login</a>
-          </div>
-        </section>
-      </main>
-    </>
+        <Link href="/sign-in?role=jobseeker">
+          <button style={{ margin: "10px", padding: "10px 20px" }}>
+            Jobseeker Login
+          </button>
+        </Link>
+      </div>
+    </main>
   );
 }
