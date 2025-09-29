@@ -1,6 +1,8 @@
 import { SignedIn, SignedOut, RedirectToSignIn, useUser, UserButton } from "@clerk/nextjs";
 import { useEffect, useMemo, useState } from "react";
 
+const DRAFT_STORAGE_KEY = "public-post-job-draft";
+
 export default function PostJob() {
   const { user, isLoaded } = useUser();
   const [saving, setSaving] = useState(false);
@@ -19,6 +21,23 @@ export default function PostJob() {
     description: "",
     contactEmail: "",
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const savedDraft = window.sessionStorage.getItem(DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        const parsedDraft = JSON.parse(savedDraft);
+        if (parsedDraft && typeof parsedDraft === "object") {
+          setForm((f) => ({ ...f, ...parsedDraft }));
+        }
+        window.sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+      }
+    } catch (error) {
+      console.error("Failed to restore saved employer draft", error);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isLoaded || !user) return;
