@@ -15,11 +15,19 @@ body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial
   background-image: url('/cover.jpg');
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
 }
 .hero .overlay {
   position: absolute;
   inset: 0;
   background: rgba(0,0,0,.35);
+}
+.hero .subtitle {
+  position: relative;
+  z-index: 1;
+  margin: 0 16px 28px;
+  font-size: clamp(16px, 2.6vw, 20px);
+  max-width: 720px;
 }
 .hero .title,
 .hero .pill-group { position: relative; z-index: 1; }

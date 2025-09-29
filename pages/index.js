@@ -36,104 +36,126 @@ export default function HomePage() {
   const active = TABS.find((tab) => tab.id === activeTab) ?? TABS[0];
 
   return (
-    <main className="container" style={{ padding: "48px 16px" }}>
-      <div className="max960" style={{ margin: "0 auto", display: "grid", gap: 32 }}>
-        <div style={{ textAlign: "center", display: "grid", gap: 12 }}>
-          <h1 style={{ margin: 0 }}>Welcome to Traveling Overtime Jobs</h1>
-          <p style={{ margin: 0, color: "#555" }}>
-            Choose how you’d like to get started—search current openings or publish a new listing for traveling crews.
-          </p>
+    <>
+      <section className="hero" role="region" aria-label="Traveling Overtime Jobs hero">
+        <span className="overlay" aria-hidden="true" />
+        <h1 className="title">Traveling overtime jobs for skilled trades pros</h1>
+        <p className="subtitle">
+          Discover vetted opportunities that include travel pay and overtime, or share openings with teams ready to hit the
+          road.
+        </p>
+        <div className="pill-group">
+          <Link className="pill" href="/jobseeker/search">
+            Search job postings
+          </Link>
+          <Link className="pill" href="/post-job">
+            Post a job
+          </Link>
+          <Link className="pill" href="/sign-up">
+            Create an account
+          </Link>
         </div>
+      </section>
 
-        <div
-          role="tablist"
-          aria-label="Home page shortcuts"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {TABS.map((tab) => {
-            const selected = tab.id === activeTab;
-            return (
-              <button
-                key={tab.id}
-                role="tab"
-                aria-selected={selected}
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  padding: "12px 16px",
-                  borderRadius: 12,
-                  border: "1px solid",
-                  borderColor: selected ? "#0d6efd" : "#d0d5dd",
-                  background: selected ? "rgba(13, 110, 253, 0.1)" : "white",
-                  color: selected ? "#0d6efd" : "#111827",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
+      <main className="container" style={{ padding: "48px 16px" }}>
+        <div className="max960" style={{ margin: "0 auto", display: "grid", gap: 32 }}>
+          <div style={{ textAlign: "center", display: "grid", gap: 12 }}>
+            <h2 style={{ margin: 0 }}>Choose how you’d like to get started</h2>
+            <p style={{ margin: 0, color: "#555" }}>
+              Jump straight into the tools designed for jobseekers and employers in traveling skilled trades.
+            </p>
+          </div>
+
+          <div
+            role="tablist"
+            aria-label="Home page shortcuts"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+              gap: 12,
+            }}
+          >
+            {TABS.map((tab) => {
+              const selected = tab.id === activeTab;
+              return (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    border: "1px solid",
+                    borderColor: selected ? "#0d6efd" : "#d0d5dd",
+                    background: selected ? "rgba(13, 110, 253, 0.1)" : "white",
+                    color: selected ? "#0d6efd" : "#111827",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <section
+            role="tabpanel"
+            aria-live="polite"
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: 16,
+              padding: "24px",
+              background: "#fff",
+              boxShadow: "0 4px 20px rgba(15, 23, 42, 0.08)",
+              display: "grid",
+              gap: 16,
+            }}
+          >
+            <div style={{ display: "grid", gap: 8 }}>
+              <h2 style={{ margin: 0 }}>{active.headline}</h2>
+              <p style={{ margin: 0, color: "#4b5563" }}>{active.description}</p>
+            </div>
+
+            <ul style={{ margin: 0, paddingLeft: 20, color: "#4b5563", display: "grid", gap: 6 }}>
+              {active.tips.map((tip) => (
+                <li key={tip}>{tip}</li>
+              ))}
+            </ul>
+
+            <div>
+              <Link href={active.href}>
+                <button className="btn" style={{ minWidth: 200 }}>{active.actionLabel}</button>
+              </Link>
+            </div>
+          </section>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 16,
+              color: "#6b7280",
+              fontSize: 14,
+            }}
+          >
+            <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
+              <strong style={{ display: "block", color: "#111827", marginBottom: 6 }}>
+                Employer or jobseeker accounts
+              </strong>
+              Sign in with the appropriate role to unlock saved jobs, applications, and employer tools tailored to you.
+            </div>
+            <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
+              <strong style={{ display: "block", color: "#111827", marginBottom: 6 }}>
+                Need an account?
+              </strong>
+              Create one in minutes on the sign-up page. Employers can manage listings and jobseekers can track applications.
+            </div>
+          </div>
         </div>
-
-        <section
-          role="tabpanel"
-          aria-live="polite"
-          style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: 16,
-            padding: "24px",
-            background: "#fff",
-            boxShadow: "0 4px 20px rgba(15, 23, 42, 0.08)",
-            display: "grid",
-            gap: 16,
-          }}
-        >
-          <div style={{ display: "grid", gap: 8 }}>
-            <h2 style={{ margin: 0 }}>{active.headline}</h2>
-            <p style={{ margin: 0, color: "#4b5563" }}>{active.description}</p>
-          </div>
-
-          <ul style={{ margin: 0, paddingLeft: 20, color: "#4b5563", display: "grid", gap: 6 }}>
-            {active.tips.map((tip) => (
-              <li key={tip}>{tip}</li>
-            ))}
-          </ul>
-
-          <div>
-            <Link href={active.href}>
-              <button className="btn" style={{ minWidth: 200 }}>{active.actionLabel}</button>
-            </Link>
-          </div>
-        </section>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 16,
-            color: "#6b7280",
-            fontSize: 14,
-          }}
-        >
-          <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
-            <strong style={{ display: "block", color: "#111827", marginBottom: 6 }}>
-              Employer or jobseeker accounts
-            </strong>
-            Sign in with the appropriate role to unlock saved jobs, applications, and employer tools tailored to you.
-          </div>
-          <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
-            <strong style={{ display: "block", color: "#111827", marginBottom: 6 }}>
-              Need an account?
-            </strong>
-            Create one in minutes on the sign-up page. Employers can manage listings and jobseekers can track applications.
-          </div>
-        </div>
-      </div>
-    </main>
+      </main>
+    </>
   );
 }
