@@ -1,267 +1,248 @@
 // pages/employer/listings/[id].js
+import { useRouter } from "next/router";
 import {
   SignedIn,
   SignedOut,
   RedirectToSignIn,
-  useUser,
   UserButton,
 } from "@clerk/nextjs";
-import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-// Demo seed data (fallback)
-const DEMO_MY_LISTINGS = [
-  {
-    id: "acme-001",
-    title: "Journeyman Electrician",
-    company: "ACME Industrial",
-    location: "Houston, TX",
-    status: "Open",
-    applicants: 12,
-    postedAt: "2025-09-30",
-    description:
-      "Industrial shutdown — cable pulls, terminations, MCC work. OSHA10 preferred. Bring hand tools & PPE.",
-  },
-  {
-    id: "acme-002",
-    title: "Electrical Foreman",
-    company: "ACME Industrial",
-    location: "Corpus Christi, TX",
-    status: "Open",
-    applicants: 4,
-    postedAt: "2025-10-02",
-    description:
-      "Lead crew of 6–10 on industrial install. Reading prints, task planning, QA checks, toolbox talks.",
-  },
-  {
-    id: "acme-003",
-    title: "Industrial Instrument Tech",
-    company: "ACME Industrial",
-    location: "Baton Rouge, LA",
-    status: "Closed",
-    applicants: 23,
-    postedAt: "2025-08-20",
-    description:
-      "Loop checks, calibrations, transmitters, DCS work. NCCER a plus. Per diem available.",
-  },
-];
-
-// Demo applicants (static)
-const DEMO_APPLICANTS = [
-  {
-    id: "app-1001",
-    fullName: "Alex Johnson",
-    email: "alex.j@example.com",
-    phone: "(281) 555-0134",
-    resumeUrl: "https://example.com/resume/alex-j.pdf",
-    note: "10 years industrial; available to travel.",
-    submittedAt: "2025-10-04T14:35:00Z",
-    jobId: "acme-001",
-  },
-  {
-    id: "app-1002",
-    fullName: "Maria Lopez",
-    email: "maria.l@example.com",
-    phone: "(361) 555-4422",
-    resumeUrl: "https://example.com/resume/maria-l.pdf",
-    note: "Licensed JM; TWIC; seeking 6x10s.",
-    submittedAt: "2025-10-05T09:02:00Z",
-    jobId: "acme-001",
-  },
-  {
-    id: "app-2001",
-    fullName: "Chris Nguyen",
-    email: "chris.n@example.com",
-    phone: "(225) 555-9911",
-    resumeUrl: "https://example.com/resume/chris-n.pdf",
-    note: "5 yrs instrumentation, strong calibrations background.",
-    submittedAt: "2025-09-01T18:10:00Z",
-    jobId: "acme-003",
-  },
-];
-
-export default function ListingDetail() {
-  const { user, isLoaded } = useUser();
-  const role = user?.publicMetadata?.role;
+export default function EmployerListingDetail() {
   const router = useRouter();
   const { id } = router.query;
 
-  const [localJobs, setLocalJobs] = useState([]);
+  const [job, setJob] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
-  // Load local jobs once on mount (client-side only)
+  // Load the job by ID from localStorage
   useEffect(() => {
+    if (!id) return;
     try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem("myEmployerJobs") : null;
-      setLocalJobs(raw ? JSON.parse(raw) : []);
+      const raw = localStorage.getItem("myEmployerJobs");
+      const list = raw ? JSON.parse(raw) : [];
+      const found = list.find((j) => j.id === id);
+      if (!found) {
+        setNotFound(true);
+      } else {
+        // ensure status exists
+        setJob({ status: "Open", ...found, status: found.status || "Open" });
+      }
     } catch {
-      setLocalJobs([]);
+      setNotFound(true);
     }
-  }, []);
+  }, [id]);
 
-  const listing = useMemo(() => {
-    const lid = String(id || "");
-    const fromLocal = (localJobs || []).find((j) => j.id === lid);
-    if (fromLocal) return { ...fromLocal, _source: "local" };
-    const fromDemo = DEMO_MY_LISTINGS.find((j) => j.id === lid);
-    return fromDemo ? { ...fromDemo, _source: "demo" } : null;
-  }, [id, localJobs]);
-
-  if (!isLoaded) return null;
-
-  // Not signed in → sign in and return here
-  if (!user) {
-    return (
-      <SignedOut>
-        <RedirectToSignIn redirectUrl={`/employer/listings/${id || ""}`} />
-      </SignedOut>
-    );
+  function saveJob(updated) {
+    try {
+      const raw = localStorage.getItem("myEmployerJobs");
+      const list = raw ? JSON.parse(raw) : [];
+      const next = list.map((j) => (j.id === updated.id ? updated : j));
+      localStorage.setItem("myEmployerJobs", JSON.stringify(next));
+      setJob(updated);
+    } catch (e) {
+      console.error(e);
+      alert("Could not save changes.");
+    }
   }
 
-  // Must be employer
-  if (role !== "employer") {
+  function handleDelete() {
+    if (!confirm("Delete this job posting?")) return;
+    try {
+      const raw = localStorage.getItem("myEmployerJobs");
+      const list = raw ? JSON.parse(raw) : [];
+      const next = list.filter((j) => j.id !== id);
+      localStorage.setItem("myEmployerJobs", JSON.stringify(next));
+      router.push("/employer/listings");
+    } catch (e) {
+      console.error(e);
+      alert("Could not delete this job.");
+    }
+  }
+
+  if (notFound) {
     return (
       <main style={wrap}>
         <header style={header}>
-          <h1 style={{ margin: 0 }}>Listing</h1>
-          <UserButton afterSignOutUrl="/" />
+          <h1 style={{ margin: 0 }}>Listing Not Found</h1>
+          <a href="/employer/listings" style={pillLight}>Back to Listings</a>
         </header>
         <section style={card}>
-          <p>
-            Employer access required. Your role is <strong>{role || "not set"}</strong>.
-            Switch roles from your <a href="/dashboard">Dashboard</a>.
-          </p>
+          We couldn't find a job with ID <code>{id}</code>.
         </section>
       </main>
     );
   }
 
-  if (!listing) {
-    return (
+  if (!job) return null;
+
+  return (
+    <>
+      <SignedOut>
+        <RedirectToSignIn redirectUrl={`/employer/listings/${id}`} />
+      </SignedOut>
+
       <SignedIn>
         <main style={wrap}>
           <header style={header}>
-            <h1 style={{ margin: 0 }}>Listing</h1>
-            <UserButton afterSignOutUrl="/" />
+            <h1 style={{ margin: 0 }}>Edit Listing</h1>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <a href="/employer/listings" style={pillLight}>Back to Listings</a>
+              <UserButton afterSignOutUrl="/" />
+            </div>
           </header>
+
           <section style={card}>
-            <p>We couldn’t find that listing.</p>
-            <a href="/employer/listings" style={pillLight}>← Back to Listings</a>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (saving) return;
+                setSaving(true);
+                const form = new FormData(e.currentTarget);
+
+                const updated = {
+                  ...job,
+                  title: String(form.get("title") || "").trim(),
+                  company: String(form.get("company") || "").trim(),
+                  trade: String(form.get("trade") || "").trim(),
+                  location: String(form.get("location") || "").trim(),
+                  payRate: String(form.get("payRate") || "").trim(),
+                  perDiem: String(form.get("perDiem") || "").trim(),
+                  overtime: String(form.get("overtime") || "").trim(),
+                  startDate: String(form.get("startDate") || ""),
+                  travelRequired: String(form.get("travelRequired") || "Yes"),
+                  description: String(form.get("description") || "").trim(),
+                  contactEmail: String(form.get("contactEmail") || "").trim(),
+                };
+
+                // basic required check
+                if (!updated.title || !updated.company || !updated.location || !updated.description) {
+                  alert("Please fill in title, company, location, and description.");
+                  setSaving(false);
+                  return;
+                }
+
+                saveJob(updated);
+                setSaving(false);
+                alert("Saved.");
+              }}
+              style={{ display: "grid", gap: 12 }}
+            >
+              <Row>
+                <Input name="title" label="Job Title*" defaultValue={job.title} placeholder="Journeyman Electrician" />
+                <Input name="company" label="Company*" defaultValue={job.company} placeholder="ACME Industrial" />
+              </Row>
+
+              <Row>
+                <Input name="trade" label="Trade" defaultValue={job.trade || ""} placeholder="Electrical / Instrumentation / Welding / …" />
+                <Input name="location" label="Location*" defaultValue={job.location} placeholder="City, State" />
+              </Row>
+
+              <Row>
+                <Input name="payRate" label="Pay Rate" defaultValue={job.payRate || ""} placeholder="$38/hr" />
+                <Input name="perDiem" label="Per Diem" defaultValue={job.perDiem || ""} placeholder="$100/day" />
+              </Row>
+
+              <Row>
+                <Input name="overtime" label="Overtime" defaultValue={job.overtime || ""} placeholder="6x10s / OT after 40 / etc." />
+                <Input name="startDate" type="date" label="Start Date" defaultValue={job.startDate || ""} />
+              </Row>
+
+              <Row>
+                <Select
+                  name="travelRequired"
+                  label="Travel Required"
+                  defaultValue={job.travelRequired || "Yes"}
+                  options={["Yes", "No"]}
+                />
+                <Input name="contactEmail" type="email" label="Contact Email" defaultValue={job.contactEmail || ""} placeholder="jobs@company.com" />
+              </Row>
+
+              <div style={{ display: "grid", gap: 6 }}>
+                <label style={labelStyle}>Description*</label>
+                <textarea
+                  name="description"
+                  defaultValue={job.description || ""}
+                  rows={6}
+                  placeholder="Duties, requirements, shift, duration, tools, PPE, etc."
+                  style={textarea}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+                <button type="submit" style={btnPrimary} disabled={saving}>
+                  {saving ? "Saving…" : "Save Changes"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = { ...job, status: job.status === "Open" ? "Closed" : "Open" };
+                    saveJob(updated);
+                  }}
+                  style={outlineBtn}
+                >
+                  {job.status === "Open" ? "Close Listing" : "Reopen Listing"}
+                </button>
+
+                <button type="button" onClick={handleDelete} style={dangerBtn}>
+                  Delete Listing
+                </button>
+
+                <a href={`/jobseeker/search/${job.id}`} style={pillLight}>
+                  View as Jobseeker
+                </a>
+              </div>
+            </form>
           </section>
         </main>
       </SignedIn>
-    );
-  }
-
-  // For demo applicants, only attach those whose jobId matches demo IDs.
-  const applicants =
-    listing._source === "demo"
-      ? DEMO_APPLICANTS.filter((a) => a.jobId === listing.id)
-      : [];
-
-  function toggleStatus() {
-    if (listing._source !== "local") return alert("Demo listing — status not persisted.");
-    try {
-      const next = (localJobs || []).map((j) =>
-        j.id === listing.id ? { ...j, status: j.status === "Open" ? "Closed" : "Open" } : j
-      );
-      localStorage.setItem("myEmployerJobs", JSON.stringify(next));
-      setLocalJobs(next);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  return (
-    <SignedIn>
-      <main style={wrap}>
-        <header style={header}>
-          <h1 style={{ margin: 0 }}>{listing.title}</h1>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <a href="/employer/listings" style={pillLight}>← Back</a>
-            <UserButton afterSignOutUrl="/" />
-          </div>
-        </header>
-
-        {/* Listing summary */}
-        <section style={card}>
-          <div style={{ color: "#666", marginBottom: 6 }}>
-            {listing.company} • {listing.location}
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-            <Badge>{listing.status}</Badge>
-            <Badge>Posted: {listing.postedAt || "—"}</Badge>
-            <Badge>Source: {listing._source === "local" ? "Local (You)" : "Demo"}</Badge>
-          </div>
-          {listing.description && <p style={{ margin: 0 }}>{listing.description}</p>}
-          <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button style={btnOutline} onClick={toggleStatus}>
-              {listing.status === "Open" ? "Close Listing" : "Reopen Listing"}
-            </button>
-          </div>
-        </section>
-
-        {/* Applicants table */}
-        <section style={card}>
-          <h2 style={{ marginTop: 0 }}>Applicants ({applicants.length})</h2>
-          {applicants.length === 0 ? (
-            <div style={{ color: "#666" }}>
-              {listing._source === "demo"
-                ? "No applicants in this demo set."
-                : "This locally saved listing doesn’t have applicants yet."}
-            </div>
-          ) : (
-            <table style={table}>
-              <thead>
-                <tr>
-                  <th align="left">Applicant</th>
-                  <th align="left">Contact</th>
-                  <th align="left">Submitted</th>
-                  <th align="left">Resume</th>
-                  <th align="left">Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                {applicants.map((a) => (
-                  <tr key={a.id}>
-                    <td><strong>{a.fullName}</strong></td>
-                    <td>
-                      <div>{a.email}</div>
-                      {a.phone && <div style={{ color: "#666" }}>{a.phone}</div>}
-                    </td>
-                    <td>{new Date(a.submittedAt).toLocaleString()}</td>
-                    <td>
-                      <a href={a.resumeUrl} target="_blank" rel="noreferrer" style={link}>
-                        Open
-                      </a>
-                    </td>
-                    <td style={{ maxWidth: 280 }}>{a.note}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </section>
-      </main>
-    </SignedIn>
+    </>
   );
 }
 
-/* ---- tiny styles ---- */
-function Badge({ children }) {
+/* ---------- tiny UI helpers ---------- */
+function Row({ children }) {
   return (
-    <span style={{
-      display: "inline-block",
-      fontSize: 12,
-      padding: "4px 8px",
-      borderRadius: 999,
-      border: "1px solid #e5e7eb",
-      background: "#f8fafc",
-    }}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
       {children}
-    </span>
+      <style jsx>{`
+        @media (max-width: 720px) {
+          div { grid-template-columns: 1fr; }
+        }
+      `}</style>
+    </div>
+  );
+}
+function Input({ name, label, defaultValue, placeholder, type = "text" }) {
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      <label style={labelStyle}>{label}</label>
+      <input
+        name={name}
+        type={type}
+        defaultValue={defaultValue}
+        placeholder={placeholder}
+        style={input}
+      />
+    </div>
+  );
+}
+function Select({ name, label, defaultValue, options = [] }) {
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      <label style={labelStyle}>{label}</label>
+      <select name={name} defaultValue={defaultValue} style={input}>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
+    </div>
   );
 }
 
+/* ---------- styles ---------- */
 const wrap = {
   minHeight: "100vh",
   padding: "40px 24px",
@@ -273,26 +254,41 @@ const wrap = {
 };
 const header = {
   width: "100%",
-  maxWidth: 1100,
+  maxWidth: 960,
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
 };
 const card = {
   width: "100%",
-  maxWidth: 1100,
+  maxWidth: 960,
   background: "#fff",
   border: "1px solid rgba(0,0,0,0.08)",
   borderRadius: 12,
-  padding: 16,
+  padding: 20,
   boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
 };
-const btnOutline = {
-  background: "#fff",
-  color: "#111",
+const input = {
   border: "1px solid #ddd",
-  borderRadius: 8,
-  padding: "8px 12px",
+  borderRadius: 10,
+  padding: "10px 12px",
+  fontSize: 14,
+};
+const textarea = {
+  border: "1px solid #ddd",
+  borderRadius: 10,
+  padding: "10px 12px",
+  fontSize: 14,
+  resize: "vertical",
+};
+const labelStyle = { fontSize: 13, color: "#444" };
+
+const btnPrimary = {
+  background: "#111",
+  color: "#fff",
+  border: "1px solid #111",
+  borderRadius: 10,
+  padding: "10px 16px",
   fontWeight: 700,
   cursor: "pointer",
 };
@@ -306,8 +302,23 @@ const pillLight = {
   fontWeight: 600,
   textDecoration: "none",
 };
-const table = {
-  width: "100%",
-  borderCollapse: "collapse",
+const outlineBtn = {
+  background: "#fff",
+  color: "#111",
+  border: "1px solid #ddd",
+  borderRadius: 8,
+  padding: "8px 12px",
+  fontWeight: 700,
+  fontSize: 13,
+  cursor: "pointer",
 };
-const link = { color: "#111", textDecoration: "underline" };
+const dangerBtn = {
+  background: "#fff",
+  color: "#b00020",
+  border: "1px solid #f3c1c6",
+  borderRadius: 8,
+  padding: "8px 12px",
+  fontWeight: 700,
+  fontSize: 13,
+  cursor: "pointer",
+};
