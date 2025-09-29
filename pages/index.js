@@ -10,7 +10,6 @@ export default function Home() {
       </Head>
 
       <main>
-        {/* Hero with background image from /public/cover.jpg */}
         <section className="hero">
           <div className="overlay" />
           <h1 className="title">Traveling Overtime Jobs</h1>
@@ -18,14 +17,12 @@ export default function Home() {
           <div className="pill-group">
             <a href="/jobseeker/search" className="pill">Search Jobs</a>
             <a href="/employer/post" className="pill">Post Jobs</a>
-            {/* Send users to Clerk sign-in, then straight to the right dashboard */}
-            <a href="/sign-in?redirect_url=/employer" className="pill">Employer Login</a>
-            <a href="/sign-in?redirect_url=/jobseeker" className="pill">Jobseeker Login</a>
+            <a href="/employer" className="pill">Employer Dashboard</a>
+            <a href="/jobseeker" className="pill">Jobseeker Dashboard</a>
           </div>
         </section>
       </main>
 
-      {/* Page-scoped styles to keep it simple */}
       <style jsx>{`
         .hero {
           position: relative;
@@ -81,8 +78,6 @@ export default function Home() {
           transform: translateY(-1px);
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
         }
-
-        /* Mobile spacing so buttons never overlap */
         @media (max-width: 480px) {
           .hero { min-height: 60vh; }
           .pill-group { gap: 8px; padding: 6px 10px; }
