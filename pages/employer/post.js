@@ -9,10 +9,10 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 export default function PostJob() {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded, isSignedIn } = useUser();
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const role = user?.publicMetadata?.role;
+  const [newJobId, setNewJobId] = useState("");
 
   // Simple form state
   const [form, setForm] = useState({
@@ -29,19 +29,23 @@ export default function PostJob() {
     contactEmail: "",
   });
 
-  // Prefill from Employer Profile (Clerk publicMetadata)
+  // Prefill from Employer Profile (Clerk public/unsafe metadata)
   useEffect(() => {
     if (!isLoaded || !user) return;
     const pm = user.publicMetadata || {};
+    const um = user.unsafeMetadata || {};
     setForm((f) => ({
       ...f,
-      company: pm.companyName ? String(pm.companyName) : f.company,
+      company: pm.companyName
+        ? String(pm.companyName)
+        : (um.companyName ? String(um.companyName) : f.company),
       contactEmail:
         pm.companyContactEmail
           ? String(pm.companyContactEmail)
-          : user.primaryEmailAddress?.emailAddress || f.contactEmail,
+          : (um.companyContactEmail
+              ? String(um.companyContactEmail)
+              : (user.primaryEmailAddress?.emailAddress || f.contactEmail)),
     }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, user]);
 
   // Disable submit until minimal fields are filled
@@ -61,8 +65,8 @@ export default function PostJob() {
 
   if (!isLoaded) return null;
 
-  // Not signed in → force sign-in and come back
-  if (!user) {
+  // If not signed in, bounce to sign-in and return here afterward
+  if (!isSignedIn) {
     return (
       <SignedOut>
         <RedirectToSignIn redirectUrl="/employer/post" />
@@ -70,39 +74,15 @@ export default function PostJob() {
     );
   }
 
-  // Must be employer
-  if (role !== "employer") {
-    return (
-      <main style={wrap}>
-        <header style={header}>
-          <h1 style={{ margin: 0 }}>Post a Job</h1>
-          <UserButton afterSignOutUrl="/" />
-        </header>
-
-        <section style={card}>
-          <h2 style={{ marginTop: 0 }}>Employer access required</h2>
-          <p style={{ marginBottom: 16 }}>
-            Your current role is{" "}
-            <strong>{role ? String(role) : "not set"}</strong>. Switch to the
-            Employer role from your <a href="/dashboard">Dashboard</a>, or use
-            the <a href="/employer">Employer Area</a> to switch roles.
-          </p>
-          <a href="/employer" style={pillDark}>Go to Employer Area</a>
-        </section>
-      </main>
-    );
-  }
-
-  // Save job to localStorage
-  function saveJobToLocalStorage(job) {
+  function persistJobToLocalStorage(job) {
     try {
-      const key = "myEmployerJobs";
-      const raw = localStorage.getItem(key);
-      const arr = raw ? JSON.parse(raw) : [];
-      arr.push(job);
-      localStorage.setItem(key, JSON.stringify(arr));
+      const raw = localStorage.getItem("myEmployerJobs");
+      const list = raw ? JSON.parse(raw) : [];
+      const next = [job, ...list]; // newest first
+      localStorage.setItem("myEmployerJobs", JSON.stringify(next));
     } catch (e) {
-      console.error("Unable to save job locally", e);
+      console.error("localStorage save failed:", e);
+      alert("Could not save the job locally (demo).");
     }
   }
 
@@ -117,41 +97,56 @@ export default function PostJob() {
 
         <section style={card}>
           {submitted ? (
-            <Success />
+            <Success id={newJobId} />
           ) : (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!canSubmit) return;
+                if (!canSubmit || saving) return;
 
                 setSaving(true);
-                // Create a job object and save locally
+
+                // Build a job object to persist (demo: localStorage only)
+                const id = "job-" + Date.now();
                 const job = {
-                  id: `my-${Date.now()}`,
+                  id,
                   title: form.title.trim(),
                   company: form.company.trim(),
-                  trade: form.trade.trim() || "General",
+                  trade: form.trade.trim(),
                   location: form.location.trim(),
                   payRate: form.payRate.trim(),
                   perDiem: form.perDiem.trim(),
                   overtime: form.overtime.trim(),
-                  startDate: form.startDate || "",
+                  startDate: form.startDate,
                   travelRequired: form.travelRequired,
                   description: form.description.trim(),
                   contactEmail: form.contactEmail.trim(),
-                  status: "Open",
-                  applicants: 0,
                   postedAt: new Date().toISOString().slice(0, 10),
                 };
 
-                // Save to browser storage (demo)
-                saveJobToLocalStorage(job);
+                // Persist to localStorage so jobseeker/search can read it
+                persistJobToLocalStorage(job);
 
-                // Simulate network delay
+                // Simulate processing, then show success
                 setTimeout(() => {
+                  setNewJobId(id);
                   setSaving(false);
                   setSubmitted(true);
-                }, 500);
+                  // Clear the form
+                  setForm({
+                    title: "",
+                    company: job.company,
+                    trade: "",
+                    location: "",
+                    payRate: "",
+                    perDiem: "",
+                    overtime: "",
+                    startDate: "",
+                    travelRequired: "Yes",
+                    description: "",
+                    contactEmail: job.contactEmail,
+                  });
+                }, 400);
               }}
               style={{ display: "grid", gap: 12 }}
             >
@@ -246,10 +241,16 @@ export default function PostJob() {
               </div>
 
               <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-                <button type="submit" style={btnPrimary} disabled={!canSubmit || saving}>
+                <button
+                  type="submit"
+                  style={btnPrimary}
+                  disabled={!canSubmit || saving}
+                >
                   {saving ? "Posting…" : "Post Job"}
                 </button>
-                <a href="/employer" style={pillLight}>Cancel</a>
+                <a href="/employer" style={pillLight}>
+                  Cancel
+                </a>
               </div>
 
               <p style={{ marginTop: 6, fontSize: 12, color: "#666" }}>
@@ -258,7 +259,7 @@ export default function PostJob() {
 
               <div style={hintBox}>
                 Tip: Company Name and Contact Email prefill from your{" "}
-                <a href="/employer/profile">Company Profile</a>. Update them there to change the defaults.
+                <a href="/employer/profile">Company Profile</a>.
               </div>
             </form>
           )}
@@ -268,24 +269,34 @@ export default function PostJob() {
   );
 }
 
-/* ---------- tiny UI helpers (inline styles & components) ---------- */
-
-function Success() {
+/* ---------- success view ---------- */
+function Success({ id }) {
   return (
     <div style={{ textAlign: "center" }}>
-      <h2 style={{ marginTop: 0 }}>Job saved (demo)</h2>
+      <h2 style={{ marginTop: 0 }}>Job posted (demo)</h2>
       <p style={{ marginBottom: 16 }}>
-        This job was saved in your browser’s storage. Next, we’ll have the listings
-        page read from that storage so you can manage it.
+        Your job is saved in this browser. It will appear in{" "}
+        <a href="/jobseeker/search">Jobseeker Search</a> with a “Posted here”
+        tag. (We can replace this with a real database later.)
       </p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-        <a href="/employer/listings" style={pillDark}>Go to Manage Listings</a>
-        <a href="/employer/post" style={pillLight}>Post Another</a>
+        <a href="/employer/listings" style={pillDark}>
+          Manage Listings
+        </a>
+        <a href="/employer/post" style={pillLight}>
+          Post Another
+        </a>
+        {id ? (
+          <a href={`/jobseeker/search/${id}`} style={pillLight}>
+            View Job
+          </a>
+        ) : null}
       </div>
     </div>
   );
 }
 
+/* ---------- tiny UI helpers (inline styles & components) ---------- */
 function Row({ children }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -298,7 +309,6 @@ function Row({ children }) {
     </div>
   );
 }
-
 function Input({ label, value, onChange, placeholder, type = "text" }) {
   return (
     <div style={{ display: "grid", gap: 6 }}>
@@ -313,14 +323,15 @@ function Input({ label, value, onChange, placeholder, type = "text" }) {
     </div>
   );
 }
-
 function Select({ label, value, onChange, options }) {
   return (
     <div style={{ display: "grid", gap: 6 }}>
       <label style={labelStyle}>{label}</label>
       <select value={value} onChange={(e) => onChange(e.target.value)} style={input}>
         {options.map((opt) => (
-          <option key={opt} value={opt}>{opt}</option>
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
         ))}
       </select>
     </div>
@@ -334,7 +345,8 @@ const wrap = {
   flexDirection: "column",
   alignItems: "center",
   gap: 24,
-  fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial",
+  fontFamily:
+    "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
 };
 
 const header = {
@@ -361,7 +373,6 @@ const input = {
   padding: "10px 12px",
   fontSize: 14,
 };
-
 const textarea = {
   border: "1px solid #ddd",
   borderRadius: 10,
@@ -369,7 +380,6 @@ const textarea = {
   fontSize: 14,
   resize: "vertical",
 };
-
 const labelStyle = { fontSize: 13, color: "#444" };
 const label = { fontSize: 13, color: "#444" };
 
@@ -392,7 +402,6 @@ const pillDark = {
   fontWeight: 600,
   textDecoration: "none",
 };
-
 const pillLight = {
   display: "inline-block",
   background: "#fff",
