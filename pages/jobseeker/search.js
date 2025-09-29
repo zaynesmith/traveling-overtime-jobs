@@ -39,16 +39,16 @@ const DEMO_JOBS = [
 ];
 
 export default function JobseekerSearch() {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isSignedIn } = useUser();
   const [allJobs, setAllJobs] = useState([]);
   const [saved, setSaved] = useState([]);
   const [q, setQ] = useState("");
   const [location, setLocation] = useState("");
   const [trade, setTrade] = useState("");
 
-  // Load posted jobs (from employer flow) + saved jobs
+  // Load jobs & saved ids
   useEffect(() => {
-    // Load employer-posted jobs from localStorage
+    // Load employer-posted jobs from localStorage (if your employer/post flow writes them)
     let localEmployerJobs = [];
     try {
       const raw = localStorage.getItem("myEmployerJobs");
@@ -57,9 +57,8 @@ export default function JobseekerSearch() {
       localEmployerJobs = [];
     }
 
-    // Normalize and tag as "local"
     const normalizedLocal = (localEmployerJobs || []).map((j) => ({
-      id: j.id,
+      id: j.id || `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       title: j.title,
       company: j.company,
       trade: j.trade || "General",
@@ -74,13 +73,12 @@ export default function JobseekerSearch() {
       _source: "local",
     }));
 
-    // Merge demo + local (newest first)
     const merged = [...DEMO_JOBS, ...normalizedLocal].sort(
       (a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()
     );
     setAllJobs(merged);
 
-    // Load saved jobs
+    // Saved IDs
     try {
       const rawSaved = localStorage.getItem("savedJobs");
       setSaved(rawSaved ? JSON.parse(rawSaved) : []);
@@ -89,7 +87,7 @@ export default function JobseekerSearch() {
     }
   }, []);
 
-  // Filters
+  // Apply filters
   const filtered = useMemo(() => {
     let list = [...allJobs];
 
@@ -104,7 +102,7 @@ export default function JobseekerSearch() {
     }
     if (location.trim()) {
       const l = location.trim().toLowerCase();
-      list = list.filter((j) => j.location.toLowerCase().includes(l));
+      list = list.filter((j) => (j.location || "").toLowerCase().includes(l));
     }
     if (trade.trim()) {
       const t = trade.trim().toLowerCase();
@@ -113,21 +111,41 @@ export default function JobseekerSearch() {
     return list;
   }, [allJobs, q, location, trade]);
 
-  // Helpers: save/unsave
-  function isSaved(id) {
-    return saved.includes(id);
-  }
-  function toggleSave(id) {
+  // Save/unsave helpers
+  const isSaved = (id) => saved.includes(id);
+  const toggleSave = (id) => {
     setSaved((prev) => {
-      let next;
-      if (prev.includes(id)) next = prev.filter((x) => x !== id);
-      else next = [...prev, id];
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
       try {
         localStorage.setItem("savedJobs", JSON.stringify(next));
       } catch {}
       return next;
     });
-  }
+  };
+
+  // Apply helper (writes to localStorage.applications)
+  const applyNow = (job) => {
+    if (!job) return;
+    try {
+      const raw = localStorage.getItem("applications");
+      const apps = raw ? JSON.parse(raw) : [];
+      // don’t duplicate same job application
+      if (apps.some((a) => a.jobId === job.id)) return;
+      const newApp = {
+        id: "app-" + Date.now(),
+        jobId: job.id,
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        submittedAt: new Date().toISOString(),
+        status: "Submitted",
+      };
+      localStorage.setItem("applications", JSON.stringify([...apps, newApp]));
+      alert("Application submitted (demo). Check My Applications.");
+    } catch {
+      alert("Could not save your application. Try again.");
+    }
+  };
 
   return (
     <main style={wrap}>
@@ -187,7 +205,8 @@ export default function JobseekerSearch() {
                 </div>
 
                 <div style={{ display: "grid", gap: 8, justifyItems: "end" }}>
-                  <a href={`/employer/listings/${j.id}`} style={linkBtn}>
+                  {/* FIXED: View now points to the jobseeker detail route */}
+                  <a href={`/jobseeker/search/${j.id}`} style={linkBtn}>
                     View
                   </a>
 
@@ -200,10 +219,19 @@ export default function JobseekerSearch() {
                     >
                       {isSaved(j.id) ? "Saved" : "Save"}
                     </button>
+
+                    {/* Quick Apply — signed-in only (detail page also has Apply) */}
+                    <button onClick={() => applyNow(j)} style={btnApply}>
+                      Apply
+                    </button>
                   </SignedIn>
+
                   <SignedOut>
                     <SignInButton mode="modal">
                       <button style={btnSave}>Save</button>
+                    </SignInButton>
+                    <SignInButton mode="modal">
+                      <button style={btnApply}>Apply</button>
                     </SignInButton>
                   </SignedOut>
                 </div>
@@ -309,10 +337,19 @@ const btnSave = {
   fontSize: 13,
   cursor: "pointer",
 };
-
 const btnSaved = {
   ...btnSave,
   background: "#eefdf3",
   borderColor: "#bfead1",
   color: "#0a5",
+};
+const btnApply = {
+  background: "#111",
+  color: "#fff",
+  border: "1px solid #111",
+  borderRadius: 8,
+  padding: "8px 12px",
+  fontWeight: 700,
+  fontSize: 13,
+  cursor: "pointer",
 };
