@@ -3,11 +3,13 @@ import { SignIn } from "@clerk/nextjs";
 import { useRouter } from "next/router";
 
 export default function SignInPage() {
-  const router = useRouter();
-  const role = (router.query.role || "jobseeker") + "";
+  const { query } = useRouter();
+  const role = (query.role === "employer" || query.role === "jobseeker")
+    ? query.role
+    : "jobseeker"; // default if missing
 
-  // Where to land after sign-in (no role setting, just route-based)
-  const afterUrl = role === "employer" ? "/employer" : "/jobseeker";
+  // After sign-in, go directly to the correct area
+  const redirectUrl = role === "employer" ? "/employer" : "/jobseeker";
 
   return (
     <main
@@ -19,12 +21,7 @@ export default function SignInPage() {
         padding: 40,
       }}
     >
-      <SignIn
-        path="/sign-in"
-        routing="path"
-        signUpUrl={`/sign-up?role=${role}`}
-        afterSignInUrl={afterUrl}
-      />
+      <SignIn path="/sign-in" routing="path" redirectUrl={redirectUrl} />
     </main>
   );
 }
