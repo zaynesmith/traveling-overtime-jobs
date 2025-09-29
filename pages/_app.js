@@ -1,11 +1,10 @@
-// pages/_app.js
 import { ClerkProvider } from "@clerk/nextjs";
 import "../styles/globals.css";
 import Header from "../components/Header";
 
-export default function MyApp({ Component, pageProps }) {
+export default function App({ Component, pageProps }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider {...pageProps}>
       <Header />
       <Component {...pageProps} />
     </ClerkProvider>
