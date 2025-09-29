@@ -39,7 +39,7 @@ export default function HomePage() {
     <>
       <section className="hero" role="region" aria-label="Traveling Overtime Jobs hero">
         <span className="overlay" aria-hidden="true" />
-        <h1 className="title">Traveling overtime jobs for skilled trades pros</h1>
+        <h1 className="title">Traveling Overtime Jobs</h1>
         <p className="subtitle">
           Discover vetted opportunities that include travel pay and overtime, or share openings with teams ready to hit the
           road.
