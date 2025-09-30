@@ -1,12 +1,5 @@
 // pages/jobseeker/search.js
-import {
-  SignedIn,
-  SignedOut,
-  RedirectToSignIn,
-  UserButton,
-  SignInButton,
-} from "@clerk/nextjs";
-import { useRequireRole } from "../../lib/useRequireRole";
+import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import { useEffect, useMemo, useState } from "react";
 
 // Some demo jobs to start with (you can remove later)
@@ -52,7 +45,9 @@ export default function JobSearch() {
   const [jobs, setJobs] = useState([]);
   const [savedIds, setSavedIds] = useState([]);
   const [appliedIds, setAppliedIds] = useState([]);
-  const canView = useRequireRole("jobseeker");
+  const { isLoaded: isUserLoaded, isSignedIn, user } = useUser();
+  const role = user?.publicMetadata?.role;
+  const isJobseeker = role === "jobseeker";
 
   // Load demo + locally posted employer jobs
   useEffect(() => {
@@ -114,6 +109,11 @@ export default function JobSearch() {
 
   // Apply (demo)
   function applyNow(job) {
+    if (!isJobseeker) {
+      alert("Sign in as a jobseeker to apply to jobs.");
+      return;
+    }
+
     try {
       const raw = localStorage.getItem("applications");
       const apps = raw ? JSON.parse(raw) : [];
@@ -153,113 +153,127 @@ export default function JobSearch() {
     );
   }, [q, jobs]);
 
+  const showApplyButton = (job) => {
+    if (isJobseeker) {
+      return (
+        <button className="btn" onClick={() => applyNow(job)}>
+          Apply
+        </button>
+      );
+    }
+
+    if (!isUserLoaded || !isSignedIn) {
+      return (
+        <SignInButton mode="modal" redirectUrl="/jobseeker/search">
+          <button className="btn">Sign in to apply</button>
+        </SignInButton>
+      );
+    }
+
+    return (
+      <button className="btn" onClick={() => alert("Switch to a jobseeker account to apply to jobs.")}>
+        Apply
+      </button>
+    );
+  };
+
   return (
-    <>
-      <SignedOut>
-        <RedirectToSignIn redirectUrl="/jobseeker/search" />
-      </SignedOut>
+    <main className="container">
+      <header className="max960" style={header}>
+        <h1 style={{ margin: 0 }}>Search Jobs</h1>
+        {isUserLoaded && isSignedIn ? (
+          <UserButton afterSignOutUrl="/" />
+        ) : (
+          <SignInButton mode="modal" redirectUrl="/jobseeker/search">
+            <button className="pill-light">Sign in</button>
+          </SignInButton>
+        )}
+        </header>
 
-      <SignedIn>
-        {canView ? (
-          <main className="container">
-          <header className="max960" style={header}>
-            <h1 style={{ margin: 0 }}>Search Jobs</h1>
-            <UserButton afterSignOutUrl="/" />
-          </header>
+        {/* Filters */}
+        <section className="card max960" style={{ display: "grid", gap: 12 }}>
+          <input
+            className="input"
+            placeholder="Title, company, location, or trade…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <div style={{ color: "#666", fontSize: 13 }}>
+            Showing {results.length} result{results.length === 1 ? "" : "s"}
+          </div>
+        </section>
 
-          {/* Filters */}
-          <section className="card max960" style={{ display: "grid", gap: 12 }}>
-            <input
-              className="input"
-              placeholder="Title, company, location, or trade…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-            <div style={{ color: "#666", fontSize: 13 }}>
-              Showing {results.length} result{results.length === 1 ? "" : "s"}
-            </div>
-          </section>
-
-          {/* Results */}
-          <section className="max960" style={{ display: "grid", gap: 12 }}>
-            {results.map((j) => {
-              const isSaved = savedIds.includes(String(j.id));
-              const isApplied = appliedIds.includes(String(j.id));
-              return (
-                <div key={j.id} className="card" style={{ display: "grid", gap: 8 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                    <div style={{ display: "grid", gap: 4 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <strong style={{ fontSize: 16 }}>{j.title}</strong>
-                        {j.postedHere ? (
-                          <span style={badge}>Posted here</span>
-                        ) : null}
-                      </div>
-                      <div style={{ color: "#555" }}>
-                        {j.company} • {j.location}
-                        {j.trade ? ` • ${j.trade}` : ""}
-                      </div>
-                      {(j.payRate || j.perDiem) && (
-                        <div style={{ color: "#333" }}>
-                          {j.payRate && <><strong>Pay:</strong> {j.payRate}</>}
-                          {j.perDiem && <> • <strong>Per Diem:</strong> {j.perDiem}</>}
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <a href={`/jobs/${j.id}`} className="pill-light">View</a>
-
-                      {/* Apply button (requires sign-in; we are already SignedIn here) */}
-                      {isApplied ? (
-                        <span style={{ ...badge, background: "#eaffea", borderColor: "#bfe6bf", color: "#225c22" }}>
-                          Applied
-                        </span>
-                      ) : (
-                        <button className="btn" onClick={() => applyNow(j)}>
-                          Apply
-                        </button>
-                      )}
-
-                      {/* Save/Unsave (works signed-in or signed-out since it's local) */}
-                      <button
-                        className="btn-outline"
-                        onClick={() => toggleSave(j.id)}
-                        title={isSaved ? "Remove from Saved" : "Save Job"}
-                      >
-                        {isSaved ? "Unsave" : "Save"}
-                      </button>
-                    </div>
+        {/* Results */}
+        <section className="max960" style={{ display: "grid", gap: 12 }}>
+        {results.map((j) => {
+          const isSaved = savedIds.includes(String(j.id));
+          const isApplied = appliedIds.includes(String(j.id));
+          return (
+            <div key={j.id} className="card" style={{ display: "grid", gap: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                <div style={{ display: "grid", gap: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <strong style={{ fontSize: 16 }}>{j.title}</strong>
+                    {j.postedHere ? <span style={badge}>Posted here</span> : null}
                   </div>
-
-                  {j.description ? (
-                    <p style={{ margin: "4px 0 0 0", color: "#444" }}>
-                      {j.description}
-                    </p>
-                  ) : null}
+                  <div style={{ color: "#555" }}>
+                    {j.company} • {j.location}
+                    {j.trade ? ` • ${j.trade}` : ""}
+                  </div>
+                  {(j.payRate || j.perDiem) && (
+                    <div style={{ color: "#333" }}>
+                      {j.payRate && (
+                        <>
+                          <strong>Pay:</strong> {j.payRate}
+                        </>
+                      )}
+                      {j.perDiem && (
+                        <>
+                          {j.payRate ? " • " : null}
+                          <strong>Per Diem:</strong> {j.perDiem}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
-              );
-            })}
 
-            {results.length === 0 && (
-              <div className="card" style={{ color: "#666" }}>
-                No results. Try a different keyword (e.g., “electrician”, “Houston”, or “foreman”).
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <a href={`/jobs/${j.id}`} className="pill-light">
+                    View
+                  </a>
+
+                  {isApplied ? (
+                    <span style={{ ...badge, background: "#eaffea", borderColor: "#bfe6bf", color: "#225c22" }}>
+                      Applied
+                    </span>
+                  ) : (
+                    showApplyButton(j)
+                  )}
+
+                  <button
+                    className="btn-outline"
+                    onClick={() => toggleSave(j.id)}
+                    title={isSaved ? "Remove from Saved" : "Save Job"}
+                  >
+                    {isSaved ? "Unsave" : "Save"}
+                  </button>
+                </div>
               </div>
-            )}
-          </section>
 
-          {/* Signed-out inline prompt (only shown if user signs out mid-session) */}
-          <SignedOut>
-            <section className="max960" style={{ marginTop: 16 }}>
-              <SignInButton>
-                <button className="btn">Sign in to apply</button>
-              </SignInButton>
-            </section>
-          </SignedOut>
-          </main>
-        ) : null}
-      </SignedIn>
-    </>
+              {j.description ? (
+                <p style={{ margin: "4px 0 0 0", color: "#444" }}>{j.description}</p>
+              ) : null}
+            </div>
+          );
+        })}
+
+        {results.length === 0 && (
+          <div className="card" style={{ color: "#666" }}>
+            No results. Try a different keyword (e.g., “electrician”, “Houston”, or “foreman”).
+          </div>
+        )}
+      </section>
+    </main>
   );
 }
 
