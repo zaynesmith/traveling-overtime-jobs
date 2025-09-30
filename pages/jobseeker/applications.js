@@ -4,13 +4,16 @@ import {
   SignedOut,
   RedirectToSignIn,
   UserButton,
+  useUser,
 } from "@clerk/nextjs";
+import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { useEffect, useState } from "react";
 
 export default function MyApplications() {
+  const { user } = useUser();
   const [apps, setApps] = useState([]);
-  const canView = useRequireRole("jobseeker");
+  const { status, canView, error } = useRequireRole("jobseeker");
 
   useEffect(() => {
     try {
@@ -28,7 +31,9 @@ export default function MyApplications() {
       </SignedOut>
 
       <SignedIn>
-        {canView ? (
+        {status === "checking" ? (
+          <RoleGateLoading role="jobseeker" />
+        ) : canView ? (
           <main style={wrap}>
             <header style={header}>
               <h1 style={{ margin: 0 }}>My Applications</h1>
@@ -68,7 +73,14 @@ export default function MyApplications() {
               )}
             </section>
           </main>
-        ) : null}
+        ) : (
+          <RoleGateDenied
+            expectedRole="jobseeker"
+            status={status}
+            error={error}
+            currentRole={user?.publicMetadata?.role}
+          />
+        )}
       </SignedIn>
     </>
   );
