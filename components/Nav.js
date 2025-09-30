@@ -1,8 +1,13 @@
 // components/Nav.js
 import Link from "next/link";
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
+import { getRoleHomeHref } from "../lib/getRoleHomeHref";
 
 export default function Nav() {
+  const { user } = useUser();
+  const role = user?.publicMetadata?.role;
+  const brandHref = getRoleHomeHref(role);
+
   return (
     <header style={{
       position: "sticky", top: 0, zIndex: 10,
@@ -15,7 +20,7 @@ export default function Nav() {
         display: "flex", alignItems: "center",
         justifyContent: "space-between", padding: "10px 16px"
       }}>
-        <Link href="/" style={{ fontWeight: 800, textDecoration: "none", color: "#111" }}>
+        <Link href={brandHref} style={{ fontWeight: 800, textDecoration: "none", color: "#111" }}>
           Traveling Overtime Jobs
         </Link>
 
