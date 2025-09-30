@@ -8,6 +8,7 @@ import {
 } from "@clerk/nextjs";
 import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
 import { useRequireRole } from "../../lib/useRequireRole";
+import { useRequireProfileCompletion } from "../../lib/useRequireProfileCompletion";
 import { resumeDatabase } from "../../lib/demoEmployerData";
 
 export default function TalentSearch() {
@@ -15,6 +16,9 @@ export default function TalentSearch() {
   const [trade, setTrade] = useState("all");
   const { user } = useUser();
   const { status, canView, error } = useRequireRole("employer");
+  const { status: profileStatus } = useRequireProfileCompletion(
+    status === "authorized" ? "employer" : null
+  );
 
   const results = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -53,7 +57,7 @@ export default function TalentSearch() {
       </SignedOut>
 
       <SignedIn>
-        {status === "checking" ? (
+        {status === "checking" || profileStatus === "loading" || profileStatus === "incomplete" ? (
           <RoleGateLoading role="employer" />
         ) : canView ? (
           <main className="container" style={{ padding: "40px 24px" }}>

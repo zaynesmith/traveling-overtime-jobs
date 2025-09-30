@@ -1,6 +1,6 @@
 import { SignUp } from "@clerk/nextjs";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { usePersistRole } from "../../lib/usePersistRole";
 
 const DEFAULT_ROLE = "jobseeker";
@@ -16,7 +16,8 @@ function getFirst(value) {
 }
 
 export default function SignUpPage() {
-  const { query } = useRouter();
+  const router = useRouter();
+  const { query, isReady } = router;
   const role = useMemo(() => {
     const intentRole = readRole(getFirst(query.intent));
     if (intentRole) {
@@ -32,15 +33,69 @@ export default function SignUpPage() {
   }, [query.intent, query.role]);
 
   const afterSignUpDestination =
-    role === "employer" ? "/employer/profile" : "/jobseeker";
+    role === "employer"
+      ? "/employer/profile?onboarding=1"
+      : "/jobseeker/profile?onboarding=1";
   const afterSignInDestination =
     role === "employer" ? "/employer" : "/jobseeker";
 
   usePersistRole(role);
 
+  const setRole = useCallback(
+    (nextRole) => {
+      if (!isReady) return;
+      if (!nextRole || nextRole === role) return;
+
+      const nextQuery = { ...query, intent: nextRole };
+      delete nextQuery.role;
+
+      router.replace(
+        { pathname: "/sign-up", query: nextQuery },
+        undefined,
+        { shallow: true }
+      );
+    },
+    [isReady, query, role, router]
+  );
+
+  const introCopy =
+    role === "employer"
+      ? "Create an employer account to publish listings, manage applicants, and access the hiring workspace."
+      : "Create a jobseeker account to save jobs, track demo applications, and showcase your resume to employers.";
+
   return (
     <main className="container">
       <div className="max960">
+        <section
+          className="card"
+          style={{
+            display: "grid",
+            gap: 16,
+            padding: 24,
+            marginBottom: 24,
+          }}
+        >
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className={role === "jobseeker" ? "btn" : "pill-light"}
+              onClick={() => setRole("jobseeker")}
+              aria-pressed={role === "jobseeker"}
+            >
+              Sign up as jobseeker
+            </button>
+            <button
+              type="button"
+              className={role === "employer" ? "btn" : "pill-light"}
+              onClick={() => setRole("employer")}
+              aria-pressed={role === "employer"}
+            >
+              Sign up as employer
+            </button>
+          </div>
+
+          <p style={{ margin: 0, color: "#475569" }}>{introCopy}</p>
+        </section>
         <SignUp
           path="/sign-up"
           routing="path"
