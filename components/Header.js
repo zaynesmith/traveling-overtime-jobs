@@ -11,16 +11,11 @@ const employerNav = [
   { href: "/employer/post", label: "Post a Job" },
 ];
 
-const defaultNav = [
-  { href: "/jobseeker", label: "Jobseeker" },
-  { href: "/employer", label: "Employer" },
-];
-
 export default function Header() {
   const { isSignedIn, user } = useUser();
   const role = user?.publicMetadata?.role;
 
-  let navItems = defaultNav;
+  let navItems = [];
   if (isSignedIn && role === "jobseeker") navItems = jobseekerNav;
   else if (isSignedIn && role === "employer") navItems = employerNav;
 
@@ -35,11 +30,6 @@ export default function Header() {
           </a>
         ))}
 
-        <SignedOut>
-          <a href="/sign-in?role=jobseeker" style={navBtn}>Sign in</a>
-          <a href="/sign-up" style={navBtnOutline}>Sign up</a>
-        </SignedOut>
-
         <SignedIn>
           <UserButton afterSignOutUrl="/" />
         </SignedIn>
@@ -51,5 +41,3 @@ export default function Header() {
 const wrap = { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 20px", borderBottom:"1px solid #eee", position:"sticky", top:0, background:"#fff", zIndex:10 };
 const brand = { fontWeight:800, textDecoration:"none", color:"#111" };
 const navLink = { textDecoration:"none", color:"#111", padding:"8px 10px", borderRadius:8, border:"1px solid #eee" };
-const navBtn = { textDecoration:"none", color:"#fff", background:"#111", padding:"8px 12px", borderRadius:8, fontWeight:700, border:"1px solid #111" };
-const navBtnOutline = { textDecoration:"none", color:"#111", background:"#fff", padding:"8px 12px", borderRadius:8, fontWeight:700, border:"1px solid #ddd" };
