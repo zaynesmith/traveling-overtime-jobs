@@ -1,31 +1,23 @@
-import { useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/router";
-import { useUser } from "@clerk/nextjs";
-
-import { getRoleHomeHref } from "../lib/getRoleHomeHref";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import AuthEntry from "../components/AuthEntry";
 
 const HERO_LINKS = [
   { href: "/jobseeker/search", label: "Search Jobs" },
   { href: "/post-job", label: "Post Jobs" },
-  { href: "/sign-in?role=employer", label: "Employer Login" },
-  { href: "/sign-in?role=jobseeker", label: "Jobseeker Login" },
 ];
 
-export default function HomePage() {
-  const router = useRouter();
-  const { isLoaded, isSignedIn, user } = useUser();
-
-  const destination = isLoaded && isSignedIn ? getRoleHomeHref(user?.publicMetadata?.role) : null;
-
-  useEffect(() => {
-    if (destination && destination !== "/") {
-      router.replace(destination);
+export default async function HomePage() {
+  const { userId, sessionClaims } = auth();
+  if (userId) {
+    const role = sessionClaims?.publicMetadata?.role as "employer" | "jobseeker" | undefined;
+    if (role === "employer") {
+      redirect("/employer/dashboard");
     }
-  }, [destination, router]);
-
-  if (destination && destination !== "/") {
-    return null;
+    if (role === "jobseeker") {
+      redirect("/jobseeker/dashboard");
+    }
   }
 
   return (
@@ -44,6 +36,7 @@ export default function HomePage() {
               {link.label}
             </Link>
           ))}
+          <AuthEntry />
         </div>
       </section>
 
@@ -98,7 +91,7 @@ export default function HomePage() {
               <Link className="btn" href="/post-job">
                 Create a job listing
               </Link>
-              <Link className="btn-outline" href="/sign-in?role=employer">
+              <Link className="btn-outline" href="/sign-in?intent=employer&redirect_url=/onboard">
                 Employer login
               </Link>
             </div>

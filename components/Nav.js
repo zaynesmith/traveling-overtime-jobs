@@ -1,3 +1,5 @@
+"use client";
+
 // components/Nav.js
 import Link from "next/link";
 import { SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
@@ -32,8 +34,12 @@ export default function Nav() {
             <UserButton afterSignOutUrl="/" />
           </SignedIn>
           <SignedOut>
-            <Link href="/sign-in" className="pill">Employer Login</Link>
-            <Link href="/sign-up" className="pill">Jobseeker Login</Link>
+            <Link href="/sign-in?intent=employer&redirect_url=/onboard" className="pill">
+              Employer Login
+            </Link>
+            <Link href="/sign-in?intent=jobseeker&redirect_url=/onboard" className="pill">
+              Jobseeker Login
+            </Link>
           </SignedOut>
         </div>
       </nav>

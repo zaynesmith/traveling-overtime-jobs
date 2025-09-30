@@ -42,7 +42,7 @@ export default function EmployerJobDetail() {
                   <Link href="/employer/listings" className="pill-light">
                     ← Back to listings
                   </Link>
-                  <Link href="/employer" className="pill-light">
+                  <Link href="/employer/dashboard" className="pill-light">
                     Employer dashboard
                   </Link>
                 </div>

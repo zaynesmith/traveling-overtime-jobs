@@ -62,7 +62,7 @@ export default function JobseekerProfile() {
             <Field label="Resume URL (link)"><input className="input" value={resumeUrl} onChange={(e)=>setResumeUrl(e.target.value)} placeholder="https://..." /></Field>
             <div style={{ display:"flex", gap:12, marginTop:8 }}>
               <button className="btn" disabled={saving}>{saving ? "Saving…" : "Save Profile"}</button>
-              <a href="/jobseeker" className="pill-light">Back to Jobseeker Area</a>
+              <a href="/jobseeker/dashboard" className="pill-light">Back to Jobseeker Area</a>
             </div>
             {saved && <div style={{ marginTop:10, background:"#f6fff6", border:"1px solid #bfe6bf", color:"#225c22", padding:"10px 12px", borderRadius:10, fontSize:14 }}>✅ Saved to your account.</div>}
           </form>

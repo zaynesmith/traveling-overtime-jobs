@@ -66,7 +66,7 @@ export default function TalentSearch() {
                   </p>
                 </div>
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  <Link href="/employer" className="pill-light">
+                  <Link href="/employer/dashboard" className="pill-light">
                     ← Back to dashboard
                   </Link>
                   <Link href="/employer/listings" className="pill-light">
