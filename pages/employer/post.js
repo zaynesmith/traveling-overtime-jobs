@@ -1,9 +1,9 @@
+import Link from "next/link";
 import {
   SignedIn,
   SignedOut,
   RedirectToSignIn,
   useUser,
-  UserButton,
 } from "@clerk/nextjs";
 import { useEffect, useMemo, useState } from "react";
 import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
@@ -108,7 +108,9 @@ export default function PostJob() {
         <main className="container">
           <header className="max960" style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
             <h1 style={{ margin: 0 }}>Post a Job</h1>
-            <UserButton afterSignOutUrl="/" />
+            <Link href="/employer" className="pill-light" style={{ fontSize: 14 }}>
+              ← Back to dashboard
+            </Link>
           </header>
 
           <section className="card max960">
@@ -153,9 +155,9 @@ export default function PostJob() {
                   <textarea rows={6} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input" placeholder="Duties, requirements, shift, duration, tools, PPE, etc." />
                 </div>
 
-                <div style={{ display:"flex", gap:12, marginTop:8 }}>
+                <div style={{ display:"flex", gap:12, marginTop:8, flexWrap:"wrap" }}>
                   <button className="btn" disabled={!canSubmit || saving}>{saving ? "Posting…" : "Post Job"}</button>
-                  <a href="/employer" className="pill-light">Cancel</a>
+                  <Link href="/employer" className="pill-light">Cancel</Link>
                 </div>
                 <p style={{ marginTop:6, fontSize:12, color:"#666" }}>* Required fields</p>
               </form>
@@ -172,9 +174,9 @@ function Success() {
     <div style={{ textAlign:"center" }}>
       <h2 style={{ marginTop:0 }}>Job submitted (demo)</h2>
       <p style={{ marginBottom:16 }}>No database yet — this confirms the form works.</p>
-      <div style={{ display:"flex", gap:12, justifyContent:"center" }}>
-        <a href="/employer" className="pill-light">Back to Employer Area</a>
-        <a href="/employer/listings" className="pill-light">Manage Listings</a>
+      <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap" }}>
+        <Link href="/employer" className="pill-light">Back to Employer Area</Link>
+        <Link href="/employer/listings" className="pill-light">Manage Listings</Link>
       </div>
     </div>
   );

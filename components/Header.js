@@ -11,6 +11,8 @@ const jobseekerNav = [
 const employerNav = [
   { href: "/employer", label: "Employer Dashboard" },
   { href: "/employer/post", label: "Post a Job" },
+  { href: "/employer/listings", label: "Manage Jobs" },
+  { href: "/employer/talent", label: "Talent Search" },
 ];
 
 export default function Header() {
@@ -31,9 +33,9 @@ export default function Header() {
 
       <nav style={{ display: "flex", gap: 10, alignItems: "center" }}>
         {navItems.map((item) => (
-          <a key={item.href} href={item.href} style={navLink}>
+          <Link key={item.href} href={item.href} style={navLink}>
             {item.label}
-          </a>
+          </Link>
         ))}
 
         <SignedIn>
