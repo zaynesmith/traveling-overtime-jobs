@@ -1,6 +1,9 @@
 import { SignedIn, SignedOut, RedirectToSignIn, UserButton } from "@clerk/nextjs";
+import { useRequireRole } from "../../lib/useRequireRole";
 
 export default function EmployerHome() {
+  const canView = useRequireRole("employer");
+
   return (
     <>
       <SignedOut>
@@ -8,7 +11,8 @@ export default function EmployerHome() {
       </SignedOut>
 
       <SignedIn>
-        <main className="container">
+        {canView ? (
+          <main className="container">
           <header className="max960" style={header}>
             <h1 style={{ margin: 0 }}>Employer Area</h1>
             <UserButton afterSignOutUrl="/" />
@@ -21,7 +25,8 @@ export default function EmployerHome() {
           </section>
 
           <a href="/" className="pill-light">← Back to Home</a>
-        </main>
+          </main>
+        ) : null}
       </SignedIn>
     </>
   );

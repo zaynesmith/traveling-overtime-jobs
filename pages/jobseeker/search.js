@@ -6,6 +6,7 @@ import {
   UserButton,
   SignInButton,
 } from "@clerk/nextjs";
+import { useRequireRole } from "../../lib/useRequireRole";
 import { useEffect, useMemo, useState } from "react";
 
 // Some demo jobs to start with (you can remove later)
@@ -51,6 +52,7 @@ export default function JobSearch() {
   const [jobs, setJobs] = useState([]);
   const [savedIds, setSavedIds] = useState([]);
   const [appliedIds, setAppliedIds] = useState([]);
+  const canView = useRequireRole("jobseeker");
 
   // Load demo + locally posted employer jobs
   useEffect(() => {
@@ -158,7 +160,8 @@ export default function JobSearch() {
       </SignedOut>
 
       <SignedIn>
-        <main className="container">
+        {canView ? (
+          <main className="container">
           <header className="max960" style={header}>
             <h1 style={{ margin: 0 }}>Search Jobs</h1>
             <UserButton afterSignOutUrl="/" />
@@ -253,7 +256,8 @@ export default function JobSearch() {
               </SignInButton>
             </section>
           </SignedOut>
-        </main>
+          </main>
+        ) : null}
       </SignedIn>
     </>
   );

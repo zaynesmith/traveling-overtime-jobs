@@ -1,14 +1,39 @@
 // components/Header.js
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
+
+const jobseekerNav = [
+  { href: "/jobseeker", label: "Jobseeker Dashboard" },
+  { href: "/jobseeker/search", label: "Search Jobs" },
+];
+
+const employerNav = [
+  { href: "/employer", label: "Employer Dashboard" },
+  { href: "/employer/post", label: "Post a Job" },
+];
+
+const defaultNav = [
+  { href: "/jobseeker", label: "Jobseeker" },
+  { href: "/employer", label: "Employer" },
+];
 
 export default function Header() {
+  const { isSignedIn, user } = useUser();
+  const role = user?.publicMetadata?.role;
+
+  let navItems = defaultNav;
+  if (isSignedIn && role === "jobseeker") navItems = jobseekerNav;
+  else if (isSignedIn && role === "employer") navItems = employerNav;
+
   return (
     <header style={wrap}>
       <a href="/" style={brand}>Traveling Overtime Jobs</a>
 
       <nav style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        <a href="/jobseeker" style={navLink}>Jobseeker</a>
-        <a href="/employer" style={navLink}>Employer</a>
+        {navItems.map((item) => (
+          <a key={item.href} href={item.href} style={navLink}>
+            {item.label}
+          </a>
+        ))}
 
         <SignedOut>
           <a href="/sign-in?role=jobseeker" style={navBtn}>Sign in</a>

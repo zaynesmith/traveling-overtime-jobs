@@ -5,11 +5,13 @@ import {
   RedirectToSignIn,
   UserButton,
 } from "@clerk/nextjs";
+import { useRequireRole } from "../../lib/useRequireRole";
 import { useEffect, useState } from "react";
 
 export default function SavedJobs() {
   const [savedIds, setSavedIds] = useState([]);
   const [jobs, setJobs] = useState([]);
+  const canView = useRequireRole("jobseeker");
 
   // Load saved IDs and stitch them to job data (demo + locally posted)
   useEffect(() => {
@@ -86,7 +88,8 @@ export default function SavedJobs() {
       </SignedOut>
 
       <SignedIn>
-        <main className="container">
+        {canView ? (
+          <main className="container">
           <header className="max960" style={header}>
             <h1 style={{ margin: 0 }}>Saved Jobs</h1>
             <UserButton afterSignOutUrl="/" />
@@ -126,7 +129,8 @@ export default function SavedJobs() {
               ))
             )}
           </section>
-        </main>
+          </main>
+        ) : null}
       </SignedIn>
     </>
   );

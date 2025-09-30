@@ -1,8 +1,10 @@
 import { SignedIn, SignedOut, RedirectToSignIn, useUser, UserButton } from "@clerk/nextjs";
+import { useRequireRole } from "../../lib/useRequireRole";
 import { useEffect, useState } from "react";
 
 export default function JobseekerProfile() {
   const { user, isLoaded, isSignedIn } = useUser();
+  const hasJobseekerRole = useRequireRole("jobseeker");
   const [fullName, setFullName] = useState("");
   const [trade, setTrade] = useState("");
   const [zip, setZip] = useState("");
@@ -21,6 +23,7 @@ export default function JobseekerProfile() {
 
   if (!isLoaded) return null;
   if (!isSignedIn) return (<SignedOut><RedirectToSignIn redirectUrl="/jobseeker/profile" /></SignedOut>);
+  if (!hasJobseekerRole) return null;
 
   async function handleSave(e) {
     e.preventDefault();

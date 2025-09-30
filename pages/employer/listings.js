@@ -1,7 +1,10 @@
 // pages/employer/listings.js
 import { SignedIn, SignedOut, RedirectToSignIn, UserButton } from "@clerk/nextjs";
+import { useRequireRole } from "../../lib/useRequireRole";
 
 export default function EmployerListings() {
+  const canView = useRequireRole("employer");
+
   return (
     <>
       <SignedOut>
@@ -9,7 +12,8 @@ export default function EmployerListings() {
       </SignedOut>
 
       <SignedIn>
-        <main style={wrap}>
+        {canView ? (
+          <main style={wrap}>
           <header style={header}>
             <h1 style={{ margin: 0 }}>Manage Job Listings</h1>
             <UserButton afterSignOutUrl="/" />
@@ -31,7 +35,8 @@ export default function EmployerListings() {
               </div>
             ))}
           </section>
-        </main>
+          </main>
+        ) : null}
       </SignedIn>
     </>
   );

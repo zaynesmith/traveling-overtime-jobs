@@ -1,4 +1,5 @@
 import { SignedIn, SignedOut, RedirectToSignIn, useUser, UserButton } from "@clerk/nextjs";
+import { useRequireRole } from "../../lib/useRequireRole";
 import { useEffect, useMemo, useState } from "react";
 
 const DRAFT_STORAGE_KEY = "public-post-job-draft";
@@ -7,6 +8,7 @@ export default function PostJob() {
   const { user, isLoaded } = useUser();
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const hasEmployerRole = useRequireRole("employer");
 
   const [form, setForm] = useState({
     title: "",
@@ -72,6 +74,10 @@ export default function PostJob() {
         <RedirectToSignIn redirectUrl="/employer/post" />
       </SignedOut>
     );
+  }
+
+  if (!hasEmployerRole) {
+    return null;
   }
 
   return (
