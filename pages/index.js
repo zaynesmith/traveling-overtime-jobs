@@ -1,4 +1,9 @@
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
+import { useUser } from "@clerk/nextjs";
+
+import { getRoleHomeHref } from "../lib/getRoleHomeHref";
 
 const HERO_LINKS = [
   { href: "/jobseeker/search", label: "Search Jobs" },
@@ -8,6 +13,21 @@ const HERO_LINKS = [
 ];
 
 export default function HomePage() {
+  const router = useRouter();
+  const { isLoaded, isSignedIn, user } = useUser();
+
+  const destination = isLoaded && isSignedIn ? getRoleHomeHref(user?.publicMetadata?.role) : null;
+
+  useEffect(() => {
+    if (destination && destination !== "/") {
+      router.replace(destination);
+    }
+  }, [destination, router]);
+
+  if (destination && destination !== "/") {
+    return null;
+  }
+
   return (
     <>
       <section className="hero" role="region" aria-label="Traveling Overtime Jobs hero">
