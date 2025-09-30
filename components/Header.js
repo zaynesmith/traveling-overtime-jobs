@@ -1,15 +1,17 @@
+"use client";
+
 // components/Header.js
 import Link from "next/link";
 import { SignedIn, UserButton, useUser } from "@clerk/nextjs";
 import { getRoleHomeHref } from "../lib/getRoleHomeHref";
 
 const jobseekerNav = [
-  { href: "/jobseeker", label: "Jobseeker Dashboard" },
+  { href: "/jobseeker/dashboard", label: "Jobseeker Dashboard" },
   { href: "/jobseeker/search", label: "Search Jobs" },
 ];
 
 const employerNav = [
-  { href: "/employer", label: "Employer Dashboard" },
+  { href: "/employer/dashboard", label: "Employer Dashboard" },
   { href: "/employer/post", label: "Post a Job" },
   { href: "/employer/listings", label: "Manage Jobs" },
   { href: "/employer/talent", label: "Talent Search" },

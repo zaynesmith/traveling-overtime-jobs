@@ -33,7 +33,7 @@ export default function EmployerListings() {
                 </p>
               </div>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <Link href="/employer" className="pill-light">
+                <Link href="/employer/dashboard" className="pill-light">
                   ← Back to dashboard
                 </Link>
                 <Link href="/employer/post" className="btn" style={{ padding: "8px 16px", fontSize: 14 }}>

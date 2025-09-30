@@ -1,7 +1,6 @@
 import { SignIn } from "@clerk/nextjs";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
-import { usePersistRole } from "../../lib/usePersistRole";
 
 function sanitizeRedirect(path) {
   if (typeof path !== "string" || !path.startsWith("/")) {
@@ -17,21 +16,41 @@ function sanitizeRedirect(path) {
   }
 }
 
-function readRole(rawRole) {
-  if (rawRole === "employer") return "employer";
-  if (rawRole === "jobseeker") return "jobseeker";
+function readIntent(rawIntent) {
+  if (rawIntent === "employer") return "employer";
+  if (rawIntent === "jobseeker") return "jobseeker";
   return undefined;
+}
+
+function appendIntent(path, intent) {
+  if (!intent) {
+    return path;
+  }
+
+  try {
+    const url = new URL(path, "http://localhost");
+    if (!url.searchParams.has("intent")) {
+      url.searchParams.set("intent", intent);
+    }
+    const query = url.searchParams.toString();
+    const hash = url.hash ?? "";
+    return `${url.pathname}${query ? `?${query}` : ""}${hash}`;
+  } catch (error) {
+    console.error("Invalid redirect path when appending intent", error);
+    const separator = path.includes("?") ? "&" : "?";
+    return `${path}${separator}intent=${intent}`;
+  }
 }
 
 export default function SignInPage() {
   const { query, asPath } = useRouter();
 
-  const roleFromQuery = useMemo(() => {
-    const directRole = Array.isArray(query.role)
-      ? readRole(query.role[0])
-      : readRole(query.role);
-    if (directRole) {
-      return directRole;
+  const intent = useMemo(() => {
+    const directIntent = Array.isArray(query.intent)
+      ? readIntent(query.intent[0])
+      : readIntent(query.intent);
+    if (directIntent) {
+      return directIntent;
     }
 
     const searchIndex = asPath.indexOf("?");
@@ -41,22 +60,21 @@ export default function SignInPage() {
 
     try {
       const params = new URLSearchParams(asPath.slice(searchIndex + 1));
-      return readRole(params.get("role"));
+      return readIntent(params.get("intent"));
     } catch (error) {
-      console.error("Invalid role parameter", error);
+      console.error("Invalid intent parameter", error);
       return undefined;
     }
-  }, [query.role, asPath]);
+  }, [query.intent, asPath]);
 
-  const fallbackRole = roleFromQuery ?? "jobseeker";
-  const fallbackDestination =
-    fallbackRole === "employer" ? "/employer" : "/jobseeker";
-  const destination = sanitizeRedirect(query.redirect_url) || fallbackDestination;
-  const signUpUrl = roleFromQuery
-    ? `/sign-up?role=${roleFromQuery}`
+  const sanitizedRedirect = sanitizeRedirect(query.redirect_url) || "/onboard";
+  const destination = appendIntent(sanitizedRedirect, intent);
+  const signUpUrlBase = intent
+    ? `/sign-up?intent=${intent}`
     : "/sign-up";
-
-  usePersistRole(roleFromQuery);
+  const signUpUrl = query.redirect_url
+    ? `${signUpUrlBase}&redirect_url=${encodeURIComponent(sanitizedRedirect)}`
+    : signUpUrlBase;
 
   return (
     <main className="container">

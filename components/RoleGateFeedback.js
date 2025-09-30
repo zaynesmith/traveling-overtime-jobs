@@ -8,8 +8,8 @@ const roleNames = {
 };
 
 const roleDestinations = {
-  employer: "/employer",
-  jobseeker: "/jobseeker",
+  employer: "/employer/dashboard",
+  jobseeker: "/jobseeker/dashboard",
 };
 
 const cardStyle = {

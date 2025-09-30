@@ -82,7 +82,7 @@ export default function EmployerProfile() {
         <main className="container">
           <header className="max960" style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
             <h1 style={{ margin: 0 }}>Employer Profile</h1>
-            <Link href="/employer" className="pill-light" style={{ fontSize: 14 }}>
+            <Link href="/employer/dashboard" className="pill-light" style={{ fontSize: 14 }}>
               ← Back to dashboard
             </Link>
           </header>
@@ -107,7 +107,7 @@ export default function EmployerProfile() {
 
               <div style={{ display:"flex", gap:12, marginTop:8, flexWrap:"wrap" }}>
                 <button className="btn" disabled={saving}>{saving ? "Saving…" : "Save Company Profile"}</button>
-                <Link href="/employer" className="pill-light">Back to Employer Area</Link>
+                <Link href="/employer/dashboard" className="pill-light">Back to Employer Area</Link>
               </div>
               {saved && <div style={{ marginTop:10, background:"#f6fff6", border:"1px solid #bfe6bf", color:"#225c22", padding:"10px 12px", borderRadius:10, fontSize:14 }}>✅ Saved to your account.</div>}
             </form>
