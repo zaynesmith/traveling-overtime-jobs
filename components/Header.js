@@ -1,5 +1,7 @@
 // components/Header.js
-import { SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
+import Link from "next/link";
+import { SignedIn, UserButton, useUser } from "@clerk/nextjs";
+import { getRoleHomeHref } from "../lib/getRoleHomeHref";
 
 const jobseekerNav = [
   { href: "/jobseeker", label: "Jobseeker Dashboard" },
@@ -19,9 +21,13 @@ export default function Header() {
   if (isSignedIn && role === "jobseeker") navItems = jobseekerNav;
   else if (isSignedIn && role === "employer") navItems = employerNav;
 
+  const brandHref = getRoleHomeHref(role);
+
   return (
     <header style={wrap}>
-      <a href="/" style={brand}>Traveling Overtime Jobs</a>
+      <Link href={brandHref} style={brand}>
+        Traveling Overtime Jobs
+      </Link>
 
       <nav style={{ display: "flex", gap: 10, alignItems: "center" }}>
         {navItems.map((item) => (
