@@ -8,12 +8,16 @@ import {
 } from "@clerk/nextjs";
 import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
 import { useRequireRole } from "../../lib/useRequireRole";
+import { useRequireProfileCompletion } from "../../lib/useRequireProfileCompletion";
 import { useEffect, useState } from "react";
 
 export default function MyApplications() {
   const { user } = useUser();
   const [apps, setApps] = useState([]);
   const { status, canView, error } = useRequireRole("jobseeker");
+  const { status: profileStatus } = useRequireProfileCompletion(
+    status === "authorized" ? "jobseeker" : null
+  );
 
   useEffect(() => {
     try {
@@ -31,7 +35,7 @@ export default function MyApplications() {
       </SignedOut>
 
       <SignedIn>
-        {status === "checking" ? (
+        {status === "checking" || profileStatus === "loading" || profileStatus === "incomplete" ? (
           <RoleGateLoading role="jobseeker" />
         ) : canView ? (
           <main style={wrap}>

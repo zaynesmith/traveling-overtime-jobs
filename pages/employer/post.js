@@ -8,6 +8,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
 import { useRequireRole } from "../../lib/useRequireRole";
+import { useRequireProfileCompletion } from "../../lib/useRequireProfileCompletion";
 
 const DRAFT_STORAGE_KEY = "public-post-job-draft";
 
@@ -16,6 +17,9 @@ export default function PostJob() {
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const { status, canView, error } = useRequireRole("employer");
+  const { status: profileStatus } = useRequireProfileCompletion(
+    status === "authorized" ? "employer" : null
+  );
 
   const [form, setForm] = useState({
     title: "",
@@ -86,7 +90,7 @@ export default function PostJob() {
   }
 
   if (!canView) {
-    if (status === "checking") {
+    if (status === "checking" || profileStatus === "loading" || profileStatus === "incomplete") {
       return <RoleGateLoading role="employer" />;
     }
 
@@ -102,7 +106,7 @@ export default function PostJob() {
 
   return (
     <SignedIn>
-      {status === "checking" ? (
+      {status === "checking" || profileStatus === "loading" || profileStatus === "incomplete" ? (
         <RoleGateLoading role="employer" />
       ) : (
         <main className="container">

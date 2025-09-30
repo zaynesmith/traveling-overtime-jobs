@@ -7,17 +7,21 @@ import {
 } from "@clerk/nextjs";
 import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
 import { useRequireRole } from "../../lib/useRequireRole";
+import { useRequireProfileCompletion } from "../../lib/useRequireProfileCompletion";
 
 export default function JobseekerHome() {
   const { user } = useUser();
   const { status, canView, error } = useRequireRole("jobseeker");
+  const { status: profileStatus } = useRequireProfileCompletion(
+    status === "authorized" ? "jobseeker" : null
+  );
 
   return (
     <>
       <SignedOut><RedirectToSignIn redirectUrl="/jobseeker" /></SignedOut>
 
       <SignedIn>
-        {status === "checking" ? (
+        {status === "checking" || profileStatus === "loading" || profileStatus === "incomplete" ? (
           <RoleGateLoading role="jobseeker" />
         ) : canView ? (
           <main className="container">

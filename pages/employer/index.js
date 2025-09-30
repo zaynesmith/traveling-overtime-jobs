@@ -7,11 +7,15 @@ import {
 } from "@clerk/nextjs";
 import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
 import { useRequireRole } from "../../lib/useRequireRole";
+import { useRequireProfileCompletion } from "../../lib/useRequireProfileCompletion";
 import { employerJobs } from "../../lib/demoEmployerData";
 
 export default function EmployerHome() {
   const { user } = useUser();
   const { status, canView, error } = useRequireRole("employer");
+  const { status: profileStatus } = useRequireProfileCompletion(
+    status === "authorized" ? "employer" : null
+  );
 
   return (
     <>
@@ -20,7 +24,7 @@ export default function EmployerHome() {
       </SignedOut>
 
       <SignedIn>
-        {status === "checking" ? (
+        {status === "checking" || profileStatus === "loading" || profileStatus === "incomplete" ? (
           <RoleGateLoading role="employer" />
         ) : canView ? (
           <main className="container" style={{ paddingBottom: 56 }}>
