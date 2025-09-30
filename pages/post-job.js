@@ -218,7 +218,7 @@ export default function PublicPostJob() {
               <button className="btn" type="submit" style={{ minWidth: 180 }}>
                 Post Job
               </button>
-              <LinkButton href="/">
+              <LinkButton href="/employer">
                 Cancel
               </LinkButton>
             </div>
