@@ -23,7 +23,7 @@ export default function JobseekerHome() {
               <a href="/jobseeker/profile" className="card link-card">My Profile</a>
             </section>
 
-            <a href="/" className="pill-light">← Back to Home</a>
+            <a href="/jobseeker" className="pill-light">← Back to Home</a>
           </main>
         ) : null}
       </SignedIn>

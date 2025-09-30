@@ -24,7 +24,7 @@ export default function EmployerHome() {
             <a href="/employer/profile" className="card link-card">Company Profile</a>
           </section>
 
-          <a href="/" className="pill-light">← Back to Home</a>
+          <a href="/employer" className="pill-light">← Back to Home</a>
           </main>
         ) : null}
       </SignedIn>
