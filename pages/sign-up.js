@@ -8,12 +8,15 @@ const DEFAULT_ROLE = "jobseeker";
 export default function SignUpPage() {
   const { query } = useRouter();
   const role = useMemo(() => {
-    if (query.role === "employer") return "employer";
-    if (query.role === "jobseeker") return "jobseeker";
+    const queryRole = Array.isArray(query.role) ? query.role[0] : query.role;
+    if (queryRole === "employer") return "employer";
+    if (queryRole === "jobseeker") return "jobseeker";
     return DEFAULT_ROLE;
   }, [query.role]);
 
-  const destination = role === "employer" ? "/employer" : "/jobseeker";
+  const afterSignUpDestination =
+    role === "employer" ? "/employer/profile" : "/jobseeker";
+  const afterSignInDestination = role === "employer" ? "/employer" : "/jobseeker";
 
   usePersistRole(role);
 
@@ -24,8 +27,8 @@ export default function SignUpPage() {
           path="/sign-up"
           routing="path"
           signInUrl="/sign-in"
-          afterSignInUrl={destination}
-          afterSignUpUrl={destination}
+          afterSignInUrl={afterSignInDestination}
+          afterSignUpUrl={afterSignUpDestination}
         />
       </div>
     </main>
