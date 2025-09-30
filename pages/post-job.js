@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const INITIAL_FORM = {
   title: "",
@@ -44,10 +44,6 @@ export default function PublicPostJob() {
     }
   }, []);
 
-  const redirectUrl = useMemo(() => {
-    return router.asPath ? router.asPath : "/post-job";
-  }, [router.asPath]);
-
   function updateField(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
@@ -68,7 +64,10 @@ export default function PublicPostJob() {
     }
 
     if (!isSignedIn) {
-      router.push({ pathname: "/sign-in", query: { role: "employer", redirect_url: redirectUrl } });
+      router.push({
+        pathname: "/sign-in",
+        query: { intent: "employer", redirect_url: "/onboard" },
+      });
       return;
     }
 

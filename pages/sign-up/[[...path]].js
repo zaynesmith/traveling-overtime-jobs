@@ -5,14 +5,31 @@ import { usePersistRole } from "../../lib/usePersistRole";
 
 const DEFAULT_ROLE = "jobseeker";
 
+function readRole(rawRole) {
+  if (rawRole === "employer") return "employer";
+  if (rawRole === "jobseeker") return "jobseeker";
+  return undefined;
+}
+
+function getFirst(value) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 export default function SignUpPage() {
   const { query } = useRouter();
   const role = useMemo(() => {
-    const queryRole = Array.isArray(query.role) ? query.role[0] : query.role;
-    if (queryRole === "employer") return "employer";
-    if (queryRole === "jobseeker") return "jobseeker";
+    const intentRole = readRole(getFirst(query.intent));
+    if (intentRole) {
+      return intentRole;
+    }
+
+    const legacyRole = readRole(getFirst(query.role));
+    if (legacyRole) {
+      return legacyRole;
+    }
+
     return DEFAULT_ROLE;
-  }, [query.role]);
+  }, [query.intent, query.role]);
 
   const afterSignUpDestination =
     role === "employer" ? "/employer/profile" : "/jobseeker";
@@ -27,7 +44,7 @@ export default function SignUpPage() {
         <SignUp
           path="/sign-up"
           routing="path"
-          signInUrl="/sign-in"
+          signInUrl={role ? `/sign-in?intent=${role}` : "/sign-in"}
           afterSignInUrl={afterSignInDestination}
           afterSignUpUrl={afterSignUpDestination}
         />
