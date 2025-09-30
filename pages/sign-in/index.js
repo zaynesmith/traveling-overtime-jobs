@@ -27,9 +27,14 @@ export default function SignInPage() {
   const { query, asPath } = useRouter();
 
   const roleFromQuery = useMemo(() => {
-    const directRole = Array.isArray(query.role)
-      ? readRole(query.role[0])
-      : readRole(query.role);
+    const getFirst = (value) => (Array.isArray(value) ? value[0] : value);
+
+    const intentRole = readRole(getFirst(query.intent));
+    if (intentRole) {
+      return intentRole;
+    }
+
+    const directRole = readRole(getFirst(query.role));
     if (directRole) {
       return directRole;
     }
@@ -41,19 +46,19 @@ export default function SignInPage() {
 
     try {
       const params = new URLSearchParams(asPath.slice(searchIndex + 1));
-      return readRole(params.get("role"));
+      return readRole(params.get("intent")) || readRole(params.get("role"));
     } catch (error) {
-      console.error("Invalid role parameter", error);
+      console.error("Invalid role or intent parameter", error);
       return undefined;
     }
-  }, [query.role, asPath]);
+  }, [query.intent, query.role, asPath]);
 
   const fallbackRole = roleFromQuery ?? "jobseeker";
   const fallbackDestination =
     fallbackRole === "employer" ? "/employer" : "/jobseeker";
   const destination = sanitizeRedirect(query.redirect_url) || fallbackDestination;
   const signUpUrl = roleFromQuery
-    ? `/sign-up?role=${roleFromQuery}`
+    ? `/sign-up?intent=${roleFromQuery}`
     : "/sign-up";
 
   usePersistRole(roleFromQuery);

@@ -8,8 +8,8 @@ import { getRoleHomeHref } from "../lib/getRoleHomeHref";
 const HERO_LINKS = [
   { href: "/jobseeker/search", label: "Search Jobs" },
   { href: "/post-job", label: "Post Jobs" },
-  { href: "/sign-in?role=employer", label: "Employer Login" },
-  { href: "/sign-in?role=jobseeker", label: "Jobseeker Login" },
+  { href: "/sign-in?intent=employer", label: "Employer Login" },
+  { href: "/sign-in?intent=jobseeker", label: "Jobseeker Login" },
 ];
 
 export default function HomePage() {
@@ -98,7 +98,7 @@ export default function HomePage() {
               <Link className="btn" href="/post-job">
                 Create a job listing
               </Link>
-              <Link className="btn-outline" href="/sign-in?role=employer">
+              <Link className="btn-outline" href="/sign-in?intent=employer">
                 Employer login
               </Link>
             </div>
