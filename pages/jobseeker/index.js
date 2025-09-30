@@ -1,15 +1,25 @@
-import { SignedIn, SignedOut, RedirectToSignIn, UserButton } from "@clerk/nextjs";
+import {
+  SignedIn,
+  SignedOut,
+  RedirectToSignIn,
+  UserButton,
+  useUser,
+} from "@clerk/nextjs";
+import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
 import { useRequireRole } from "../../lib/useRequireRole";
 
 export default function JobseekerHome() {
-  const canView = useRequireRole("jobseeker");
+  const { user } = useUser();
+  const { status, canView, error } = useRequireRole("jobseeker");
 
   return (
     <>
       <SignedOut><RedirectToSignIn redirectUrl="/jobseeker" /></SignedOut>
 
       <SignedIn>
-        {canView ? (
+        {status === "checking" ? (
+          <RoleGateLoading role="jobseeker" />
+        ) : canView ? (
           <main className="container">
             <header className="max960" style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <h1 style={{ margin: 0 }}>Jobseeker Area</h1>
@@ -25,7 +35,14 @@ export default function JobseekerHome() {
 
             <a href="/" className="pill-light">← Back to Home</a>
           </main>
-        ) : null}
+        ) : (
+          <RoleGateDenied
+            expectedRole="jobseeker"
+            status={status}
+            error={error}
+            currentRole={user?.publicMetadata?.role}
+          />
+        )}
       </SignedIn>
     </>
   );
