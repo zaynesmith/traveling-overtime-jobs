@@ -1,9 +1,17 @@
 // pages/employer/listings.js
-import { SignedIn, SignedOut, RedirectToSignIn, UserButton } from "@clerk/nextjs";
+import {
+  SignedIn,
+  SignedOut,
+  RedirectToSignIn,
+  UserButton,
+  useUser,
+} from "@clerk/nextjs";
+import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
 import { useRequireRole } from "../../lib/useRequireRole";
 
 export default function EmployerListings() {
-  const canView = useRequireRole("employer");
+  const { user } = useUser();
+  const { status, canView, error } = useRequireRole("employer");
 
   return (
     <>
@@ -12,7 +20,9 @@ export default function EmployerListings() {
       </SignedOut>
 
       <SignedIn>
-        {canView ? (
+        {status === "checking" ? (
+          <RoleGateLoading role="employer" />
+        ) : canView ? (
           <main style={wrap}>
           <header style={header}>
             <h1 style={{ margin: 0 }}>Manage Job Listings</h1>
@@ -36,7 +46,14 @@ export default function EmployerListings() {
             ))}
           </section>
           </main>
-        ) : null}
+        ) : (
+          <RoleGateDenied
+            expectedRole="employer"
+            status={status}
+            error={error}
+            currentRole={user?.publicMetadata?.role}
+          />
+        )}
       </SignedIn>
     </>
   );

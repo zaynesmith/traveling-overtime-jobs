@@ -1,14 +1,21 @@
-import { SignedIn, SignedOut, RedirectToSignIn, useUser, UserButton } from "@clerk/nextjs";
-import { useRequireRole } from "../../lib/useRequireRole";
+import {
+  SignedIn,
+  SignedOut,
+  RedirectToSignIn,
+  useUser,
+  UserButton,
+} from "@clerk/nextjs";
 import { useEffect, useMemo, useState } from "react";
+import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
+import { useRequireRole } from "../../lib/useRequireRole";
 
 const DRAFT_STORAGE_KEY = "public-post-job-draft";
 
 export default function PostJob() {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded, isSignedIn } = useUser();
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const hasEmployerRole = useRequireRole("employer");
+  const { status, canView, error } = useRequireRole("employer");
 
   const [form, setForm] = useState({
     title: "",
@@ -66,9 +73,11 @@ export default function PostJob() {
 
   useEffect(() => { if (typeof window !== "undefined") window.scrollTo(0, 0); }, []);
 
-  if (!isLoaded) return null;
+  if (!isLoaded) {
+    return <RoleGateLoading role="employer" />;
+  }
 
-  if (!user) {
+  if (!user || !isSignedIn) {
     return (
       <SignedOut>
         <RedirectToSignIn redirectUrl="/employer/post" />
@@ -76,69 +85,84 @@ export default function PostJob() {
     );
   }
 
-  if (!hasEmployerRole) {
-    return null;
+  if (!canView) {
+    if (status === "checking") {
+      return <RoleGateLoading role="employer" />;
+    }
+
+    return (
+      <RoleGateDenied
+        expectedRole="employer"
+        status={status}
+        error={error}
+        currentRole={user?.publicMetadata?.role}
+      />
+    );
   }
 
   return (
     <SignedIn>
-      <main className="container">
-        <header className="max960" style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <h1 style={{ margin: 0 }}>Post a Job</h1>
-          <UserButton afterSignOutUrl="/" />
-        </header>
+      {status === "checking" ? (
+        <RoleGateLoading role="employer" />
+      ) : (
+        <main className="container">
+          <header className="max960" style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <h1 style={{ margin: 0 }}>Post a Job</h1>
+            <UserButton afterSignOutUrl="/" />
+          </header>
 
-        <section className="card max960">
-          {submitted ? (
-            <Success />
-          ) : (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                setSaving(true);
-                setTimeout(() => { setSaving(false); setSubmitted(true); }, 800);
-              }}
-              style={{ display: "grid", gap: 12 }}
-            >
-              <Row>
-                <Input label="Job Title*" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="Journeyman Electrician" />
-                <Input label="Company*" value={form.company} onChange={(v) => setForm({ ...form, company: v })} placeholder="ACME Industrial" />
-              </Row>
+          <section className="card max960">
+            {submitted ? (
+              <Success />
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setSaving(true);
+                  setTimeout(() => { setSaving(false); setSubmitted(true); }, 800);
+                }}
+                style={{ display: "grid", gap: 12 }}
+              >
+                <Row>
+                  <Input label="Job Title*" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="Journeyman Electrician" />
+                  <Input label="Company*" value={form.company} onChange={(v) => setForm({ ...form, company: v })} placeholder="ACME Industrial" />
+                </Row>
 
-              <Row>
-                <Input label="Trade" value={form.trade} onChange={(v) => setForm({ ...form, trade: v })} placeholder="Electrical / Mechanical…" />
-                <Input label="Location*" value={form.location} onChange={(v) => setForm({ ...form, location: v })} placeholder="City, State" />
-              </Row>
+                <Row>
+                  <Input label="Trade" value={form.trade} onChange={(v) => setForm({ ...form, trade: v })} placeholder="Electrical / Mechanical…" />
+                  <Input label="Location*" value={form.location} onChange={(v) => setForm({ ...form, location: v })} placeholder="City, State" />
+                </Row>
 
-              <Row>
-                <Input label="Pay Rate" value={form.payRate} onChange={(v) => setForm({ ...form, payRate: v })} placeholder="$38/hr" />
-                <Input label="Per Diem" value={form.perDiem} onChange={(v) => setForm({ ...form, perDiem: v })} placeholder="$100/day" />
-              </Row>
+                <Row>
+                  <Input label="Pay Rate" value={form.payRate} onChange={(v) => setForm({ ...form, payRate: v })} placeholder="$38/hr" />
+                  <Input label="Per Diem" value={form.perDiem} onChange={(v) => setForm({ ...form, perDiem: v })} placeholder="$100/day" />
+                </Row>
 
-              <Row>
-                <Input label="Overtime" value={form.overtime} onChange={(v) => setForm({ ...form, overtime: v })} placeholder="6x10s / OT after 40" />
-                <Input label="Start Date" type="date" value={form.startDate} onChange={(v) => setForm({ ...form, startDate: v })} />
-              </Row>
+                <Row>
+                  <Input label="Overtime" value={form.overtime} onChange={(v) => setForm({ ...form, overtime: v })} placeholder="6x10s / OT after 40" />
+                  <Input label="Start Date" type="date" value={form.startDate} onChange={(v) => setForm({ ...form, startDate: v })} />
+                </Row>
 
-              <Row>
-                <Select label="Travel Required" value={form.travelRequired} onChange={(v) => setForm({ ...form, travelRequired: v })} options={["Yes","No"]} />
-                <Input label="Contact Email*" type="email" value={form.contactEmail} onChange={(v) => setForm({ ...form, contactEmail: v })} placeholder="jobs@acme.com" />
-              </Row>
+                <Row>
+                  <Select label="Travel Required" value={form.travelRequired} onChange={(v) => setForm({ ...form, travelRequired: v })} options={["Yes","No"]} />
+                  <Input label="Contact Email*" type="email" value={form.contactEmail} onChange={(v) => setForm({ ...form, contactEmail: v })} placeholder="jobs@acme.com" />
+                </Row>
 
-              <div style={{ display:"grid", gap:6 }}>
-                <label style={{ fontSize:13, color:"#444" }}>Description*</label>
-                <textarea rows={6} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input" placeholder="Duties, requirements, shift, duration, tools, PPE, etc." />
-              </div>
+                <div style={{ display:"grid", gap:6 }}>
+                  <label style={{ fontSize:13, color:"#444" }}>Description*</label>
+                  <textarea rows={6} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input" placeholder="Duties, requirements, shift, duration, tools, PPE, etc." />
+                </div>
 
-              <div style={{ display:"flex", gap:12, marginTop:8 }}>
-                <button className="btn" disabled={!canSubmit || saving}>{saving ? "Posting…" : "Post Job"}</button>
-                <a href="/employer" className="pill-light">Cancel</a>
-              </div>
-              <p style={{ marginTop:6, fontSize:12, color:"#666" }}>* Required fields</p>
-            </form>
-          )}
-        </section>
-      </main>
+                <div style={{ display:"flex", gap:12, marginTop:8 }}>
+                  <button className="btn" disabled={!canSubmit || saving}>{saving ? "Posting…" : "Post Job"}</button>
+                  <a href="/employer" className="pill-light">Cancel</a>
+                </div>
+                <p style={{ marginTop:6, fontSize:12, color:"#666" }}>* Required fields</p>
+              </form>
+            )}
+          </section>
+        </main>
+      )}
     </SignedIn>
   );
 }
