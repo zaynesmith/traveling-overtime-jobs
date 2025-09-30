@@ -1,9 +1,9 @@
+import Link from "next/link";
 import {
   SignedIn,
   SignedOut,
   RedirectToSignIn,
   useUser,
-  UserButton,
 } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
@@ -82,7 +82,9 @@ export default function EmployerProfile() {
         <main className="container">
           <header className="max960" style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
             <h1 style={{ margin: 0 }}>Employer Profile</h1>
-            <UserButton afterSignOutUrl="/" />
+            <Link href="/employer" className="pill-light" style={{ fontSize: 14 }}>
+              ← Back to dashboard
+            </Link>
           </header>
 
           <section className="card max960">
@@ -103,9 +105,9 @@ export default function EmployerProfile() {
                 <input className="input" value={phone} onChange={(e)=>setPhone(e.target.value)} placeholder="(555) 123-4567" />
               </Field>
 
-              <div style={{ display:"flex", gap:12, marginTop:8 }}>
+              <div style={{ display:"flex", gap:12, marginTop:8, flexWrap:"wrap" }}>
                 <button className="btn" disabled={saving}>{saving ? "Saving…" : "Save Company Profile"}</button>
-                <a href="/employer" className="pill-light">Back to Employer Area</a>
+                <Link href="/employer" className="pill-light">Back to Employer Area</Link>
               </div>
               {saved && <div style={{ marginTop:10, background:"#f6fff6", border:"1px solid #bfe6bf", color:"#225c22", padding:"10px 12px", borderRadius:10, fontSize:14 }}>✅ Saved to your account.</div>}
             </form>

@@ -1,13 +1,14 @@
 // pages/employer/listings.js
+import Link from "next/link";
 import {
   SignedIn,
   SignedOut,
   RedirectToSignIn,
-  UserButton,
   useUser,
 } from "@clerk/nextjs";
 import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
 import { useRequireRole } from "../../lib/useRequireRole";
+import { employerJobs } from "../../lib/demoEmployerData";
 
 export default function EmployerListings() {
   const { user } = useUser();
@@ -24,27 +25,52 @@ export default function EmployerListings() {
           <RoleGateLoading role="employer" />
         ) : canView ? (
           <main style={wrap}>
-          <header style={header}>
-            <h1 style={{ margin: 0 }}>Manage Job Listings</h1>
-            <UserButton afterSignOutUrl="/" />
-          </header>
-
-          <section style={list}>
-            {DEMO_JOBS.map((job) => (
-              <div key={job.id} style={card}>
-                <h2 style={{ marginBottom: 4 }}>{job.title}</h2>
-                <p style={{ margin: 0 }}>
-                  <strong>Location:</strong> {job.location}
+            <header style={header}>
+              <div>
+                <h1 style={{ margin: 0 }}>Manage job postings</h1>
+                <p style={{ margin: "6px 0 0", color: "#475569" }}>
+                  Monitor every opening you've published and review incoming applicants.
                 </p>
-                <p style={{ margin: 0 }}>
-                  <strong>Pay:</strong> {job.payRate} &nbsp;|&nbsp;{" "}
-                  <strong>Per Diem:</strong> {job.perDiem}
-                </p>
-                <p style={{ margin: "6px 0" }}>{job.description}</p>
-                <small>Posted: {job.postedAt}</small>
               </div>
-            ))}
-          </section>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <Link href="/employer" className="pill-light">
+                  ← Back to dashboard
+                </Link>
+                <Link href="/employer/post" className="btn" style={{ padding: "8px 16px", fontSize: 14 }}>
+                  Post new job
+                </Link>
+              </div>
+            </header>
+
+            <section style={list}>
+              {employerJobs.map((job) => (
+                <article key={job.id} style={card}>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+                      <div>
+                        <h2 style={{ margin: 0 }}>{job.title}</h2>
+                        <p style={{ margin: 0, color: "#475569" }}>{job.location}</p>
+                      </div>
+                      <StatusPill>{job.applicants.length} applicant{job.applicants.length === 1 ? "" : "s"}</StatusPill>
+                    </div>
+                    <p style={{ margin: 0, color: "#334155" }}>
+                      {job.payRate} • {job.perDiem}
+                    </p>
+                    <p style={{ margin: 0, color: "#475569" }}>{job.description}</p>
+                    <small style={{ color: "#64748b" }}>Posted {job.postedAt}</small>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
+                    <Link href={`/employer/listings/${job.id}`} className="btn" style={{ padding: "8px 16px", fontSize: 14 }}>
+                      Review applicants
+                    </Link>
+                    <Link href="/employer/post" className="pill-light" style={{ fontSize: 14 }}>
+                      Duplicate posting
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </section>
           </main>
         ) : (
           <RoleGateDenied
@@ -59,29 +85,6 @@ export default function EmployerListings() {
   );
 }
 
-// Demo data (replace with real DB later)
-const DEMO_JOBS = [
-  {
-    id: "job-001",
-    title: "Journeyman Electrician",
-    location: "Houston, TX",
-    payRate: "$36/hr",
-    perDiem: "$100/day",
-    description: "Industrial electrical work at refinery. 6x10s schedule, PPE required.",
-    postedAt: "2025-09-30",
-  },
-  {
-    id: "job-002",
-    title: "Electrical Foreman",
-    location: "Corpus Christi, TX",
-    payRate: "$45/hr",
-    perDiem: "$120/day",
-    description: "Supervise crews at petrochemical site. Long-term project.",
-    postedAt: "2025-10-01",
-  },
-];
-
-// Styles
 const wrap = {
   minHeight: "100vh",
   padding: "40px 24px",
@@ -95,9 +98,8 @@ const wrap = {
 const header = {
   width: "100%",
   maxWidth: 960,
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
+  display: "grid",
+  gap: 16,
 };
 
 const list = {
@@ -115,3 +117,23 @@ const card = {
   padding: 20,
   boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
 };
+
+function StatusPill({ children }) {
+  return (
+    <span
+      style={{
+        alignSelf: "flex-start",
+        background: "#eff6ff",
+        color: "#1d4ed8",
+        borderRadius: 9999,
+        fontSize: 12,
+        fontWeight: 600,
+        padding: "6px 12px",
+        letterSpacing: 0.5,
+        textTransform: "uppercase",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
