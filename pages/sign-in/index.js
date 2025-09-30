@@ -1,5 +1,7 @@
 import { SignIn } from "@clerk/nextjs";
 import { useRouter } from "next/router";
+import { useMemo } from "react";
+import { usePersistRole } from "../../lib/usePersistRole";
 
 function sanitizeRedirect(path) {
   if (typeof path !== "string" || !path.startsWith("/")) {
@@ -17,9 +19,19 @@ function sanitizeRedirect(path) {
 
 export default function SignInPage() {
   const { query } = useRouter();
-  const role = query.role === "employer" ? "employer" : query.role === "jobseeker" ? "jobseeker" : "jobseeker";
-  const fallbackDestination = role === "employer" ? "/employer" : "/jobseeker";
+
+  const roleFromQuery = useMemo(() => {
+    if (query.role === "employer") return "employer";
+    if (query.role === "jobseeker") return "jobseeker";
+    return undefined;
+  }, [query.role]);
+
+  const fallbackRole = roleFromQuery ?? "jobseeker";
+  const fallbackDestination =
+    fallbackRole === "employer" ? "/employer" : "/jobseeker";
   const destination = sanitizeRedirect(query.redirect_url) || fallbackDestination;
+
+  usePersistRole(roleFromQuery);
 
   return (
     <main className="container">

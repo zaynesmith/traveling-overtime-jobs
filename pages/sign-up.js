@@ -1,10 +1,21 @@
 import { SignUp } from "@clerk/nextjs";
 import { useRouter } from "next/router";
+import { useMemo } from "react";
+import { usePersistRole } from "../lib/usePersistRole";
+
+const DEFAULT_ROLE = "jobseeker";
 
 export default function SignUpPage() {
   const { query } = useRouter();
-  const role = query.role === "employer" ? "employer" : query.role === "jobseeker" ? "jobseeker" : "jobseeker";
+  const role = useMemo(() => {
+    if (query.role === "employer") return "employer";
+    if (query.role === "jobseeker") return "jobseeker";
+    return DEFAULT_ROLE;
+  }, [query.role]);
+
   const destination = role === "employer" ? "/employer" : "/jobseeker";
+
+  usePersistRole(role);
 
   return (
     <main className="container">

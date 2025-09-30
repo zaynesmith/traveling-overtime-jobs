@@ -1,8 +1,10 @@
 import { SignedIn, SignedOut, RedirectToSignIn, useUser, UserButton } from "@clerk/nextjs";
+import { useRequireRole } from "../../lib/useRequireRole";
 import { useEffect, useState } from "react";
 
 export default function EmployerProfile() {
   const { user, isLoaded, isSignedIn } = useUser();
+  const hasEmployerRole = useRequireRole("employer");
   const [companyName, setCompanyName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [website, setWebsite] = useState("");
@@ -21,6 +23,7 @@ export default function EmployerProfile() {
 
   if (!isLoaded) return null;
   if (!isSignedIn) return (<SignedOut><RedirectToSignIn redirectUrl="/employer/profile" /></SignedOut>);
+  if (!hasEmployerRole) return null;
 
   async function handleSave(e) {
     e.preventDefault();

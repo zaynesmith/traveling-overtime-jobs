@@ -5,10 +5,12 @@ import {
   RedirectToSignIn,
   UserButton,
 } from "@clerk/nextjs";
+import { useRequireRole } from "../../lib/useRequireRole";
 import { useEffect, useState } from "react";
 
 export default function MyApplications() {
   const [apps, setApps] = useState([]);
+  const canView = useRequireRole("jobseeker");
 
   useEffect(() => {
     try {
@@ -26,45 +28,47 @@ export default function MyApplications() {
       </SignedOut>
 
       <SignedIn>
-        <main style={wrap}>
-          <header style={header}>
-            <h1 style={{ margin: 0 }}>My Applications</h1>
-            <UserButton afterSignOutUrl="/" />
-          </header>
+        {canView ? (
+          <main style={wrap}>
+            <header style={header}>
+              <h1 style={{ margin: 0 }}>My Applications</h1>
+              <UserButton afterSignOutUrl="/" />
+            </header>
 
-          <section style={card}>
-            {apps.length === 0 ? (
-              <div style={{ color: "#666" }}>
-                You haven’t applied to any jobs yet.
-              </div>
-            ) : (
-              <table style={table}>
-                <thead>
-                  <tr>
-                    <th align="left">Title</th>
-                    <th align="left">Company</th>
-                    <th align="left">Location</th>
-                    <th align="left">Status</th>
-                    <th align="left">Submitted</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {apps.map((a) => (
-                    <tr key={a.id}>
-                      <td>{a.title}</td>
-                      <td>{a.company}</td>
-                      <td>{a.location}</td>
-                      <td>
-                        <span style={badge}>{a.status}</span>
-                      </td>
-                      <td>{new Date(a.submittedAt).toLocaleDateString()}</td>
+            <section style={card}>
+              {apps.length === 0 ? (
+                <div style={{ color: "#666" }}>
+                  You haven’t applied to any jobs yet.
+                </div>
+              ) : (
+                <table style={table}>
+                  <thead>
+                    <tr>
+                      <th align="left">Title</th>
+                      <th align="left">Company</th>
+                      <th align="left">Location</th>
+                      <th align="left">Status</th>
+                      <th align="left">Submitted</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </section>
-        </main>
+                  </thead>
+                  <tbody>
+                    {apps.map((a) => (
+                      <tr key={a.id}>
+                        <td>{a.title}</td>
+                        <td>{a.company}</td>
+                        <td>{a.location}</td>
+                        <td>
+                          <span style={badge}>{a.status}</span>
+                        </td>
+                        <td>{new Date(a.submittedAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </section>
+          </main>
+        ) : null}
       </SignedIn>
     </>
   );
