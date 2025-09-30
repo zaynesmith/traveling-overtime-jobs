@@ -4,14 +4,17 @@ import {
   SignedOut,
   RedirectToSignIn,
   UserButton,
+  useUser,
 } from "@clerk/nextjs";
+import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { useEffect, useState } from "react";
 
 export default function SavedJobs() {
+  const { user } = useUser();
   const [savedIds, setSavedIds] = useState([]);
   const [jobs, setJobs] = useState([]);
-  const canView = useRequireRole("jobseeker");
+  const { status, canView, error } = useRequireRole("jobseeker");
 
   // Load saved IDs and stitch them to job data (demo + locally posted)
   useEffect(() => {
@@ -88,49 +91,76 @@ export default function SavedJobs() {
       </SignedOut>
 
       <SignedIn>
-        {canView ? (
+        {status === "checking" ? (
+          <RoleGateLoading role="jobseeker" />
+        ) : canView ? (
           <main className="container">
-          <header className="max960" style={header}>
-            <h1 style={{ margin: 0 }}>Saved Jobs</h1>
-            <UserButton afterSignOutUrl="/" />
-          </header>
+            <header className="max960" style={header}>
+              <h1 style={{ margin: 0 }}>Saved Jobs</h1>
+              <UserButton afterSignOutUrl="/" />
+            </header>
 
-          <section className="max960" style={{ display: "grid", gap: 12 }}>
-            {jobs.length === 0 ? (
-              <div className="card" style={{ color: "#666" }}>
-                No saved jobs yet. Go to <a href="/jobseeker/search">Search</a> and click “Save”.
-              </div>
-            ) : (
-              jobs.map((j) => (
-                <div key={j.id} className="card" style={{ display: "grid", gap: 6 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                    <div>
-                      <strong style={{ fontSize: 16 }}>{j.title}</strong>
-                      <div style={{ color: "#555" }}>
-                        {j.company} • {j.location}
-                        {j.trade ? ` • ${j.trade}` : ""}
-                      </div>
-                      {(j.payRate || j.perDiem) && (
-                        <div style={{ color: "#333" }}>
-                          {j.payRate && <><strong>Pay:</strong> {j.payRate}</>}
-                          {j.perDiem && <> • <strong>Per Diem:</strong> {j.perDiem}</>}
+            <section className="max960" style={{ display: "grid", gap: 12 }}>
+              {jobs.length === 0 ? (
+                <div className="card" style={{ color: "#666" }}>
+                  No saved jobs yet. Go to <a href="/jobseeker/search">Search</a> and click “Save”.
+                </div>
+              ) : (
+                jobs.map((j) => (
+                  <div key={j.id} className="card" style={{ display: "grid", gap: 6 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div>
+                        <strong style={{ fontSize: 16 }}>{j.title}</strong>
+                        <div style={{ color: "#555" }}>
+                          {j.company} • {j.location}
+                          {j.trade ? ` • ${j.trade}` : ""}
                         </div>
-                      )}
-                    </div>
+                        {(j.payRate || j.perDiem) && (
+                          <div style={{ color: "#333" }}>
+                            {j.payRate && (
+                              <>
+                                <strong>Pay:</strong> {j.payRate}
+                              </>
+                            )}
+                            {j.perDiem && (
+                              <>
+                                {" "}• <strong>Per Diem:</strong> {j.perDiem}
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
 
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <a href={`/jobs/${j.id}`} className="pill-light">View</a>
-                      <button className="btn-outline" onClick={() => unsave(j.id)}>
-                        Unsave
-                      </button>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <a href={`/jobs/${j.id}`} className="pill-light">
+                          View
+                        </a>
+                        <button className="btn-outline" onClick={() => unsave(j.id)}>
+                          Unsave
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )}
-          </section>
+                ))
+              )}
+            </section>
           </main>
-        ) : null}
+        ) : (
+          <RoleGateDenied
+            expectedRole="jobseeker"
+            status={status}
+            error={error}
+            currentRole={user?.publicMetadata?.role}
+          />
+        )}
       </SignedIn>
     </>
   );
