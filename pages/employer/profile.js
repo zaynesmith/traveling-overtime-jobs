@@ -1,10 +1,17 @@
-import { SignedIn, SignedOut, RedirectToSignIn, useUser, UserButton } from "@clerk/nextjs";
-import { useRequireRole } from "../../lib/useRequireRole";
+import {
+  SignedIn,
+  SignedOut,
+  RedirectToSignIn,
+  useUser,
+  UserButton,
+} from "@clerk/nextjs";
 import { useEffect, useState } from "react";
+import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
+import { useRequireRole } from "../../lib/useRequireRole";
 
 export default function EmployerProfile() {
   const { user, isLoaded, isSignedIn } = useUser();
-  const hasEmployerRole = useRequireRole("employer");
+  const { status, canView, error } = useRequireRole("employer");
   const [companyName, setCompanyName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [website, setWebsite] = useState("");
@@ -21,9 +28,32 @@ export default function EmployerProfile() {
     if (pm.companyPhone) setPhone(String(pm.companyPhone));
   }, [isLoaded, user]);
 
-  if (!isLoaded) return null;
-  if (!isSignedIn) return (<SignedOut><RedirectToSignIn redirectUrl="/employer/profile" /></SignedOut>);
-  if (!hasEmployerRole) return null;
+  if (!isLoaded) {
+    return <RoleGateLoading role="employer" />;
+  }
+
+  if (!isSignedIn) {
+    return (
+      <SignedOut>
+        <RedirectToSignIn redirectUrl="/employer/profile" />
+      </SignedOut>
+    );
+  }
+
+  if (!canView) {
+    if (status === "checking") {
+      return <RoleGateLoading role="employer" />;
+    }
+
+    return (
+      <RoleGateDenied
+        expectedRole="employer"
+        status={status}
+        error={error}
+        currentRole={user?.publicMetadata?.role}
+      />
+    );
+  }
 
   async function handleSave(e) {
     e.preventDefault();
@@ -46,38 +76,42 @@ export default function EmployerProfile() {
 
   return (
     <SignedIn>
-      <main className="container">
-        <header className="max960" style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <h1 style={{ margin: 0 }}>Employer Profile</h1>
-          <UserButton afterSignOutUrl="/" />
-        </header>
+      {status === "checking" ? (
+        <RoleGateLoading role="employer" />
+      ) : (
+        <main className="container">
+          <header className="max960" style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <h1 style={{ margin: 0 }}>Employer Profile</h1>
+            <UserButton afterSignOutUrl="/" />
+          </header>
 
-        <section className="card max960">
-          <h2 style={{ marginTop: 0 }}>Company Profile</h2>
-          <p style={{ color:"#555" }}>These values prefill the Post Job form.</p>
+          <section className="card max960">
+            <h2 style={{ marginTop: 0 }}>Company Profile</h2>
+            <p style={{ color:"#555" }}>These values prefill the Post Job form.</p>
 
-          <form onSubmit={handleSave} style={{ display:"grid", gap:12, marginTop:16 }}>
-            <Field label="Company Name*">
-              <input className="input" value={companyName} onChange={(e)=>setCompanyName(e.target.value)} placeholder="ACME Industrial" required />
-            </Field>
-            <Field label="Contact Email*">
-              <input className="input" type="email" value={contactEmail} onChange={(e)=>setContactEmail(e.target.value)} placeholder="jobs@acme.com" required />
-            </Field>
-            <Field label="Company Website">
-              <input className="input" type="url" value={website} onChange={(e)=>setWebsite(e.target.value)} placeholder="https://acmeindustrial.com" />
-            </Field>
-            <Field label="Phone">
-              <input className="input" value={phone} onChange={(e)=>setPhone(e.target.value)} placeholder="(555) 123-4567" />
-            </Field>
+            <form onSubmit={handleSave} style={{ display:"grid", gap:12, marginTop:16 }}>
+              <Field label="Company Name*">
+                <input className="input" value={companyName} onChange={(e)=>setCompanyName(e.target.value)} placeholder="ACME Industrial" required />
+              </Field>
+              <Field label="Contact Email*">
+                <input className="input" type="email" value={contactEmail} onChange={(e)=>setContactEmail(e.target.value)} placeholder="jobs@acme.com" required />
+              </Field>
+              <Field label="Company Website">
+                <input className="input" type="url" value={website} onChange={(e)=>setWebsite(e.target.value)} placeholder="https://acmeindustrial.com" />
+              </Field>
+              <Field label="Phone">
+                <input className="input" value={phone} onChange={(e)=>setPhone(e.target.value)} placeholder="(555) 123-4567" />
+              </Field>
 
-            <div style={{ display:"flex", gap:12, marginTop:8 }}>
-              <button className="btn" disabled={saving}>{saving ? "Saving…" : "Save Company Profile"}</button>
-              <a href="/employer" className="pill-light">Back to Employer Area</a>
-            </div>
-            {saved && <div style={{ marginTop:10, background:"#f6fff6", border:"1px solid #bfe6bf", color:"#225c22", padding:"10px 12px", borderRadius:10, fontSize:14 }}>✅ Saved to your account.</div>}
-          </form>
-        </section>
-      </main>
+              <div style={{ display:"flex", gap:12, marginTop:8 }}>
+                <button className="btn" disabled={saving}>{saving ? "Saving…" : "Save Company Profile"}</button>
+                <a href="/employer" className="pill-light">Back to Employer Area</a>
+              </div>
+              {saved && <div style={{ marginTop:10, background:"#f6fff6", border:"1px solid #bfe6bf", color:"#225c22", padding:"10px 12px", borderRadius:10, fontSize:14 }}>✅ Saved to your account.</div>}
+            </form>
+          </section>
+        </main>
+      )}
     </SignedIn>
   );
 }
