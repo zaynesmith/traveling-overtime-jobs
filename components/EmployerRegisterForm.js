@@ -1,17 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/router";
 import { ROLE_ROUTES } from "../lib/roleRoutes";
 
 /**
  * Minimal employer registration form.
- * Stores company profile in Clerk publicMetadata.employerProfile
- * and ensures role = "employer", then routes to dashboard.
+ * Saves employer profile + role on the SERVER via /api/user/update-public-metadata,
+ * then routes to the employer dashboard.
  */
 export default function EmployerRegisterForm() {
-  const { user } = useUser();
   const router = useRouter();
 
   const [form, setForm] = useState({
@@ -23,28 +21,40 @@ export default function EmployerRegisterForm() {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
 
-  const onChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  const onChange = (e) =>
+    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (!user) return;
+
     try {
       setSaving(true);
       setErr(null);
 
       const employerProfile = {
-        ...((user.publicMetadata?.employerProfile ?? {}) || {}),
-        ...form,
+        companyName: form.companyName,
+        website: form.website,
+        phone: form.phone,
+        location: form.location,
         updatedAt: new Date().toISOString(),
       };
 
-      await user.update({
-        publicMetadata: {
-          ...user.publicMetadata,
-          role: "employer",
-          employerProfile,
-        },
+      // Write metadata on the server (Clerk backend)
+      const res = await fetch("/api/user/update-public-metadata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          publicMetadata: {
+            role: "employer",
+            employerProfile,
+          },
+        }),
       });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Unable to save employer profile.");
+      }
 
       await router.replace(ROLE_ROUTES.employer);
     } catch (error) {
