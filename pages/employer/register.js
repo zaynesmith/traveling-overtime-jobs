@@ -1,6 +1,9 @@
+// pages/employer/register.js
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useRequireRole } from "../../lib/useRequireRole";
+import { getOnboardingIntent } from "../../lib/localOnboarding";
 import {
   RoleGateLoading,
   RoleGateDenied,
@@ -8,13 +11,22 @@ import {
 } from "../../components/RoleGateFeedback";
 import EmployerRegisterForm from "../../components/EmployerRegisterForm";
 
-/**
- * Employer-only entry. If user has no role: show picker.
- * If jobseeker/other: show denied with guidance.
- * If ready: render the employer registration form.
- */
 export default function EmployerRegisterPage() {
-  const { status, assignRole, error, currentRole, isAssigning } = useRequireRole("employer");
+  const { status, assignRole, error, currentRole, isAssigning } =
+    useRequireRole("employer");
+
+  // If the user intended "employer" (saved in localStorage), auto-assign once
+  const triedAuto = useRef(false);
+  useEffect(() => {
+    if (status !== "needs-role") return;
+    if (triedAuto.current) return;
+    if (getOnboardingIntent() === "employer") {
+      triedAuto.current = true;
+      assignRole("employer").catch(() => {
+        // If it fails, the picker below remains available
+      });
+    }
+  }, [status, assignRole]);
 
   if (status === "checking") {
     return <RoleGateLoading role="employer" />;
@@ -37,8 +49,6 @@ export default function EmployerRegisterPage() {
         status={status}
         error={error}
         currentRole={currentRole}
-        onRequestRole={() => assignRole("employer")}
-        isAssigning={isAssigning}
       />
     );
   }
