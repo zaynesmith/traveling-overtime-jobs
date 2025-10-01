@@ -1,3 +1,4 @@
+// pages/api/user/update-public-metadata.js
 import { clerkClient, getAuth } from "@clerk/nextjs/server";
 
 export default async function handler(req, res) {
@@ -19,16 +20,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    // (Optional) whitelist allowed keys to keep metadata tidy
+    // Optional: whitelist keys to keep metadata tidy
     const allowed = new Set(["role", "employerProfile", "jobseekerProfile"]);
     const safe = Object.fromEntries(
       Object.entries(publicMetadata).filter(([k]) => allowed.has(k))
     );
 
-    // IMPORTANT: use updateUserMetadata (NOT updateUser)
-    // This will merge the provided keys into existing publicMetadata.
+    // IMPORTANT: use updateUserMetadata (NOT updateUser) for metadata
     const updated = await clerkClient.users.updateUserMetadata(userId, {
-      publicMetadata: safe,
+      publicMetadata: safe, // merges into existing metadata
     });
 
     return res.status(200).json({ publicMetadata: updated.publicMetadata });
