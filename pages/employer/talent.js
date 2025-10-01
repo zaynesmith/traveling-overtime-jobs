@@ -7,10 +7,10 @@ import {
   useUser,
 } from "@clerk/nextjs";
 import {
-  RoleGateDenied,
-  RoleGateLoading,
-  RoleGateRolePicker,
+  ForbiddenOrSwitchRole,
+  LoadingCard,
 } from "../../components/RoleGateFeedback";
+import { RoleSelectCard } from "../../components/RoleSelectCard";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { useRequireProfileCompletion } from "../../lib/useRequireProfileCompletion";
 import { resumeDatabase } from "../../lib/demoEmployerData";
@@ -19,15 +19,11 @@ export default function TalentSearch() {
   const [query, setQuery] = useState("");
   const [trade, setTrade] = useState("all");
   const { user } = useUser();
-  const {
-    status,
-    canView,
-    error,
-    assignRole,
-    isAssigningRole,
-  } = useRequireRole("employer");
+  const { status, error, assignRole, isAssigningRole } = useRequireRole(
+    "employer"
+  );
   const { status: profileStatus } = useRequireProfileCompletion(
-    status === "authorized" ? "employer" : null
+    status === "ready" ? "employer" : null
   );
 
   const results = useMemo(() => {
@@ -67,17 +63,21 @@ export default function TalentSearch() {
       </SignedOut>
 
       <SignedIn>
-        {status === "needs-role" ? (
-          <RoleGateRolePicker
-            onSelectRole={assignRole}
+        {status === "checking" ||
+        profileStatus === "loading" ||
+        profileStatus === "incomplete" ? (
+          <LoadingCard role="employer" />
+        ) : status === "needs-role" ? (
+          <RoleSelectCard onChoose={assignRole} />
+        ) : status === "forbidden" ? (
+          <ForbiddenOrSwitchRole
+            expectedRole="employer"
+            currentRole={user?.publicMetadata?.role}
+            onChoose={assignRole}
             isAssigning={isAssigningRole}
             error={error}
           />
-        ) : status === "checking" ||
-          profileStatus === "loading" ||
-          profileStatus === "incomplete" ? (
-          <RoleGateLoading role="employer" />
-        ) : canView ? (
+        ) : status === "ready" ? (
           <main className="container" style={{ padding: "40px 24px" }}>
             <div className="max960" style={{ display: "grid", gap: 24 }}>
               <header style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -148,12 +148,7 @@ export default function TalentSearch() {
             </div>
           </main>
         ) : (
-          <RoleGateDenied
-            expectedRole="employer"
-            status={status}
-            error={error}
-            currentRole={user?.publicMetadata?.role}
-          />
+          <LoadingCard role="employer" />
         )}
       </SignedIn>
     </>

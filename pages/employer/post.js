@@ -7,10 +7,10 @@ import {
 } from "@clerk/nextjs";
 import { useEffect, useMemo, useState } from "react";
 import {
-  RoleGateDenied,
-  RoleGateLoading,
-  RoleGateRolePicker,
+  ForbiddenOrSwitchRole,
+  LoadingCard,
 } from "../../components/RoleGateFeedback";
+import { RoleSelectCard } from "../../components/RoleSelectCard";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { useRequireProfileCompletion } from "../../lib/useRequireProfileCompletion";
 
@@ -20,15 +20,11 @@ export default function PostJob() {
   const { user, isLoaded, isSignedIn } = useUser();
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const {
-    status,
-    canView,
-    error,
-    assignRole,
-    isAssigningRole,
-  } = useRequireRole("employer");
+  const { status, error, assignRole, isAssigningRole } = useRequireRole(
+    "employer"
+  );
   const { status: profileStatus } = useRequireProfileCompletion(
-    status === "authorized" ? "employer" : null
+    status === "ready" ? "employer" : null
   );
 
   const [form, setForm] = useState({
@@ -88,7 +84,7 @@ export default function PostJob() {
   useEffect(() => { if (typeof window !== "undefined") window.scrollTo(0, 0); }, []);
 
   if (!isLoaded) {
-    return <RoleGateLoading role="employer" />;
+    return <LoadingCard role="employer" />;
   }
 
   if (!user || !isSignedIn) {
@@ -99,35 +95,34 @@ export default function PostJob() {
     );
   }
 
+  if (status === "checking" || profileStatus === "loading" || profileStatus === "incomplete") {
+    return <LoadingCard role="employer" />;
+  }
+
   if (status === "needs-role") {
+    return <RoleSelectCard onChoose={assignRole} />;
+  }
+
+  if (status === "forbidden") {
     return (
-      <RoleGateRolePicker
-        onSelectRole={assignRole}
+      <ForbiddenOrSwitchRole
+        expectedRole="employer"
+        currentRole={user?.publicMetadata?.role}
+        onChoose={assignRole}
         isAssigning={isAssigningRole}
         error={error}
       />
     );
   }
 
-  if (!canView) {
-    if (status === "checking" || profileStatus === "loading" || profileStatus === "incomplete") {
-      return <RoleGateLoading role="employer" />;
-    }
-
-    return (
-      <RoleGateDenied
-        expectedRole="employer"
-        status={status}
-        error={error}
-        currentRole={user?.publicMetadata?.role}
-      />
-    );
+  if (status !== "ready") {
+    return <LoadingCard role="employer" />;
   }
 
   return (
     <SignedIn>
       {status === "checking" || profileStatus === "loading" || profileStatus === "incomplete" ? (
-        <RoleGateLoading role="employer" />
+        <LoadingCard role="employer" />
       ) : (
         <main className="container">
           <header className="max960" style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>

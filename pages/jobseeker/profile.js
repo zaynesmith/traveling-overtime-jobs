@@ -6,10 +6,10 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 import {
-  RoleGateDenied,
-  RoleGateLoading,
-  RoleGateRolePicker,
+  ForbiddenOrSwitchRole,
+  LoadingCard,
 } from "../../components/RoleGateFeedback";
+import { RoleSelectCard } from "../../components/RoleSelectCard";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
@@ -21,13 +21,9 @@ export default function JobseekerProfile() {
   const router = useRouter();
   const onboarding = router.query?.onboarding === "1";
   const { user, isLoaded } = useUser();
-  const {
-    status,
-    canView,
-    error,
-    assignRole,
-    isAssigningRole,
-  } = useRequireRole("jobseeker");
+  const { status, error, assignRole, isAssigningRole } = useRequireRole(
+    "jobseeker"
+  );
   const [fullName, setFullName] = useState("");
   const [trade, setTrade] = useState("");
   const [zip, setZip] = useState("");
@@ -62,7 +58,7 @@ export default function JobseekerProfile() {
     }
   }, [isLoaded, user]);
 
-  const readyForForm = canView && Boolean(user);
+  const readyForForm = status === "ready" && Boolean(user);
 
   function handleResumeSelection(file) {
     if (!file) return;
@@ -184,14 +180,18 @@ export default function JobseekerProfile() {
       </SignedOut>
 
       <SignedIn>
-        {status === "needs-role" ? (
-          <RoleGateRolePicker
-            onSelectRole={assignRole}
+        {status === "checking" ? (
+          <LoadingCard role="jobseeker" />
+        ) : status === "needs-role" ? (
+          <RoleSelectCard onChoose={assignRole} />
+        ) : status === "forbidden" ? (
+          <ForbiddenOrSwitchRole
+            expectedRole="jobseeker"
+            currentRole={user?.publicMetadata?.role}
+            onChoose={assignRole}
             isAssigning={isAssigningRole}
             error={error}
           />
-        ) : status === "checking" ? (
-          <RoleGateLoading role="jobseeker" />
         ) : readyForForm ? (
           <main className="container">
             <header
@@ -302,15 +302,8 @@ export default function JobseekerProfile() {
               </form>
             </section>
           </main>
-        ) : canView ? (
-          <RoleGateLoading role="jobseeker" />
         ) : (
-          <RoleGateDenied
-            expectedRole="jobseeker"
-            status={status}
-            error={error}
-            currentRole={user?.publicMetadata?.role}
-          />
+          <LoadingCard role="jobseeker" />
         )}
       </SignedIn>
     </>

@@ -7,25 +7,21 @@ import {
   useUser,
 } from "@clerk/nextjs";
 import {
-  RoleGateDenied,
-  RoleGateLoading,
-  RoleGateRolePicker,
+  ForbiddenOrSwitchRole,
+  LoadingCard,
 } from "../../components/RoleGateFeedback";
+import { RoleSelectCard } from "../../components/RoleSelectCard";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { useRequireProfileCompletion } from "../../lib/useRequireProfileCompletion";
 import { employerJobs } from "../../lib/demoEmployerData";
 
 export default function EmployerListings() {
   const { user } = useUser();
-  const {
-    status,
-    canView,
-    error,
-    assignRole,
-    isAssigningRole,
-  } = useRequireRole("employer");
+  const { status, error, assignRole, isAssigningRole } = useRequireRole(
+    "employer"
+  );
   const { status: profileStatus } = useRequireProfileCompletion(
-    status === "authorized" ? "employer" : null
+    status === "ready" ? "employer" : null
   );
 
   return (
@@ -35,17 +31,21 @@ export default function EmployerListings() {
       </SignedOut>
 
       <SignedIn>
-        {status === "needs-role" ? (
-          <RoleGateRolePicker
-            onSelectRole={assignRole}
+        {status === "checking" ||
+        profileStatus === "loading" ||
+        profileStatus === "incomplete" ? (
+          <LoadingCard role="employer" />
+        ) : status === "needs-role" ? (
+          <RoleSelectCard onChoose={assignRole} />
+        ) : status === "forbidden" ? (
+          <ForbiddenOrSwitchRole
+            expectedRole="employer"
+            currentRole={user?.publicMetadata?.role}
+            onChoose={assignRole}
             isAssigning={isAssigningRole}
             error={error}
           />
-        ) : status === "checking" ||
-          profileStatus === "loading" ||
-          profileStatus === "incomplete" ? (
-          <RoleGateLoading role="employer" />
-        ) : canView ? (
+        ) : status === "ready" ? (
           <main style={wrap}>
             <header style={header}>
               <div>
@@ -95,12 +95,7 @@ export default function EmployerListings() {
             </section>
           </main>
         ) : (
-          <RoleGateDenied
-            expectedRole="employer"
-            status={status}
-            error={error}
-            currentRole={user?.publicMetadata?.role}
-          />
+          <LoadingCard role="employer" />
         )}
       </SignedIn>
     </>

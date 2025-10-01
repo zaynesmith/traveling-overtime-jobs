@@ -6,8 +6,11 @@ import { useUser } from "@clerk/nextjs";
 import { getRoleHomeHref } from "../lib/getRoleHomeHref";
 
 const HERO_LINKS = [
-  { href: "/jobseeker/search", label: "Search Jobs" },
-  { href: "/post-job", label: "Post Jobs" },
+  {
+    href: "/jobs?q=foreman&location=Houston%2C%20TX&trade=Electrical&payMin=35",
+    label: "Find Jobs",
+  },
+  { href: "/employer/start?onboarding=1", label: "Hire Workers" },
   { href: "/sign-in?intent=employer", label: "Employer Login" },
   { href: "/sign-in?intent=jobseeker", label: "Jobseeker Login" },
 ];
@@ -56,7 +59,7 @@ export default function HomePage() {
               right place fast.
             </p>
             <div className="home-quick-actions">
-              <Link className="btn" href="/jobseeker/search">
+              <Link className="btn" href="/jobs">
                 Search Jobs
               </Link>
               <Link className="btn-outline" href="/post-job">
@@ -77,7 +80,7 @@ export default function HomePage() {
               <li>See what crews are paying before you call so you can line up your next check.</li>
               <li>Save postings and track demo applications as soon as you sign in as a jobseeker.</li>
             </ul>
-            <Link className="btn" href="/jobseeker/search">
+            <Link className="btn" href="/jobs">
               Browse job postings
             </Link>
           </section>
