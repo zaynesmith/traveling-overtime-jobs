@@ -13,6 +13,7 @@ import {
 import { useRequireRole } from "../../lib/useRequireRole";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
+import { updatePublicMetadata } from "../../lib/clerkMetadata";
 
 const MAX_RESUME_SIZE = 5 * 1024 * 1024; // 5 MB
 
@@ -139,13 +140,13 @@ export default function JobseekerProfile() {
         uploadedAt: resumeFile.uploadedAt || new Date().toISOString(),
       };
 
+      await updatePublicMetadata({
+        trade: trimmedTrade,
+        zip: trimmedZip,
+        hasCompletedJobseekerProfile: true,
+      });
+
       await user.update({
-        publicMetadata: {
-          ...(user.publicMetadata || {}),
-          trade: trimmedTrade,
-          zip: trimmedZip,
-          hasCompletedJobseekerProfile: true,
-        },
         privateMetadata: {
           ...(user.privateMetadata || {}),
           resumeFile: resumePayload,
@@ -160,6 +161,8 @@ export default function JobseekerProfile() {
           lastName: rest.join(" ") || user.lastName || "",
         });
       }
+
+      await user.reload();
 
       setResumeFile(resumePayload);
       setSaved(true);
