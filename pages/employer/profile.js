@@ -13,6 +13,7 @@ import {
   RoleGateRolePicker,
 } from "../../components/RoleGateFeedback";
 import { useRequireRole } from "../../lib/useRequireRole";
+import { updatePublicMetadata } from "../../lib/clerkMetadata";
 
 export default function EmployerProfile() {
   const router = useRouter();
@@ -99,16 +100,14 @@ export default function EmployerProfile() {
       setSaving(true);
       setSaved(false);
 
-      await user.update({
-        publicMetadata: {
-          ...(user.publicMetadata || {}),
-          companyName: trimmedCompany,
-          companyContactEmail: trimmedEmail,
-          companyWebsite: trimmedWebsite,
-          companyPhone: trimmedPhone,
-          hasCompletedEmployerProfile: true,
-        },
+      await updatePublicMetadata({
+        companyName: trimmedCompany,
+        companyContactEmail: trimmedEmail,
+        companyWebsite: trimmedWebsite,
+        companyPhone: trimmedPhone,
+        hasCompletedEmployerProfile: true,
       });
+      await user.reload();
 
       setSaved(true);
       if (onboarding) {
