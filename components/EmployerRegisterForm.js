@@ -1,14 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { ROLE_ROUTES } from "../lib/roleRoutes";
+import { loadEmployerDraft, saveEmployerDraft, clearOnboarding } from "../lib/localOnboarding";
 
-/**
- * Minimal employer registration form.
- * Saves employer profile + role on the SERVER via /api/user/update-public-metadata,
- * then routes to the employer dashboard.
- */
 export default function EmployerRegisterForm() {
   const router = useRouter();
 
@@ -21,8 +17,19 @@ export default function EmployerRegisterForm() {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
 
-  const onChange = (e) =>
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  // Prefill from localStorage, if present
+  useEffect(() => {
+    const draft = loadEmployerDraft();
+    if (draft) {
+      setForm((f) => ({ ...f, ...draft }));
+    }
+  }, []);
+
+  const onChange = (e) => {
+    const next = { ...form, [e.target.name]: e.target.value };
+    setForm(next);
+    saveEmployerDraft(next); // continuously save draft locally
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -39,7 +46,7 @@ export default function EmployerRegisterForm() {
         updatedAt: new Date().toISOString(),
       };
 
-      // Write metadata on the server (Clerk backend)
+      // Write on the SERVER (Clerk backend), not client
       const res = await fetch("/api/user/update-public-metadata", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -50,12 +57,12 @@ export default function EmployerRegisterForm() {
           },
         }),
       });
-
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || "Unable to save employer profile.");
       }
 
+      clearOnboarding(); // clean up local cache
       await router.replace(ROLE_ROUTES.employer);
     } catch (error) {
       setErr(error?.message || "Save failed. Please try again.");
