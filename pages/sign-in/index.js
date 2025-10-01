@@ -1,79 +1,31 @@
+// Forces the right post-auth destination based on ?intent=...
 import { SignIn } from "@clerk/nextjs";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
-import { usePersistRole } from "../../lib/usePersistRole";
-import { getRoleHomeHref } from "../../lib/getRoleHomeHref";
-
-function sanitizeRedirect(path) {
-  if (typeof path !== "string" || !path.startsWith("/")) {
-    return undefined;
-  }
-
-  try {
-    const url = new URL(path, "http://localhost");
-    return url.pathname + url.search + url.hash;
-  } catch (error) {
-    console.error("Invalid redirect path", error);
-    return undefined;
-  }
-}
-
-function readRole(rawRole) {
-  if (rawRole === "employer") return "employer";
-  if (rawRole === "jobseeker") return "jobseeker";
-  return undefined;
-}
 
 export default function SignInPage() {
-  const { query, asPath } = useRouter();
+  const { query } = useRouter();
 
-  const roleFromQuery = useMemo(() => {
-    const getFirst = (value) => (Array.isArray(value) ? value[0] : value);
+  // If Clerk middleware sent us here from a protected page, it will include redirect_url.
+  const redirectUrl =
+    typeof query.redirect_url === "string" ? query.redirect_url : null;
 
-    const intentRole = readRole(getFirst(query.intent));
-    if (intentRole) {
-      return intentRole;
-    }
+  // Explicit intent from your buttons/links. Default to jobseeker if absent.
+  const intent = (query.intent || "jobseeker").toString();
 
-    const directRole = readRole(getFirst(query.role));
-    if (directRole) {
-      return directRole;
-    }
-
-    const searchIndex = asPath.indexOf("?");
-    if (searchIndex === -1) {
-      return undefined;
-    }
-
-    try {
-      const params = new URLSearchParams(asPath.slice(searchIndex + 1));
-      return readRole(params.get("intent")) || readRole(params.get("role"));
-    } catch (error) {
-      console.error("Invalid role or intent parameter", error);
-      return undefined;
-    }
-  }, [query.intent, query.role, asPath]);
-
-  const fallbackRole = roleFromQuery ?? "jobseeker";
-  const fallbackDestination = getRoleHomeHref(fallbackRole);
-  const destination = sanitizeRedirect(query.redirect_url) || fallbackDestination;
-  const signUpUrl = roleFromQuery
-    ? `/sign-up?intent=${roleFromQuery}`
-    : "/sign-up";
-
-  usePersistRole(roleFromQuery);
+  // If redirect_url exists, prefer it. Otherwise choose by intent.
+  const afterUrl =
+    redirectUrl ||
+    (intent === "employer"
+      ? "/employer/register?onboarding=1"
+      : "/jobs");
 
   return (
-    <main className="container">
-      <div className="max960">
-        <SignIn
-          path="/sign-in"
-          routing="path"
-          signUpUrl={signUpUrl}
-          afterSignInUrl={destination}
-          afterSignUpUrl={destination}
-        />
-      </div>
+    <main className="auth-shell">
+      <SignIn
+        afterSignInUrl={afterUrl}
+        signUpUrl={`/sign-up?intent=${intent}`}
+      />
     </main>
   );
 }
+
