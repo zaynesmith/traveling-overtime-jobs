@@ -19,20 +19,23 @@ export default async function handler(req, res) {
   }
 
   try {
-    const user = await clerkClient.users.getUser(userId);
-    const existingPublicMetadata = user?.publicMetadata || {};
-    const mergedMetadata = {
-      ...existingPublicMetadata,
-      ...publicMetadata,
-    };
+    // (Optional) whitelist allowed keys to keep metadata tidy
+    const allowed = new Set(["role", "employerProfile", "jobseekerProfile"]);
+    const safe = Object.fromEntries(
+      Object.entries(publicMetadata).filter(([k]) => allowed.has(k))
+    );
 
-    const updatedUser = await clerkClient.users.updateUser(userId, {
-      publicMetadata: mergedMetadata,
+    // IMPORTANT: use updateUserMetadata (NOT updateUser)
+    // This will merge the provided keys into existing publicMetadata.
+    const updated = await clerkClient.users.updateUserMetadata(userId, {
+      publicMetadata: safe,
     });
 
-    return res.status(200).json({ publicMetadata: updatedUser.publicMetadata });
+    return res.status(200).json({ publicMetadata: updated.publicMetadata });
   } catch (error) {
     console.error("Failed to update public metadata", error);
-    return res.status(500).json({ error: "Unable to update public metadata." });
+    return res
+      .status(500)
+      .json({ error: error?.message || "Unable to update public metadata." });
   }
 }
