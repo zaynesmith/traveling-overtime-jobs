@@ -2,6 +2,8 @@ import { SignUp } from "@clerk/nextjs";
 import { useRouter } from "next/router";
 import { useMemo, useCallback } from "react";
 import { usePersistRole } from "../../lib/usePersistRole";
+import { getRoleHomeHref } from "../../lib/getRoleHomeHref";
+import { ROLE_ROUTES } from "../../lib/roleRoutes";
 
 const DEFAULT_ROLE = "jobseeker";
 
@@ -34,10 +36,9 @@ export default function SignUpPage() {
 
   const afterSignUpDestination =
     role === "employer"
-      ? "/employer/profile?onboarding=1"
-      : "/jobseeker/profile?onboarding=1";
-  const afterSignInDestination =
-    role === "employer" ? "/employer" : "/jobseeker";
+      ? "/employer/register?onboarding=1"
+      : ROLE_ROUTES.jobseeker;
+  const afterSignInDestination = getRoleHomeHref(role);
 
   usePersistRole(role);
 

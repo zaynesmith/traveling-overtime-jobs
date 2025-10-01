@@ -13,6 +13,7 @@ import {
 import { RoleSelectCard } from "../../components/RoleSelectCard";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { useRequireProfileCompletion } from "../../lib/useRequireProfileCompletion";
+import { ROLE_ROUTES } from "../../lib/roleRoutes";
 
 const DRAFT_STORAGE_KEY = "public-post-job-draft";
 
@@ -127,7 +128,7 @@ export default function PostJob() {
         <main className="container">
           <header className="max960" style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
             <h1 style={{ margin: 0 }}>Post a Job</h1>
-            <Link href="/employer" className="pill-light" style={{ fontSize: 14 }}>
+            <Link href={ROLE_ROUTES.employer} className="pill-light" style={{ fontSize: 14 }}>
               ← Back to dashboard
             </Link>
           </header>
@@ -176,7 +177,7 @@ export default function PostJob() {
 
                 <div style={{ display:"flex", gap:12, marginTop:8, flexWrap:"wrap" }}>
                   <button className="btn" disabled={!canSubmit || saving}>{saving ? "Posting…" : "Post Job"}</button>
-                  <Link href="/employer" className="pill-light">Cancel</Link>
+                  <Link href={ROLE_ROUTES.employer} className="pill-light">Cancel</Link>
                 </div>
                 <p style={{ marginTop:6, fontSize:12, color:"#666" }}>* Required fields</p>
               </form>
@@ -194,7 +195,7 @@ function Success() {
       <h2 style={{ marginTop:0 }}>Job submitted (demo)</h2>
       <p style={{ marginBottom:16 }}>No database yet — this confirms the form works.</p>
       <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap" }}>
-        <Link href="/employer" className="pill-light">Back to Employer Area</Link>
+        <Link href={ROLE_ROUTES.employer} className="pill-light">Back to Employer Area</Link>
         <Link href="/employer/listings" className="pill-light">Manage Listings</Link>
       </div>
     </div>

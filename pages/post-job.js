@@ -2,6 +2,8 @@ import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 
+import { ROLE_ROUTES } from "../lib/roleRoutes";
+
 const INITIAL_FORM = {
   title: "",
   company: "",
@@ -217,7 +219,7 @@ export default function PublicPostJob() {
               <button className="btn" type="submit" style={{ minWidth: 180 }}>
                 Post Job
               </button>
-              <LinkButton href="/employer">
+              <LinkButton href={ROLE_ROUTES.employer}>
                 Cancel
               </LinkButton>
             </div>

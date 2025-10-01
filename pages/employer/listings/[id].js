@@ -14,6 +14,7 @@ import { RoleSelectCard } from "../../../components/RoleSelectCard";
 import { useRequireRole } from "../../../lib/useRequireRole";
 import { useRequireProfileCompletion } from "../../../lib/useRequireProfileCompletion";
 import { employerJobs } from "../../../lib/demoEmployerData";
+import { ROLE_ROUTES } from "../../../lib/roleRoutes";
 
 export default function EmployerJobDetail() {
   const router = useRouter();
@@ -64,7 +65,7 @@ export default function EmployerJobDetail() {
                   <Link href="/employer/listings" className="pill-light">
                     ← Back to listings
                   </Link>
-                  <Link href="/employer" className="pill-light">
+                  <Link href={ROLE_ROUTES.employer} className="pill-light">
                     Employer dashboard
                   </Link>
                 </div>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/router";
-import { ROLE_ROUTES } from "@/lib/roleRoutes";
+import { ROLE_ROUTES } from "../lib/roleRoutes";
 
 /**
  * Minimal employer registration form.

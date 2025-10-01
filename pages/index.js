@@ -12,7 +12,7 @@ const HERO_LINKS = [
     href: "/jobs?q=foreman&location=Houston%2C%20TX&trade=Electrical&payMin=35",
     label: "Find Jobs",
   },
-  // CHANGED: was /employer/start → now /employer/register
+  // Employer onboarding entry point
   { href: "/employer/register?onboarding=1", label: "Hire Workers" },
   { href: "/sign-in?intent=employer", label: "Employer Login" },
   { href: "/sign-in?intent=jobseeker", label: "Jobseeker Login" },
