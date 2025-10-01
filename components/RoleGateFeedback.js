@@ -7,6 +7,18 @@ const roleNames = {
   jobseeker: "jobseeker",
 };
 
+const loadingCopy = {
+  employer: {
+    heading: "Setting up your employer workspace…",
+    message:
+      "We're routing you to your company profile so you can finish onboarding and access the employer dashboard.",
+  },
+  jobseeker: {
+    heading: "Checking access…",
+    message: "Hang tight while we confirm your jobseeker access.",
+  },
+};
+
 const roleDestinations = {
   employer: "/employer",
   jobseeker: "/jobseeker",
@@ -25,14 +37,16 @@ const cardStyle = {
 
 export function RoleGateLoading({ role }) {
   const readableRole = roleNames[role] || "account";
+  const copy = loadingCopy[role] || {
+    heading: "Checking access…",
+    message: `Hang tight while we confirm your ${readableRole} access.`,
+  };
 
   return (
     <main className="container">
       <div className="card" style={cardStyle}>
-        <h1 style={{ marginTop: 0 }}>Checking access…</h1>
-        <p style={{ color: "#475569", marginBottom: 0 }}>
-          Hang tight while we confirm your {readableRole} access.
-        </p>
+        <h1 style={{ marginTop: 0 }}>{copy.heading}</h1>
+        <p style={{ color: "#475569", marginBottom: 0 }}>{copy.message}</p>
       </div>
     </main>
   );
