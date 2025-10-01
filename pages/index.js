@@ -1,3 +1,4 @@
+// pages/index.js
 import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -5,12 +6,14 @@ import { useUser } from "@clerk/nextjs";
 
 import { getRoleHomeHref } from "../lib/getRoleHomeHref";
 
+// NOTE: distinct routes → /jobs (public) and /employer/register (employer-only flow)
 const HERO_LINKS = [
   {
     href: "/jobs?q=foreman&location=Houston%2C%20TX&trade=Electrical&payMin=35",
     label: "Find Jobs",
   },
-  { href: "/employer/start?onboarding=1", label: "Hire Workers" },
+  // CHANGED: was /employer/start → now /employer/register
+  { href: "/employer/register?onboarding=1", label: "Hire Workers" },
   { href: "/sign-in?intent=employer", label: "Employer Login" },
   { href: "/sign-in?intent=jobseeker", label: "Jobseeker Login" },
 ];
@@ -19,7 +22,9 @@ export default function HomePage() {
   const router = useRouter();
   const { isLoaded, isSignedIn, user } = useUser();
 
-  const destination = isLoaded && isSignedIn ? getRoleHomeHref(user?.publicMetadata?.role) : null;
+  // If signed in and you have a role, bounce to the role's home
+  const destination =
+    isLoaded && isSignedIn ? getRoleHomeHref(user?.publicMetadata?.role) : null;
 
   useEffect(() => {
     if (destination && destination !== "/") {
@@ -37,8 +42,8 @@ export default function HomePage() {
         <span className="overlay" aria-hidden="true" />
         <h1 className="title">Traveling Overtime Jobs</h1>
         <p className="subtitle">
-          Discover vetted opportunities that include travel pay and overtime, or share openings with teams ready to hit the
-          road.
+          Discover vetted opportunities that include travel pay and overtime, or share openings with
+          teams ready to hit the road.
         </p>
 
         <div className="hero-stack" role="navigation" aria-label="Primary actions">
@@ -55,8 +60,8 @@ export default function HomePage() {
           <div className="home-intro">
             <h2 style={{ margin: 0 }}>Jump straight into the tools built for the road</h2>
             <p style={{ margin: 0, color: "#4b5563" }}>
-              Whether you&apos;re scouting your next assignment or hiring traveling talent, the shortcuts below get you to the
-              right place fast.
+              Whether you&apos;re scouting your next assignment or hiring traveling talent, the
+              shortcuts below get you to the right place fast.
             </p>
             <div className="home-quick-actions">
               <Link className="btn" href="/jobs">
@@ -72,7 +77,8 @@ export default function HomePage() {
             <header style={{ display: "grid", gap: 6 }}>
               <h3 style={{ margin: 0 }}>Find your next traveling overtime job</h3>
               <p style={{ margin: 0, color: "#4b5563" }}>
-                Browse industrial and skilled trade openings that clearly outline travel pay, per diem, and overtime.
+                Browse industrial and skilled trade openings that clearly outline travel pay, per
+                diem, and overtime.
               </p>
             </header>
             <ul>
@@ -89,7 +95,8 @@ export default function HomePage() {
             <header style={{ display: "grid", gap: 6 }}>
               <h3 style={{ margin: 0 }}>Share openings with qualified travelers</h3>
               <p style={{ margin: 0, color: "#4b5563" }}>
-                Draft your listing details, then finish publishing once you sign in or create an employer account.
+                Draft your listing details, then finish publishing once you sign in or create an
+                employer account.
               </p>
             </header>
             <ul>
@@ -111,15 +118,15 @@ export default function HomePage() {
             <div>
               <strong>Employer or jobseeker accounts</strong>
               <p>
-                Sign in with the appropriate role to unlock saved jobs, demo applications, and employer tools tailored to
-                your crew.
+                Sign in with the appropriate role to unlock saved jobs, demo applications, and
+                employer tools tailored to your crew.
               </p>
             </div>
             <div>
               <strong>Need an account?</strong>
               <p>
-                Create one in minutes on the sign-up page. Employers can manage listings and jobseekers can track
-                applications.
+                Create one in minutes on the sign-up page. Employers can manage listings and
+                jobseekers can track applications.
               </p>
               <Link className="pill-light" href="/sign-up">
                 Sign up now
