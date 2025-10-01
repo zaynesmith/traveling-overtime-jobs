@@ -6,7 +6,11 @@ import {
   useUser,
 } from "@clerk/nextjs";
 import { useEffect, useMemo, useState } from "react";
-import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
+import {
+  RoleGateDenied,
+  RoleGateLoading,
+  RoleGateRolePicker,
+} from "../../components/RoleGateFeedback";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { useRequireProfileCompletion } from "../../lib/useRequireProfileCompletion";
 
@@ -16,7 +20,13 @@ export default function PostJob() {
   const { user, isLoaded, isSignedIn } = useUser();
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const { status, canView, error } = useRequireRole("employer");
+  const {
+    status,
+    canView,
+    error,
+    assignRole,
+    isAssigningRole,
+  } = useRequireRole("employer");
   const { status: profileStatus } = useRequireProfileCompletion(
     status === "authorized" ? "employer" : null
   );
@@ -86,6 +96,16 @@ export default function PostJob() {
       <SignedOut>
         <RedirectToSignIn redirectUrl="/employer/post" />
       </SignedOut>
+    );
+  }
+
+  if (status === "needs-role") {
+    return (
+      <RoleGateRolePicker
+        onSelectRole={assignRole}
+        isAssigning={isAssigningRole}
+        error={error}
+      />
     );
   }
 
