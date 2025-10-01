@@ -14,6 +14,7 @@ import {
 import { RoleSelectCard } from "../../components/RoleSelectCard";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { updatePublicMetadata } from "../../lib/clerkMetadata";
+import { ROLE_ROUTES } from "../../lib/roleRoutes";
 
 export default function EmployerProfile() {
   const router = useRouter();
@@ -127,7 +128,7 @@ export default function EmployerProfile() {
             style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
           >
             <h1 style={{ margin: 0 }}>Employer Profile</h1>
-            <Link href="/employer" className="pill-light" style={{ fontSize: 14 }}>
+            <Link href={ROLE_ROUTES.employer} className="pill-light" style={{ fontSize: 14 }}>
               ← Back to dashboard
             </Link>
           </header>
@@ -211,7 +212,7 @@ export default function EmployerProfile() {
                 <button className="btn" disabled={saving}>
                   {saving ? "Saving…" : "Save Company Profile"}
                 </button>
-                <Link href="/employer" className="pill-light">
+                <Link href={ROLE_ROUTES.employer} className="pill-light">
                   Back to Employer Area
                 </Link>
               </div>

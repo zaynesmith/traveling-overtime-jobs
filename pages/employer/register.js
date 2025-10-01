@@ -1,12 +1,12 @@
 "use client";
 
-import { useRequireRole } from "@/lib/useRequireRole";
+import { useRequireRole } from "../../lib/useRequireRole";
 import {
   RoleGateLoading,
   RoleGateDenied,
   RoleGateRolePicker,
-} from "@/components/RoleGateFeedback";
-import EmployerRegisterForm from "@/components/EmployerRegisterForm";
+} from "../../components/RoleGateFeedback";
+import EmployerRegisterForm from "../../components/EmployerRegisterForm";
 
 /**
  * Employer-only entry. If user has no role: show picker.
@@ -37,6 +37,8 @@ export default function EmployerRegisterPage() {
         status={status}
         error={error}
         currentRole={currentRole}
+        onRequestRole={() => assignRole("employer")}
+        isAssigning={isAssigning}
       />
     );
   }

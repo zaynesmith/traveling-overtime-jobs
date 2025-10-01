@@ -14,6 +14,7 @@ import { RoleSelectCard } from "../../components/RoleSelectCard";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { useRequireProfileCompletion } from "../../lib/useRequireProfileCompletion";
 import { resumeDatabase } from "../../lib/demoEmployerData";
+import { ROLE_ROUTES } from "../../lib/roleRoutes";
 
 export default function TalentSearch() {
   const [query, setQuery] = useState("");
@@ -88,7 +89,7 @@ export default function TalentSearch() {
                   </p>
                 </div>
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  <Link href="/employer" className="pill-light">
+                  <Link href={ROLE_ROUTES.employer} className="pill-light">
                     ← Back to dashboard
                   </Link>
                   <Link href="/employer/listings" className="pill-light">

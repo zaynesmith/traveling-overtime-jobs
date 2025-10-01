@@ -2,6 +2,7 @@ import { SignIn } from "@clerk/nextjs";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 import { usePersistRole } from "../../lib/usePersistRole";
+import { getRoleHomeHref } from "../../lib/getRoleHomeHref";
 
 function sanitizeRedirect(path) {
   if (typeof path !== "string" || !path.startsWith("/")) {
@@ -54,8 +55,7 @@ export default function SignInPage() {
   }, [query.intent, query.role, asPath]);
 
   const fallbackRole = roleFromQuery ?? "jobseeker";
-  const fallbackDestination =
-    fallbackRole === "employer" ? "/employer" : "/jobseeker";
+  const fallbackDestination = getRoleHomeHref(fallbackRole);
   const destination = sanitizeRedirect(query.redirect_url) || fallbackDestination;
   const signUpUrl = roleFromQuery
     ? `/sign-up?intent=${roleFromQuery}`

@@ -14,6 +14,7 @@ import { RoleSelectCard } from "../../components/RoleSelectCard";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { useRequireProfileCompletion } from "../../lib/useRequireProfileCompletion";
 import { employerJobs } from "../../lib/demoEmployerData";
+import { ROLE_ROUTES } from "../../lib/roleRoutes";
 
 export default function EmployerListings() {
   const { user } = useUser();
@@ -55,7 +56,7 @@ export default function EmployerListings() {
                 </p>
               </div>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <Link href="/employer" className="pill-light">
+                <Link href={ROLE_ROUTES.employer} className="pill-light">
                   ← Back to dashboard
                 </Link>
                 <Link href="/employer/post" className="btn" style={{ padding: "8px 16px", fontSize: 14 }}>
