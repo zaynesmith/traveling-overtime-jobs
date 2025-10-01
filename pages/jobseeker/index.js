@@ -6,24 +6,20 @@ import {
   useUser,
 } from "@clerk/nextjs";
 import {
-  RoleGateDenied,
-  RoleGateLoading,
-  RoleGateRolePicker,
+  ForbiddenOrSwitchRole,
+  LoadingCard,
 } from "../../components/RoleGateFeedback";
+import { RoleSelectCard } from "../../components/RoleSelectCard";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { useRequireProfileCompletion } from "../../lib/useRequireProfileCompletion";
 
 export default function JobseekerHome() {
   const { user } = useUser();
-  const {
-    status,
-    canView,
-    error,
-    assignRole,
-    isAssigningRole,
-  } = useRequireRole("jobseeker");
+  const { status, error, assignRole, isAssigningRole } = useRequireRole(
+    "jobseeker"
+  );
   const { status: profileStatus } = useRequireProfileCompletion(
-    status === "authorized" ? "jobseeker" : null
+    status === "ready" ? "jobseeker" : null
   );
 
   return (
@@ -31,17 +27,21 @@ export default function JobseekerHome() {
       <SignedOut><RedirectToSignIn redirectUrl="/jobseeker" /></SignedOut>
 
       <SignedIn>
-        {status === "needs-role" ? (
-          <RoleGateRolePicker
-            onSelectRole={assignRole}
+        {status === "checking" ||
+        profileStatus === "loading" ||
+        profileStatus === "incomplete" ? (
+          <LoadingCard role="jobseeker" />
+        ) : status === "needs-role" ? (
+          <RoleSelectCard onChoose={assignRole} />
+        ) : status === "forbidden" ? (
+          <ForbiddenOrSwitchRole
+            expectedRole="jobseeker"
+            currentRole={user?.publicMetadata?.role}
+            onChoose={assignRole}
             isAssigning={isAssigningRole}
             error={error}
           />
-        ) : status === "checking" ||
-          profileStatus === "loading" ||
-          profileStatus === "incomplete" ? (
-          <RoleGateLoading role="jobseeker" />
-        ) : canView ? (
+        ) : status === "ready" ? (
           <main className="container">
             <header className="max960" style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <h1 style={{ margin: 0 }}>Jobseeker Area</h1>
@@ -58,12 +58,7 @@ export default function JobseekerHome() {
             <a href="/jobseeker" className="pill-light">← Back to Home</a>
           </main>
         ) : (
-          <RoleGateDenied
-            expectedRole="jobseeker"
-            status={status}
-            error={error}
-            currentRole={user?.publicMetadata?.role}
-          />
+          <LoadingCard role="jobseeker" />
         )}
       </SignedIn>
     </>

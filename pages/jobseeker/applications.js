@@ -7,10 +7,10 @@ import {
   useUser,
 } from "@clerk/nextjs";
 import {
-  RoleGateDenied,
-  RoleGateLoading,
-  RoleGateRolePicker,
+  ForbiddenOrSwitchRole,
+  LoadingCard,
 } from "../../components/RoleGateFeedback";
+import { RoleSelectCard } from "../../components/RoleSelectCard";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { useRequireProfileCompletion } from "../../lib/useRequireProfileCompletion";
 import { useEffect, useState } from "react";
@@ -18,15 +18,11 @@ import { useEffect, useState } from "react";
 export default function MyApplications() {
   const { user } = useUser();
   const [apps, setApps] = useState([]);
-  const {
-    status,
-    canView,
-    error,
-    assignRole,
-    isAssigningRole,
-  } = useRequireRole("jobseeker");
+  const { status, error, assignRole, isAssigningRole } = useRequireRole(
+    "jobseeker"
+  );
   const { status: profileStatus } = useRequireProfileCompletion(
-    status === "authorized" ? "jobseeker" : null
+    status === "ready" ? "jobseeker" : null
   );
 
   useEffect(() => {
@@ -45,17 +41,21 @@ export default function MyApplications() {
       </SignedOut>
 
       <SignedIn>
-        {status === "needs-role" ? (
-          <RoleGateRolePicker
-            onSelectRole={assignRole}
+        {status === "checking" ||
+        profileStatus === "loading" ||
+        profileStatus === "incomplete" ? (
+          <LoadingCard role="jobseeker" />
+        ) : status === "needs-role" ? (
+          <RoleSelectCard onChoose={assignRole} />
+        ) : status === "forbidden" ? (
+          <ForbiddenOrSwitchRole
+            expectedRole="jobseeker"
+            currentRole={user?.publicMetadata?.role}
+            onChoose={assignRole}
             isAssigning={isAssigningRole}
             error={error}
           />
-        ) : status === "checking" ||
-          profileStatus === "loading" ||
-          profileStatus === "incomplete" ? (
-          <RoleGateLoading role="jobseeker" />
-        ) : canView ? (
+        ) : status === "ready" ? (
           <main style={wrap}>
             <header style={header}>
               <h1 style={{ margin: 0 }}>My Applications</h1>
@@ -96,12 +96,7 @@ export default function MyApplications() {
             </section>
           </main>
         ) : (
-          <RoleGateDenied
-            expectedRole="jobseeker"
-            status={status}
-            error={error}
-            currentRole={user?.publicMetadata?.role}
-          />
+          <LoadingCard role="jobseeker" />
         )}
       </SignedIn>
     </>

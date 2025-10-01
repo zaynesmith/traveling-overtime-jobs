@@ -8,10 +8,10 @@ import {
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import {
-  RoleGateDenied,
-  RoleGateLoading,
-  RoleGateRolePicker,
+  ForbiddenOrSwitchRole,
+  LoadingCard,
 } from "../../components/RoleGateFeedback";
+import { RoleSelectCard } from "../../components/RoleSelectCard";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { updatePublicMetadata } from "../../lib/clerkMetadata";
 
@@ -19,13 +19,9 @@ export default function EmployerProfile() {
   const router = useRouter();
   const onboarding = router.query?.onboarding === "1";
   const { user, isLoaded, isSignedIn } = useUser();
-  const {
-    status,
-    canView,
-    error,
-    assignRole,
-    isAssigningRole,
-  } = useRequireRole("employer");
+  const { status, error, assignRole, isAssigningRole } = useRequireRole(
+    "employer"
+  );
   const [companyName, setCompanyName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [website, setWebsite] = useState("");
@@ -44,7 +40,7 @@ export default function EmployerProfile() {
   }, [isLoaded, user]);
 
   if (!isLoaded) {
-    return <RoleGateLoading role="employer" />;
+    return <LoadingCard role="employer" />;
   }
 
   if (!isSignedIn) {
@@ -55,29 +51,28 @@ export default function EmployerProfile() {
     );
   }
 
+  if (status === "checking") {
+    return <LoadingCard role="employer" />;
+  }
+
   if (status === "needs-role") {
+    return <RoleSelectCard onChoose={assignRole} />;
+  }
+
+  if (status === "forbidden") {
     return (
-      <RoleGateRolePicker
-        onSelectRole={assignRole}
+      <ForbiddenOrSwitchRole
+        expectedRole="employer"
+        currentRole={user?.publicMetadata?.role}
+        onChoose={assignRole}
         isAssigning={isAssigningRole}
         error={error}
       />
     );
   }
 
-  if (!canView) {
-    if (status === "checking") {
-      return <RoleGateLoading role="employer" />;
-    }
-
-    return (
-      <RoleGateDenied
-        expectedRole="employer"
-        status={status}
-        error={error}
-        currentRole={user?.publicMetadata?.role}
-      />
-    );
+  if (status !== "ready") {
+    return <LoadingCard role="employer" />;
   }
 
   async function handleSave(event) {
@@ -124,7 +119,7 @@ export default function EmployerProfile() {
   return (
     <SignedIn>
       {status === "checking" ? (
-        <RoleGateLoading role="employer" />
+        <LoadingCard role="employer" />
       ) : (
         <main className="container">
           <header

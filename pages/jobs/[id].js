@@ -93,7 +93,7 @@ export default function JobDetail() {
           <UserButton afterSignOutUrl="/" />
         </header>
         <section style={card}>Loading or job not found.</section>
-        <a href="/jobseeker/search" style={link}>← Back to Search</a>
+        <a href="/jobs" style={link}>← Back to Search</a>
       </main>
     );
   }
@@ -132,7 +132,7 @@ export default function JobDetail() {
             </SignInButton>
           </SignedOut>
 
-          <a href="/jobseeker/search" style={link}>← Back to Search</a>
+          <a href="/jobs" style={link}>← Back to Search</a>
         </div>
       </section>
     </main>

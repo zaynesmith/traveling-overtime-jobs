@@ -1,6 +1,5 @@
-"use client";
-
 import { useMemo } from "react";
+import { ROLE_ROUTES } from "../lib/useRequireRole";
 
 const roleNames = {
   employer: "employer",
@@ -19,11 +18,6 @@ const loadingCopy = {
   },
 };
 
-const roleDestinations = {
-  employer: "/employer",
-  jobseeker: "/jobseeker",
-};
-
 const cardStyle = {
   maxWidth: 640,
   margin: "80px auto",
@@ -35,7 +29,7 @@ const cardStyle = {
   textAlign: "center",
 };
 
-export function RoleGateLoading({ role }) {
+export function LoadingCard({ role }) {
   const readableRole = roleNames[role] || "account";
   const copy = loadingCopy[role] || {
     heading: "Checking access…",
@@ -52,56 +46,42 @@ export function RoleGateLoading({ role }) {
   );
 }
 
-export function RoleGateDenied({
+export const RoleGateLoading = LoadingCard;
+
+export function ForbiddenOrSwitchRole({
   expectedRole,
-  status,
-  error,
   currentRole,
+  onChoose,
+  isAssigning,
+  error,
 }) {
   const readableExpected = roleNames[expectedRole] || "requested";
   const readableCurrent = currentRole && roleNames[currentRole];
 
-  const { heading, message } = useMemo(() => {
-    if (status === "error") {
-      return {
-        heading: "We hit a snag",
-        message:
-          "We couldn't confirm your access right now. Please refresh the page or try again in a moment.",
-      };
-    }
+  const heading = readableCurrent
+    ? `You're signed in as a ${readableCurrent}`
+    : "Switch workspaces to continue";
 
-    if (readableCurrent && readableCurrent !== readableExpected) {
-      return {
-        heading: `You're signed in as a ${readableCurrent}`,
-        message: `This area is reserved for ${readableExpected}s. We just sent you to the right dashboard, but you can use the links below if the page doesn't update.`,
-      };
-    }
-
-    return {
-      heading: "We couldn't confirm your access",
-      message:
-        "It looks like your onboarding isn't finished yet. Complete your sign-up or reach out to our support team for help.",
-    };
-  }, [status, readableCurrent, readableExpected]);
+  const message = readableCurrent
+    ? `The ${readableExpected} tools live in a different workspace. Switch roles to continue or head back to your ${readableCurrent} dashboard.`
+    : `This area is reserved for ${readableExpected}s. Choose the correct workspace to continue.`;
 
   const fallbackHref = useMemo(() => {
-    if (currentRole && roleDestinations[currentRole]) {
-      return roleDestinations[currentRole];
+    if (currentRole && ROLE_ROUTES[currentRole]) {
+      return ROLE_ROUTES[currentRole];
     }
     return "/";
   }, [currentRole]);
 
-  const fallbackLabel = useMemo(() => {
-    if (currentRole && roleDestinations[currentRole]) {
-      return `Go to ${roleNames[currentRole]} area`;
-    }
-    return "Back to home";
-  }, [currentRole]);
+  const fallbackLabel = readableCurrent
+    ? `Go to ${readableCurrent} workspace`
+    : "Back to home";
 
-  const handleRetry = () => {
-    if (typeof window !== "undefined") {
-      window.location.reload();
-    }
+  const handleSwitch = () => {
+    if (!onChoose) return;
+    Promise.resolve(onChoose(expectedRole)).catch(() => {
+      // The hook handles error state; suppress unhandled rejections.
+    });
   };
 
   return (
@@ -110,86 +90,13 @@ export function RoleGateDenied({
         <h1 style={{ marginTop: 0 }}>{heading}</h1>
         <p style={{ color: "#475569" }}>{message}</p>
 
-        <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-          {status === "error" && (
-            <button className="btn" onClick={handleRetry}>
-              Try again
-            </button>
-          )}
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+          <button className="btn" onClick={handleSwitch} disabled={isAssigning}>
+            {isAssigning ? "Switching…" : `Switch to ${readableExpected}`}
+          </button>
           <a className="pill-light" href={fallbackHref}>
             {fallbackLabel}
           </a>
-        </div>
-
-        {status === "error" && error?.message ? (
-          <details style={{ marginTop: 16, textAlign: "left" }}>
-            <summary style={{ cursor: "pointer" }}>Technical details</summary>
-            <pre
-              style={{
-                marginTop: 8,
-                fontSize: 12,
-                background: "#f8fafc",
-                borderRadius: 8,
-                padding: 12,
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-              }}
-            >
-              {error.message}
-            </pre>
-          </details>
-        ) : null}
-      </div>
-    </main>
-  );
-}
-
-export function RoleGateRolePicker({ onSelectRole, isAssigning, error }) {
-  const handleSelect = (role) => {
-    if (!onSelectRole) {
-      return;
-    }
-
-    Promise.resolve(onSelectRole(role)).catch(() => {
-      // The hook handles error state; suppress unhandled rejections in the UI.
-    });
-  };
-
-  return (
-    <main className="container">
-      <div className="card" style={cardStyle}>
-        <h1 style={{ marginTop: 0 }}>Choose your workspace</h1>
-        <p style={{ color: "#475569", marginBottom: 24 }}>
-          Pick the area you're here to access. We'll remember your choice and
-          send you to the right dashboard.
-        </p>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-            maxWidth: 320,
-            margin: "0 auto",
-          }}
-        >
-          <button
-            type="button"
-            className="btn"
-            onClick={() => handleSelect("employer")}
-            disabled={isAssigning}
-          >
-            {isAssigning ? "Saving choice…" : "Continue as Employer"}
-          </button>
-          <button
-            type="button"
-            className="pill-light"
-            style={{ fontSize: 15 }}
-            onClick={() => handleSelect("jobseeker")}
-            disabled={isAssigning}
-          >
-            {isAssigning ? "Saving choice…" : "Continue as Job Seeker"}
-          </button>
         </div>
 
         {error?.message ? (

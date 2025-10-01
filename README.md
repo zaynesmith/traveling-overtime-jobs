@@ -8,3 +8,9 @@ Minimal Next.js starter to verify GitHub → Vercel deployment.
 2. Replace the placeholder Clerk keys with the publishable and secret keys from your Clerk dashboard.
 
 These variables are required for both development (`npm run dev`) and production builds (`npm run build`).
+
+## Routing & Roles
+
+- The public jobs directory lives at `/jobs` and accepts optional query parameters `q`, `location`, `trade`, and `payMin` to pre-filter results.
+- Employer onboarding now begins at `/employer/start`, which is gated to the employer role and will prompt signed-in users without a role to choose one.
+- Role-gated pages use an improved `useRequireRole` hook that can surface a selector when no role is set and offer a switch option when the active role does not match the expected workspace.
