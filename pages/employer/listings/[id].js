@@ -6,7 +6,11 @@ import {
   RedirectToSignIn,
   useUser,
 } from "@clerk/nextjs";
-import { RoleGateDenied, RoleGateLoading } from "../../../components/RoleGateFeedback";
+import {
+  RoleGateDenied,
+  RoleGateLoading,
+  RoleGateRolePicker,
+} from "../../../components/RoleGateFeedback";
 import { useRequireRole } from "../../../lib/useRequireRole";
 import { useRequireProfileCompletion } from "../../../lib/useRequireProfileCompletion";
 import { employerJobs } from "../../../lib/demoEmployerData";
@@ -15,7 +19,13 @@ export default function EmployerJobDetail() {
   const router = useRouter();
   const { id } = router.query;
   const { user } = useUser();
-  const { status, canView, error } = useRequireRole("employer");
+  const {
+    status,
+    canView,
+    error,
+    assignRole,
+    isAssigningRole,
+  } = useRequireRole("employer");
   const { status: profileStatus } = useRequireProfileCompletion(
     status === "authorized" ? "employer" : null
   );
@@ -30,7 +40,15 @@ export default function EmployerJobDetail() {
       </SignedOut>
 
       <SignedIn>
-        {status === "checking" || profileStatus === "loading" || profileStatus === "incomplete" ? (
+        {status === "needs-role" ? (
+          <RoleGateRolePicker
+            onSelectRole={assignRole}
+            isAssigning={isAssigningRole}
+            error={error}
+          />
+        ) : status === "checking" ||
+          profileStatus === "loading" ||
+          profileStatus === "incomplete" ? (
           <RoleGateLoading role="employer" />
         ) : canView ? (
           <main className="container" style={{ padding: "40px 24px" }}>

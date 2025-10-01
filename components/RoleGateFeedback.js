@@ -143,3 +143,72 @@ export function RoleGateDenied({
     </main>
   );
 }
+
+export function RoleGateRolePicker({ onSelectRole, isAssigning, error }) {
+  const handleSelect = (role) => {
+    if (!onSelectRole) {
+      return;
+    }
+
+    Promise.resolve(onSelectRole(role)).catch(() => {
+      // The hook handles error state; suppress unhandled rejections in the UI.
+    });
+  };
+
+  return (
+    <main className="container">
+      <div className="card" style={cardStyle}>
+        <h1 style={{ marginTop: 0 }}>Choose your workspace</h1>
+        <p style={{ color: "#475569", marginBottom: 24 }}>
+          Pick the area you're here to access. We'll remember your choice and
+          send you to the right dashboard.
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            maxWidth: 320,
+            margin: "0 auto",
+          }}
+        >
+          <button
+            type="button"
+            className="btn"
+            onClick={() => handleSelect("employer")}
+            disabled={isAssigning}
+          >
+            {isAssigning ? "Saving choice…" : "Continue as Employer"}
+          </button>
+          <button
+            type="button"
+            className="pill-light"
+            style={{ fontSize: 15 }}
+            onClick={() => handleSelect("jobseeker")}
+            disabled={isAssigning}
+          >
+            {isAssigning ? "Saving choice…" : "Continue as Job Seeker"}
+          </button>
+        </div>
+
+        {error?.message ? (
+          <p
+            role="alert"
+            style={{
+              marginTop: 16,
+              color: "#b91c1c",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderRadius: 10,
+              padding: "10px 12px",
+              fontSize: 14,
+            }}
+          >
+            {error.message}
+          </p>
+        ) : null}
+      </div>
+    </main>
+  );
+}

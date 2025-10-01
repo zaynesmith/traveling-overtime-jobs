@@ -7,14 +7,24 @@ import {
 } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
+import {
+  RoleGateDenied,
+  RoleGateLoading,
+  RoleGateRolePicker,
+} from "../../components/RoleGateFeedback";
 import { useRequireRole } from "../../lib/useRequireRole";
 
 export default function EmployerProfile() {
   const router = useRouter();
   const onboarding = router.query?.onboarding === "1";
   const { user, isLoaded, isSignedIn } = useUser();
-  const { status, canView, error } = useRequireRole("employer");
+  const {
+    status,
+    canView,
+    error,
+    assignRole,
+    isAssigningRole,
+  } = useRequireRole("employer");
   const [companyName, setCompanyName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [website, setWebsite] = useState("");
@@ -41,6 +51,16 @@ export default function EmployerProfile() {
       <SignedOut>
         <RedirectToSignIn redirectUrl="/employer/profile" />
       </SignedOut>
+    );
+  }
+
+  if (status === "needs-role") {
+    return (
+      <RoleGateRolePicker
+        onSelectRole={assignRole}
+        isAssigning={isAssigningRole}
+        error={error}
+      />
     );
   }
 

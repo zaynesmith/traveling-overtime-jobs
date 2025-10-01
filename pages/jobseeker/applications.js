@@ -6,7 +6,11 @@ import {
   UserButton,
   useUser,
 } from "@clerk/nextjs";
-import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
+import {
+  RoleGateDenied,
+  RoleGateLoading,
+  RoleGateRolePicker,
+} from "../../components/RoleGateFeedback";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { useRequireProfileCompletion } from "../../lib/useRequireProfileCompletion";
 import { useEffect, useState } from "react";
@@ -14,7 +18,13 @@ import { useEffect, useState } from "react";
 export default function MyApplications() {
   const { user } = useUser();
   const [apps, setApps] = useState([]);
-  const { status, canView, error } = useRequireRole("jobseeker");
+  const {
+    status,
+    canView,
+    error,
+    assignRole,
+    isAssigningRole,
+  } = useRequireRole("jobseeker");
   const { status: profileStatus } = useRequireProfileCompletion(
     status === "authorized" ? "jobseeker" : null
   );
@@ -35,7 +45,15 @@ export default function MyApplications() {
       </SignedOut>
 
       <SignedIn>
-        {status === "checking" || profileStatus === "loading" || profileStatus === "incomplete" ? (
+        {status === "needs-role" ? (
+          <RoleGateRolePicker
+            onSelectRole={assignRole}
+            isAssigning={isAssigningRole}
+            error={error}
+          />
+        ) : status === "checking" ||
+          profileStatus === "loading" ||
+          profileStatus === "incomplete" ? (
           <RoleGateLoading role="jobseeker" />
         ) : canView ? (
           <main style={wrap}>

@@ -5,7 +5,11 @@ import {
   useUser,
   UserButton,
 } from "@clerk/nextjs";
-import { RoleGateDenied, RoleGateLoading } from "../../components/RoleGateFeedback";
+import {
+  RoleGateDenied,
+  RoleGateLoading,
+  RoleGateRolePicker,
+} from "../../components/RoleGateFeedback";
 import { useRequireRole } from "../../lib/useRequireRole";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
@@ -16,7 +20,13 @@ export default function JobseekerProfile() {
   const router = useRouter();
   const onboarding = router.query?.onboarding === "1";
   const { user, isLoaded } = useUser();
-  const { status, canView, error } = useRequireRole("jobseeker");
+  const {
+    status,
+    canView,
+    error,
+    assignRole,
+    isAssigningRole,
+  } = useRequireRole("jobseeker");
   const [fullName, setFullName] = useState("");
   const [trade, setTrade] = useState("");
   const [zip, setZip] = useState("");
@@ -171,7 +181,13 @@ export default function JobseekerProfile() {
       </SignedOut>
 
       <SignedIn>
-        {status === "checking" ? (
+        {status === "needs-role" ? (
+          <RoleGateRolePicker
+            onSelectRole={assignRole}
+            isAssigning={isAssigningRole}
+            error={error}
+          />
+        ) : status === "checking" ? (
           <RoleGateLoading role="jobseeker" />
         ) : readyForForm ? (
           <main className="container">
