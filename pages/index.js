@@ -1,141 +1,54 @@
-// pages/index.js
-import { useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/router";
-import { useUser } from "@clerk/nextjs";
-
-import { getRoleHomeHref } from "../lib/getRoleHomeHref";
 import { setOnboardingIntent } from "../lib/localOnboarding";
 
-const HERO_LINKS = [
-  {
-    href: "/jobs?q=foreman&location=Houston%2C%20TX&trade=Electrical&payMin=35",
-    label: "Find Jobs",
-  },
-  { href: "/employer/register?onboarding=1", label: "Hire Workers" },
-  { href: "/sign-in?intent=employer", label: "Employer Login" },
-  { href: "/sign-in?intent=jobseeker", label: "Jobseeker Login" },
-];
+const employerCtaHref = "/employer/register?onboarding=1";
 
 export default function HomePage() {
-  const router = useRouter();
-  const { isLoaded, isSignedIn, user } = useUser();
-
-  const destination =
-    isLoaded && isSignedIn ? getRoleHomeHref(user?.publicMetadata?.role) : null;
-
-  useEffect(() => {
-    if (destination && destination !== "/") {
-      router.replace(destination);
-    }
-  }, [destination, router]);
-
-  if (destination && destination !== "/") {
-    return null;
-  }
-
   return (
-    <>
-      <section className="hero" role="region" aria-label="Traveling Overtime Jobs hero">
-        <span className="overlay" aria-hidden="true" />
-        <h1 className="title">Traveling Overtime Jobs</h1>
-        <p className="subtitle">
-          Discover vetted opportunities that include travel pay and overtime, or share openings with teams ready to hit the road.
-        </p>
-
-        <div className="hero-stack" role="navigation" aria-label="Primary actions">
-          {HERO_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              className="hero-link"
-              href={link.href}
-              onClick={() => {
-                // Record employer intent locally so the register page can auto-assign role
-                if (link.href.startsWith("/employer")) setOnboardingIntent("employer");
-                if (link.href.includes("intent=employer")) setOnboardingIntent("employer");
-              }}
-            >
-              {link.label}
-            </Link>
-          ))}
+    <main className="home">
+      <section className="hero">
+        <h1>Traveling Overtime Jobs</h1>
+        <p>Match traveling crews with high-paying overtime work fast.</p>
+        <div className="hero-actions">
+          <Link className="btn" href="/jobs">
+            Browse jobs
+          </Link>
+          <Link
+            className="btn-outline"
+            href={employerCtaHref}
+            onClick={() => setOnboardingIntent("employer")}
+          >
+            Hire talent
+          </Link>
+          <Link className="btn" href="/signup">
+            Sign up
+          </Link>
+          <Link className="btn" href="/login">
+            Log in
+          </Link>
         </div>
       </section>
 
-      <main className="home-main">
-        <div className="max960" style={{ display: "grid", gap: 32 }}>
-          <div className="home-intro">
-            <h2 style={{ margin: 0 }}>Jump straight into the tools built for the road</h2>
-            <p style={{ margin: 0, color: "#4b5563" }}>
-              Whether you&apos;re scouting your next assignment or hiring traveling talent, the shortcuts below get you to the right place fast.
-            </p>
-            <div className="home-quick-actions">
-              <Link className="btn" href="/jobs">
-                Search Jobs
-              </Link>
-              <Link className="btn-outline" href="/post-job" onClick={() => setOnboardingIntent("employer")}>
-                Post Jobs
-              </Link>
-            </div>
-          </div>
-
-          <section className="home-panel">
-            <header style={{ display: "grid", gap: 6 }}>
-              <h3 style={{ margin: 0 }}>Find your next traveling overtime job</h3>
-              <p style={{ margin: 0, color: "#4b5563" }}>
-                Browse industrial and skilled trade openings that clearly outline travel pay, per diem, and overtime.
-              </p>
-            </header>
-            <ul>
-              <li>Filter by trade, company, or location to match assignments to your skills.</li>
-              <li>See what crews are paying before you call so you can line up your next check.</li>
-              <li>Save postings and track demo applications as soon as you sign in as a jobseeker.</li>
-            </ul>
-            <Link className="btn" href="/jobs">
-              Browse job postings
-            </Link>
-          </section>
-
-          <section className="home-panel">
-            <header style={{ display: "grid", gap: 6 }}>
-              <h3 style={{ margin: 0 }}>Share openings with qualified travelers</h3>
-              <p style={{ margin: 0, color: "#4b5563" }}>
-                Draft your listing details, then finish publishing once you sign in or create an employer account.
-              </p>
-            </header>
-            <ul>
-              <li>Highlight shift schedules, travel expectations, and per diem up front.</li>
-              <li>Keep drafts handy—your work saves so you can finish after creating an account.</li>
-              <li>Log in as an employer to manage postings and follow up with travelers quickly.</li>
-            </ul>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <Link className="btn" href="/post-job" onClick={() => setOnboardingIntent("employer")}>
-                Create a job listing
-              </Link>
-              <Link className="btn-outline" href="/sign-in?intent=employer" onClick={() => setOnboardingIntent("employer")}>
-                Employer login
-              </Link>
-            </div>
-          </section>
-
-          <div className="home-aside-grid">
-            <div>
-              <strong>Employer or jobseeker accounts</strong>
-              <p>
-                Sign in with the appropriate role to unlock saved jobs, demo applications, and employer tools tailored to your crew.
-              </p>
-            </div>
-            <div>
-              <strong>Need an account?</strong>
-              <p>
-                Create one in minutes on the sign-up page. Employers can manage listings and jobseekers can track applications.
-              </p>
-              <Link className="pill-light" href="/sign-up">
-                Sign up now
-              </Link>
-            </div>
-          </div>
-        </div>
-      </main>
-    </>
+      <section className="home-panels">
+        <article>
+          <h2>Jobseekers</h2>
+          <p>Explore assignments that include travel pay and overtime without logging in.</p>
+          <Link className="btn" href="/jobs">
+            View open roles
+          </Link>
+        </article>
+        <article>
+          <h2>Employers</h2>
+          <p>Draft your hiring needs, then finish onboarding to reach qualified travelers.</p>
+          <Link
+            className="btn-outline"
+            href={employerCtaHref}
+            onClick={() => setOnboardingIntent("employer")}
+          >
+            Start employer onboarding
+          </Link>
+        </article>
+      </section>
+    </main>
   );
 }
