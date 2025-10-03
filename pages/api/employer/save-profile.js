@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import authOptions from "../../../lib/authOptions";
 import prisma from "../../../lib/prisma";
+import { encodeProfile, decodeProfile } from "../../../lib/profileCodec";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -28,13 +29,17 @@ export default async function handler(req, res) {
     completedAt: new Date().toISOString(),
   };
 
-  await prisma.user.update({
+  const user = await prisma.user.update({
     where: { id: session.user.id },
     data: {
       role: "employer",
-      employerProfile,
+      employerProfile: encodeProfile(employerProfile),
     },
+    select: { id: true, email: true, role: true, employerProfile: true },
   });
 
-  return res.status(200).json({ success: true });
+  return res.status(200).json({
+    ...user,
+    employerProfile: decodeProfile(user.employerProfile),
+  });
 }
