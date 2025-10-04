@@ -29,13 +29,34 @@ export default async function handler(req, res) {
     completedAt: new Date().toISOString(),
   };
 
+  const employerProfileData = encodeProfile(employerProfile);
+
   const user = await prisma.user.update({
     where: { id: session.user.id },
     data: {
       role: "employer",
-      employerProfile: encodeProfile(employerProfile),
+      employerProfile: {
+        upsert: {
+          update: employerProfileData,
+          create: employerProfileData,
+        },
+      },
     },
-    select: { id: true, email: true, role: true, employerProfile: true },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      employerProfile: {
+        select: {
+          companyName: true,
+          website: true,
+          phone: true,
+          location: true,
+          notes: true,
+          completedAt: true,
+        },
+      },
+    },
   });
 
   return res.status(200).json({
