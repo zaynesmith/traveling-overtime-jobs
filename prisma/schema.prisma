@@ -1,42 +1,44 @@
-// This tells Prisma to generate the client
-generator client {
-  provider = "prisma-client-js"
-}
-
-// This tells Prisma where your database is
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
 model User {
-  id               String   @id @default(cuid())
-  email            String   @unique
+  id               String            @id @default(cuid())
+  email            String            @unique
   passwordHash     String
-  role             String   @default("jobseeker")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  role             String            @default("jobseeker") // "jobseeker" or "employer"
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   employerProfile  EmployerProfile?
   jobseekerProfile JobseekerProfile?
 }
 
 model EmployerProfile {
-  id           String   @id @default(cuid())
-  companyName  String
-  website      String?
-  phone        String?
-  location     String?
-  notes        String?
-  completedAt  DateTime?
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id])
+  id          String   @id @default(cuid())
+  companyName String
+  officePhone String?
+  mobilePhone String?
+  address1    String?
+  address2    String?
+  city        String?
+  state       String?
+  zip         String?
+  website     String?
+  timezone    String?
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
 }
 
 model JobseekerProfile {
-  id        String @id @default(cuid())
-  trade     String? // you can expand with checkboxes/resume upload later
-  resumeUrl String?
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
+  id        String   @id @default(cuid())
+  firstName String?
+  lastName  String?
+  email     String?   // optional since User already has email
+  address1  String?
+  address2  String?
+  city      String?
+  state     String?
+  zip       String?
+  trade     String?   // dropdown selection
+  resumeUrl String?   // placeholder for resume upload
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id])
 }
+
