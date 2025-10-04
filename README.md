@@ -5,7 +5,8 @@ Minimal Next.js starter to verify GitHub → Vercel deployment.
 ## Environment variables
 
 1. Copy `.env.local.example` to `.env.local`.
-2. Replace the placeholder Clerk keys with the publishable and secret keys from your Clerk dashboard.
+2. Update the `DATABASE_URL` in both `.env.local` and Vercel's environment variables to use your pooled Supabase connection string in the format `postgresql://<user>:<pass>@<host>:6543/<db>?pgbouncer=true&connection_limit=1`. Prisma requires the `pgbouncer=true` and `connection_limit=1` query parameters to work correctly with Supabase's connection pooling.
+3. Replace the placeholder Clerk keys with the publishable and secret keys from your Clerk dashboard.
 
 These variables are required for both development (`npm run dev`) and production builds (`npm run build`).
 
