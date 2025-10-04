@@ -9,8 +9,9 @@
     "lint": "next lint",
     "test": "jest",
     "test:e2e": "playwright test",
-    "postinstall": "prisma generate && prisma db push",
-    "prisma:migrate": "prisma migrate dev --name json_to_text"
+    "postinstall": "prisma generate",
+    "prisma:migrate": "prisma migrate dev --name json_to_text",
+    "prisma:migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/client": "^5.16.1",
