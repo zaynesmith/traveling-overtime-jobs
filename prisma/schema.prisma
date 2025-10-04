@@ -22,19 +22,15 @@ model User {
 }
 
 model EmployerProfile {
-  id          String @id @default(cuid())
-  companyName String
-  officePhone String?
-  mobilePhone String?
-  address1    String?
-  address2    String?
-  city        String?
-  state       String?
-  zip         String?
-  website     String?
-  timezone    String?
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id])
+  id           String   @id @default(cuid())
+  companyName  String
+  website      String?
+  phone        String?
+  location     String?
+  notes        String?
+  completedAt  DateTime?
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
 }
 
 model JobseekerProfile {
