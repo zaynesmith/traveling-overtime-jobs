@@ -18,5 +18,5 @@ These variables are required for both development (`npm run dev`) and production
 ## Routing & Roles
 
 - The public jobs directory lives at `/jobs` and accepts optional query parameters `q`, `location`, `trade`, and `payMin` to pre-filter results.
-- Employer onboarding now begins at `/employer/register?onboarding=1`, which is gated to the employer role and prompts signed-in users without a role to choose one before continuing.
-- Role-gated pages use an improved `useRequireRole` hook that can surface a selector when no role is set and offer a switch option when the active role does not match the expected workspace.
+- Employers can create accounts at `/employer/register` and manage their workspace from `/employer/dashboard` after signing in.
+- Jobseekers can create accounts at `/jobseeker/register` and access their tools from `/jobseeker/dashboard` once logged in.
