@@ -1,54 +1,27 @@
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { useSession, signOut } from "next-auth/react";
-import { setOnboardingIntent } from "../lib/localOnboarding";
 
 export default function Header() {
   const { data: session } = useSession();
   const role = session?.user?.role;
-  const router = useRouter();
 
-  const dashboardHref = role === "employer" ? "/employer/dashboard" : "/jobs";
-  const showPrimaryNav = !(router.pathname === "/" && !session);
+  const dashboardHref = role === "employer" ? "/employer/dashboard" : "/jobseeker/dashboard";
 
   return (
     <header style={wrap}>
       <Link href="/" style={brand}>
         Traveling Overtime Jobs
       </Link>
-      {showPrimaryNav && (
+      {session ? (
         <nav style={nav}>
-          <Link href="/jobs" style={navLink}>
-            Jobs
+          <Link href={dashboardHref} style={navLink}>
+            Dashboard
           </Link>
-          <Link
-            href="/employer/register?onboarding=1"
-            style={navLink}
-            onClick={() => setOnboardingIntent("employer")}
-          >
-            Employer tools
-          </Link>
-          {session ? (
-            <>
-              <Link href={dashboardHref} style={navLink}>
-                Dashboard
-              </Link>
-              <button type="button" onClick={() => signOut({ callbackUrl: "/" })} style={buttonLink}>
-                Sign out
-              </button>
-            </>
-          ) : (
-            <>
-              <Link href="/login" style={navLink}>
-                Log in
-              </Link>
-              <Link href="/signup" style={navLink}>
-                Sign up
-              </Link>
-            </>
-          )}
+          <button type="button" onClick={() => signOut({ callbackUrl: "/" })} style={buttonLink}>
+            Sign out
+          </button>
         </nav>
-      )}
+      ) : null}
     </header>
   );
 }

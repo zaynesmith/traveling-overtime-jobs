@@ -3,39 +3,67 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { signIn, useSession } from "next-auth/react";
 
+const trades = [
+  "Electrician (Inside Wireman)",
+  "Electrician (Outside Lineman)",
+  "Welder",
+  "Pipefitter",
+  "Plumber",
+  "Carpenter",
+  "Millwright",
+  "Ironworker",
+  "Sheet Metal Worker",
+  "HVAC Technician",
+  "Heavy Equipment Operator",
+  "Laborer",
+  "Concrete Finisher",
+  "Mason / Bricklayer",
+  "Painter / Sandblaster",
+  "Scaffold Builder",
+  "Rigger",
+  "Boilermaker",
+  "Insulator",
+  "Crane Operator",
+  "Instrumentation Technician",
+];
+
 const initialForm = {
-  companyName: "",
-  officePhone: "",
-  mobilePhone: "",
+  firstName: "",
+  lastName: "",
+  email: "",
+  password: "",
   address1: "",
   address2: "",
   city: "",
   state: "",
   zipCode: "",
-  website: "",
-  timezone: "",
-  email: "",
-  password: "",
+  trade: "",
 };
 
-export default function EmployerRegisterPage() {
+export default function JobseekerRegisterPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const [form, setForm] = useState(initialForm);
+  const [resumeName, setResumeName] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!session?.user?.role) return;
-    if (session.user.role === "employer") {
-      router.replace("/employer/dashboard");
-    } else {
+    if (session.user.role === "jobseeker") {
       router.replace("/jobseeker/dashboard");
+    } else {
+      router.replace("/employer/dashboard");
     }
   }, [router, session]);
 
   const updateField = (field) => (event) => {
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
+  };
+
+  const handleResumeChange = (event) => {
+    const file = event.target.files?.[0];
+    setResumeName(file ? file.name : "");
   };
 
   async function handleSubmit(event) {
@@ -48,25 +76,23 @@ export default function EmployerRegisterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          role: "employer",
+          role: "jobseeker",
           email: form.email,
           password: form.password,
-          companyName: form.companyName,
-          officePhone: form.officePhone,
-          mobilePhone: form.mobilePhone,
+          firstName: form.firstName,
+          lastName: form.lastName,
           address1: form.address1,
           address2: form.address2,
           city: form.city,
           state: form.state,
           zipCode: form.zipCode,
-          website: form.website,
-          timezone: form.timezone,
+          trade: form.trade,
         }),
       });
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || "Unable to create employer profile.");
+        throw new Error(data.error || "Unable to create jobseeker profile.");
       }
 
       const loginResult = await signIn("credentials", {
@@ -79,7 +105,7 @@ export default function EmployerRegisterPage() {
         throw new Error("Account created, but sign in failed. Try logging in manually.");
       }
 
-      router.push("/employer/dashboard");
+      router.push("/jobseeker/dashboard");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -89,31 +115,45 @@ export default function EmployerRegisterPage() {
 
   return (
     <main className="form-page">
-      <h1 className="form-heading">Create Employer Profile</h1>
+      <h1 className="form-heading">Create Jobseeker Profile</h1>
       <form onSubmit={handleSubmit} className="form-stack">
         <label className="form-label">
-          Company Name
+          First Name
           <input
+            className="form-input"
+            value={form.firstName}
+            onChange={updateField("firstName")}
+          />
+        </label>
+        <label className="form-label">
+          Last Name
+          <input
+            className="form-input"
+            value={form.lastName}
+            onChange={updateField("lastName")}
+          />
+        </label>
+        <label className="form-label">
+          Email
+          <input
+            type="email"
             required
+            autoComplete="email"
             className="form-input"
-            value={form.companyName}
-            onChange={updateField("companyName")}
+            value={form.email}
+            onChange={updateField("email")}
           />
         </label>
         <label className="form-label">
-          Office Phone
+          Password
           <input
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
             className="form-input"
-            value={form.officePhone}
-            onChange={updateField("officePhone")}
-          />
-        </label>
-        <label className="form-label">
-          Mobile Phone
-          <input
-            className="form-input"
-            value={form.mobilePhone}
-            onChange={updateField("mobilePhone")}
+            value={form.password}
+            onChange={updateField("password")}
           />
         </label>
         <label className="form-label">
@@ -157,43 +197,27 @@ export default function EmployerRegisterPage() {
           />
         </label>
         <label className="form-label">
-          Website
-          <input
-            className="form-input"
-            value={form.website}
-            onChange={updateField("website")}
-          />
-        </label>
-        <label className="form-label">
-          Timezone
-          <input
-            className="form-input"
-            value={form.timezone}
-            onChange={updateField("timezone")}
-          />
-        </label>
-        <label className="form-label">
-          Email
-          <input
-            type="email"
+          Trade/Craft
+          <select
             required
-            autoComplete="email"
             className="form-input"
-            value={form.email}
-            onChange={updateField("email")}
-          />
+            value={form.trade}
+            onChange={updateField("trade")}
+          >
+            <option value="" disabled>
+              Select your trade
+            </option>
+            {trades.map((trade) => (
+              <option key={trade} value={trade}>
+                {trade}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="form-label">
-          Password
-          <input
-            type="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            className="form-input"
-            value={form.password}
-            onChange={updateField("password")}
-          />
+          Resume (optional)
+          <input type="file" className="form-input" onChange={handleResumeChange} />
+          {resumeName ? <span className="form-hint">Selected: {resumeName}</span> : null}
         </label>
         {error ? <p className="form-error">{error}</p> : null}
         <button type="submit" className="form-button" disabled={loading}>
@@ -201,7 +225,7 @@ export default function EmployerRegisterPage() {
         </button>
       </form>
       <p className="form-footer-link">
-        Already have an account? <Link href="/employer/login">Sign in</Link>
+        Already have an account? <Link href="/jobseeker/login">Sign in</Link>
       </p>
     </main>
   );

@@ -55,6 +55,7 @@ body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial
   transform: translateY(-2px);
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.24);
 }
+
 /* Simple layout helpers used across pages */
 .container { min-height: 100vh; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; gap: 24px; }
 .max960 { width: 100%; max-width: 960px; }
@@ -70,7 +71,7 @@ body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial
 .input { border:1px solid #ddd; border-radius:10px; padding:10px 12px; font-size:14px; }
 .btn { background:#111; color:#fff; border:1px solid #111; border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer; }
 .btn-outline { background:#fff; color:#111; border:1px solid #ddd; border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer; }
-.pill-light { display:inline-block; background:#fff; color:#111; border:1px solid #ddd; border-radius:999px; padding:10px 14px; font-weight:600; text-decoration:none;}
+.pill-light { display:inline-block; background:#fff; color:#111; border:1px solid #ddd; border-radius:999px; padding:10px 14px;font-weight:600; text-decoration:none;}
 
 /* Home page specific layout */
 .home-main {
@@ -128,20 +129,135 @@ body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial
   gap: 6px;
 }
 
-.home-aside-grid {
+.home-bottom-links {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.home-bottom-link {
+  color: #0f172a;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.home-bottom-link:hover {
+  text-decoration: underline;
+}
+
+/* Form layout */
+.form-page {
+  width: min(520px, 92%);
+  margin: 0 auto;
+  padding: 72px 0 96px;
+  display: grid;
+  gap: 24px;
+}
+
+.form-heading {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 36px);
+  text-align: center;
+  color: #0f172a;
+}
+
+.form-stack {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  color: #4b5563;
+}
+
+.form-label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  text-align: left;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.form-input {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 15px;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #0f172a;
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.1);
+}
+
+.form-button {
+  border: none;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #fff;
+  padding: 12px 16px;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.form-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.form-button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.18);
+}
+
+.form-error {
+  margin: 0;
+  color: #dc2626;
   font-size: 14px;
 }
 
-.home-aside-grid strong {
-  display: block;
-  color: #111827;
-  margin-bottom: 6px;
+.form-footer-link {
+  text-align: center;
+  font-size: 14px;
+  color: #374151;
 }
 
-.home-aside-grid p {
-  margin: 0 0 12px;
+.form-footer-link a {
+  color: #0f172a;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.form-footer-link a:hover {
+  text-decoration: underline;
+}
+
+.form-hint {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Dashboard placeholders */
+.dashboard-page {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 16px;
+  background: #f9fafb;
+}
+
+.dashboard-heading {
+  max-width: 640px;
+  text-align: center;
+  font-size: clamp(26px, 4vw, 36px);
+  color: #0f172a;
+  margin: 0;
 }
