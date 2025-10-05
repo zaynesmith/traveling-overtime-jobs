@@ -64,17 +64,39 @@ export default async function handler(req, res) {
 }
 
 function buildEmployerProfile(payload) {
+  const firstName = sanitize(payload.firstName);
+  const lastName = sanitize(payload.lastName);
   const companyName = sanitize(payload.companyName);
+  const phone = sanitize(payload.phone ?? payload.officePhone ?? payload.mobilePhone);
+  const address1 = sanitize(payload.addressLine1 ?? payload.address1);
+
+  if (!firstName) {
+    return new Error("First name is required.");
+  }
+
+  if (!lastName) {
+    return new Error("Last name is required.");
+  }
+
   if (!companyName) {
     return new Error("Company name is required.");
   }
 
+  if (!phone) {
+    return new Error("Phone number is required.");
+  }
+
+  if (!address1) {
+    return new Error("Address line 1 is required.");
+  }
+
   return {
+    firstName,
+    lastName,
     companyName,
-    officePhone: sanitize(payload.officePhone),
-    mobilePhone: sanitize(payload.mobilePhone),
-    address1: sanitize(payload.address1),
-    address2: sanitize(payload.address2),
+    phone,
+    address1,
+    address2: sanitize(payload.addressLine2 ?? payload.address2),
     city: sanitize(payload.city),
     state: sanitize(payload.state),
     zip: sanitize(payload.zipCode),

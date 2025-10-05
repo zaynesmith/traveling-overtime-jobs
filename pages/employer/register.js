@@ -4,11 +4,12 @@ import { useRouter } from "next/router";
 import { signIn, useSession } from "next-auth/react";
 
 const initialForm = {
+  firstName: "",
+  lastName: "",
   companyName: "",
-  officePhone: "",
-  mobilePhone: "",
-  address1: "",
-  address2: "",
+  phone: "",
+  addressLine1: "",
+  addressLine2: "",
   city: "",
   state: "",
   zipCode: "",
@@ -51,11 +52,12 @@ export default function EmployerRegisterPage() {
           role: "employer",
           email: form.email,
           password: form.password,
+          firstName: form.firstName,
+          lastName: form.lastName,
           companyName: form.companyName,
-          officePhone: form.officePhone,
-          mobilePhone: form.mobilePhone,
-          address1: form.address1,
-          address2: form.address2,
+          phone: form.phone,
+          addressLine1: form.addressLine1,
+          addressLine2: form.addressLine2,
           city: form.city,
           state: form.state,
           zipCode: form.zipCode,
@@ -92,6 +94,47 @@ export default function EmployerRegisterPage() {
       <h1 className="form-heading">Create Employer Profile</h1>
       <form onSubmit={handleSubmit} className="form-stack">
         <label className="form-label">
+          First Name
+          <input
+            required
+            className="form-input"
+            value={form.firstName}
+            onChange={updateField("firstName")}
+          />
+        </label>
+        <label className="form-label">
+          Last Name
+          <input
+            required
+            className="form-input"
+            value={form.lastName}
+            onChange={updateField("lastName")}
+          />
+        </label>
+        <label className="form-label">
+          Email
+          <input
+            type="email"
+            required
+            autoComplete="email"
+            className="form-input"
+            value={form.email}
+            onChange={updateField("email")}
+          />
+        </label>
+        <label className="form-label">
+          Password
+          <input
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            className="form-input"
+            value={form.password}
+            onChange={updateField("password")}
+          />
+        </label>
+        <label className="form-label">
           Company Name
           <input
             required
@@ -101,35 +144,30 @@ export default function EmployerRegisterPage() {
           />
         </label>
         <label className="form-label">
-          Office Phone
+          Phone
           <input
+            type="tel"
+            required
             className="form-input"
-            value={form.officePhone}
-            onChange={updateField("officePhone")}
-          />
-        </label>
-        <label className="form-label">
-          Mobile Phone
-          <input
-            className="form-input"
-            value={form.mobilePhone}
-            onChange={updateField("mobilePhone")}
+            value={form.phone}
+            onChange={updateField("phone")}
           />
         </label>
         <label className="form-label">
           Address Line 1
           <input
+            required
             className="form-input"
-            value={form.address1}
-            onChange={updateField("address1")}
+            value={form.addressLine1}
+            onChange={updateField("addressLine1")}
           />
         </label>
         <label className="form-label">
           Address Line 2
           <input
             className="form-input"
-            value={form.address2}
-            onChange={updateField("address2")}
+            value={form.addressLine2}
+            onChange={updateField("addressLine2")}
           />
         </label>
         <label className="form-label">
@@ -170,29 +208,6 @@ export default function EmployerRegisterPage() {
             className="form-input"
             value={form.timezone}
             onChange={updateField("timezone")}
-          />
-        </label>
-        <label className="form-label">
-          Email
-          <input
-            type="email"
-            required
-            autoComplete="email"
-            className="form-input"
-            value={form.email}
-            onChange={updateField("email")}
-          />
-        </label>
-        <label className="form-label">
-          Password
-          <input
-            type="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            className="form-input"
-            value={form.password}
-            onChange={updateField("password")}
           />
         </label>
         {error ? <p className="form-error">{error}</p> : null}

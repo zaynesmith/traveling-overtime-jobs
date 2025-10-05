@@ -22,6 +22,8 @@ model User {
 model EmployerProfile {
   id          String    @id @default(cuid())
   companyName String
+  firstName   String?
+  lastName    String?
   officePhone String?
   mobilePhone String?
   address1    String?
