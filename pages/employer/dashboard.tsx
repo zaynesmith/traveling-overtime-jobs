@@ -1,4 +1,3 @@
-import type { GetServerSidePropsContext } from "next";
 import { getServerSession } from "next-auth/next";
 import authOptions from "../../lib/authOptions";
 
@@ -10,8 +9,8 @@ export default function EmployerDashboard() {
   );
 }
 
-export async function getServerSideProps(context: GetServerSidePropsContext) {
-  const session = await getServerSession(context.req, context.res, authOptions);
+export async function getServerSideProps() {
+  const session = await getServerSession(authOptions);
 
   if (!session) {
     return {
