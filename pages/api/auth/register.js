@@ -46,14 +46,36 @@ export default async function handler(req, res) {
   const passwordHash = await hash(password, 12);
 
   try {
-    const user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        passwordHash,
-        role,
-        employerProfile: employerProfile && !(employerProfile instanceof Error) ? { create: employerProfile } : undefined,
-        jobseekerProfile: jobseekerProfile && !(jobseekerProfile instanceof Error) ? { create: jobseekerProfile } : undefined,
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email: normalizedEmail,
+          passwordHash,
+          role,
+          jobseekerProfile:
+            jobseekerProfile && !(jobseekerProfile instanceof Error)
+              ? { create: jobseekerProfile }
+              : undefined,
+        },
+      });
+
+      if (role === "employer" && employerProfile && !(employerProfile instanceof Error)) {
+        const userId = typeof createdUser.id === "string" ? createdUser.id.trim() : "";
+        if (!userId) {
+          throw new Error("Unable to create employer profile: user ID is missing or invalid.");
+        }
+
+        console.log("Creating employer profile for user", userId);
+
+        await tx.employerProfile.create({
+          data: {
+            ...employerProfile,
+            userId,
+          },
+        });
+      }
+
+      return createdUser;
     });
 
     return res.status(201).json({ id: user.id, email: user.email, role: user.role });
@@ -64,14 +86,19 @@ export default async function handler(req, res) {
 }
 
 function buildEmployerProfile(payload) {
+  const companyName = sanitize(payload.companyName);
   const firstName = sanitize(payload.firstName);
   const lastName = sanitize(payload.lastName);
-  const companyName = sanitize(payload.companyName);
-  const phone = sanitize(payload.phone ?? payload.officePhone ?? payload.mobilePhone);
+  const email = sanitize(payload.email);
+  const mobilePhone = sanitize(payload.mobilePhone ?? payload.mobilephone);
   const address1 = sanitize(payload.addressLine1 ?? payload.address1);
   const city = sanitize(payload.city);
   const state = sanitize(payload.state);
   const zip = sanitize(payload.zip ?? payload.zipCode);
+
+  if (!companyName) {
+    return new Error("Company name is required.");
+  }
 
   if (!firstName) {
     return new Error("First name is required.");
@@ -81,12 +108,12 @@ function buildEmployerProfile(payload) {
     return new Error("Last name is required.");
   }
 
-  if (!companyName) {
-    return new Error("Company name is required.");
+  if (!email) {
+    return new Error("Email is required.");
   }
 
-  if (!phone) {
-    return new Error("Phone number is required.");
+  if (!mobilePhone) {
+    return new Error("Mobile phone is required.");
   }
 
   if (!address1) {
@@ -105,19 +132,34 @@ function buildEmployerProfile(payload) {
     return new Error("Zip code is required.");
   }
 
-  return {
+  const profile = {
+    companyName,
     firstName,
     lastName,
-    companyName,
-    phone,
+    phone: sanitize(payload.phone) || mobilePhone,
     address1,
-    address2: sanitize(payload.addressLine2 ?? payload.address2),
     city,
     state,
     zip,
+    mobilePhone,
+  };
+
+  const optionalFields = {
+    address2: sanitize(payload.addressLine2 ?? payload.address2),
+    officePhone: sanitize(payload.officePhone),
     website: sanitize(payload.website),
     timezone: sanitize(payload.timezone),
+    location: sanitize(payload.location),
+    notes: sanitize(payload.notes),
   };
+
+  for (const [key, value] of Object.entries(optionalFields)) {
+    if (value) {
+      profile[key] = value;
+    }
+  }
+
+  return profile;
 }
 
 function buildJobseekerProfile(payload, email) {
