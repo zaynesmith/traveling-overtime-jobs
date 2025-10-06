@@ -91,6 +91,7 @@ function buildEmployerProfile(payload) {
   const lastName = sanitize(payload.lastName);
   const email = sanitize(payload.email);
   const mobilePhone = sanitize(payload.mobilePhone ?? payload.mobilephone);
+  const officePhone = sanitize(payload.officePhone ?? payload.officephone);
   const address1 = sanitize(payload.addressLine1 ?? payload.address1);
   const city = sanitize(payload.city);
   const state = sanitize(payload.state);
@@ -146,7 +147,7 @@ function buildEmployerProfile(payload) {
 
   const optionalFields = {
     address2: sanitize(payload.addressLine2 ?? payload.address2),
-    officePhone: sanitize(payload.officePhone),
+    officePhone,
     website: sanitize(payload.website),
     timezone: sanitize(payload.timezone),
     location: sanitize(payload.location),

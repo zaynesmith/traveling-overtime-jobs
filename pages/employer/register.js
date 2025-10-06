@@ -7,7 +7,8 @@ const initialForm = {
   firstName: "",
   lastName: "",
   companyName: "",
-  phone: "",
+  mobilePhone: "",
+  officePhone: "",
   addressLine1: "",
   addressLine2: "",
   city: "",
@@ -55,7 +56,8 @@ export default function EmployerRegisterPage() {
           firstName: form.firstName,
           lastName: form.lastName,
           companyName: form.companyName,
-          phone: form.phone,
+          mobilePhone: form.mobilePhone,
+          officePhone: form.officePhone,
           addressLine1: form.addressLine1,
           addressLine2: form.addressLine2,
           city: form.city,
@@ -144,13 +146,22 @@ export default function EmployerRegisterPage() {
           />
         </label>
         <label className="form-label">
-          Phone
+          Mobile Phone
           <input
             type="tel"
             required
             className="form-input"
-            value={form.phone}
-            onChange={updateField("phone")}
+            value={form.mobilePhone}
+            onChange={updateField("mobilePhone")}
+          />
+        </label>
+        <label className="form-label">
+          Office Phone (optional)
+          <input
+            type="tel"
+            className="form-input"
+            value={form.officePhone}
+            onChange={updateField("officePhone")}
           />
         </label>
         <label className="form-label">
