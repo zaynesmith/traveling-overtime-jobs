@@ -69,6 +69,9 @@ function buildEmployerProfile(payload) {
   const companyName = sanitize(payload.companyName);
   const phone = sanitize(payload.phone ?? payload.officePhone ?? payload.mobilePhone);
   const address1 = sanitize(payload.addressLine1 ?? payload.address1);
+  const city = sanitize(payload.city);
+  const state = sanitize(payload.state);
+  const zip = sanitize(payload.zip ?? payload.zipCode);
 
   if (!firstName) {
     return new Error("First name is required.");
@@ -90,6 +93,18 @@ function buildEmployerProfile(payload) {
     return new Error("Address line 1 is required.");
   }
 
+  if (!city) {
+    return new Error("City is required.");
+  }
+
+  if (!state) {
+    return new Error("State is required.");
+  }
+
+  if (!zip) {
+    return new Error("Zip code is required.");
+  }
+
   return {
     firstName,
     lastName,
@@ -97,9 +112,9 @@ function buildEmployerProfile(payload) {
     phone,
     address1,
     address2: sanitize(payload.addressLine2 ?? payload.address2),
-    city: sanitize(payload.city),
-    state: sanitize(payload.state),
-    zip: sanitize(payload.zipCode),
+    city,
+    state,
+    zip,
     website: sanitize(payload.website),
     timezone: sanitize(payload.timezone),
   };

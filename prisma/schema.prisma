@@ -22,18 +22,18 @@ model User {
 model EmployerProfile {
   id          String    @id @default(cuid())
   companyName String
-  firstName   String?
-  lastName    String?
+  firstName   String
+  lastName    String
+  phone       String
+  address1    String
+  address2    String?
+  city        String
+  state       String
+  zip         String
   officePhone String?
   mobilePhone String?
-  address1    String?
-  address2    String?
-  city        String?
-  state       String?
-  zip         String?
   website     String?
   timezone    String?
-  phone       String?
   location    String?
   notes       String?
   completedAt DateTime?
