@@ -12,7 +12,7 @@ const initialForm = {
   addressLine2: "",
   city: "",
   state: "",
-  zipCode: "",
+  zip: "",
   website: "",
   timezone: "",
   email: "",
@@ -60,7 +60,7 @@ export default function EmployerRegisterPage() {
           addressLine2: form.addressLine2,
           city: form.city,
           state: form.state,
-          zipCode: form.zipCode,
+          zip: form.zip,
           website: form.website,
           timezone: form.timezone,
         }),
@@ -173,6 +173,7 @@ export default function EmployerRegisterPage() {
         <label className="form-label">
           City
           <input
+            required
             className="form-input"
             value={form.city}
             onChange={updateField("city")}
@@ -181,6 +182,7 @@ export default function EmployerRegisterPage() {
         <label className="form-label">
           State
           <input
+            required
             className="form-input"
             value={form.state}
             onChange={updateField("state")}
@@ -189,9 +191,10 @@ export default function EmployerRegisterPage() {
         <label className="form-label">
           Zip Code
           <input
+            required
             className="form-input"
-            value={form.zipCode}
-            onChange={updateField("zipCode")}
+            value={form.zip}
+            onChange={updateField("zip")}
           />
         </label>
         <label className="form-label">
