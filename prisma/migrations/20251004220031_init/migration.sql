@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "User" (
+CREATE TABLE user (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE "User" (
 );
 
 -- CreateTable
-CREATE TABLE "EmployerProfile" (
+CREATE TABLE employerprofile (
     "id" TEXT NOT NULL,
     "companyName" TEXT NOT NULL,
     "officePhone" TEXT,
@@ -29,7 +29,7 @@ CREATE TABLE "EmployerProfile" (
 );
 
 -- CreateTable
-CREATE TABLE "JobseekerProfile" (
+CREATE TABLE jobseekerprofile (
     "id" TEXT NOT NULL,
     "trade" TEXT,
     "resumeUrl" TEXT,
@@ -39,17 +39,17 @@ CREATE TABLE "JobseekerProfile" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE UNIQUE INDEX "User_email_key" ON user("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "EmployerProfile_userId_key" ON "EmployerProfile"("userId");
+CREATE UNIQUE INDEX "EmployerProfile_userId_key" ON employerprofile("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "JobseekerProfile_userId_key" ON "JobseekerProfile"("userId");
+CREATE UNIQUE INDEX "JobseekerProfile_userId_key" ON jobseekerprofile("userId");
 
 -- AddForeignKey
-ALTER TABLE "EmployerProfile" ADD CONSTRAINT "EmployerProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE employerprofile ADD CONSTRAINT "EmployerProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES user("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "JobseekerProfile" ADD CONSTRAINT "JobseekerProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE jobseekerprofile ADD CONSTRAINT "JobseekerProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES user("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 

@@ -17,6 +17,8 @@ model User {
 
   employerProfile  EmployerProfile?
   jobseekerProfile JobseekerProfile?
+
+  @@map("user")
 }
 
 model EmployerProfile {
@@ -39,6 +41,8 @@ model EmployerProfile {
   completedAt DateTime?
   userId      String    @unique
   user        User      @relation(fields: [userId], references: [id])
+
+  @@map("employerprofile")
 }
 
 model JobseekerProfile {
@@ -55,4 +59,6 @@ model JobseekerProfile {
   resumeUrl String?   // placeholder for resume upload
   userId    String    @unique
   user      User      @relation(fields: [userId], references: [id])
+
+  @@map("jobseekerprofile")
 }
