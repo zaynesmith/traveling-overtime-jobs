@@ -1,4 +1,4 @@
-ALTER TABLE "EmployerProfile"
+ALTER TABLE employerprofile
   ALTER COLUMN "firstName" SET NOT NULL,
   ALTER COLUMN "lastName" SET NOT NULL,
   ALTER COLUMN "phone" SET NOT NULL,
