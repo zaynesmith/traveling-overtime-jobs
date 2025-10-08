@@ -2,6 +2,8 @@
 // Script demonstrating how to connect to Supabase via the MCP Client SDK.
 
 // Import the MCP Client package provided by the Model Context Protocol SDK.
+// Note: package.json deliberately pins the SDK to the published 0.1.x line
+// because newer 0.2.x builds are not yet available on npm and break installs.
 const { McpClient } = require('@modelcontextprotocol/sdk/client');
 // Import the official Supabase client library for executing queries against the database.
 const { createClient } = require('@supabase/supabase-js');
