@@ -48,7 +48,6 @@ export default async function handler(req, res) {
         lastName: sanitize(payload.lastName),
         companyName: sanitize(payload.companyName),
         mobilePhone: sanitize(payload.mobilePhone ?? payload.mobilephone),
-        officePhone: sanitize(payload.officePhone ?? payload.officephone),
         email: sanitize(payload.email),
         addressLine1: sanitize(payload.addressLine1 ?? payload.address1),
         city: sanitize(payload.city),

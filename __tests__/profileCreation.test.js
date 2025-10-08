@@ -111,4 +111,45 @@ describe("profile creation builders", () => {
     expect(invalid).toBeInstanceOf(Error);
     expect(invalid.message).toContain("Trade selection is required");
   });
+
+  it("allows employer registration without an office phone number", async () => {
+    const { default: handler } = await import("../pages/api/auth/register.js");
+    const prisma = (await import("../lib/prisma")).default;
+
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.$transaction.mockImplementation(async (callback) =>
+      callback({
+        user: { create: jest.fn(async () => ({ id: "user-123" })) },
+        employerProfile: { create: jest.fn(async (args) => args.data) },
+      })
+    );
+
+    const req = {
+      method: "POST",
+      body: {
+        role: "employer",
+        email: "owner@example.com",
+        password: "supersafe",
+        firstName: "Alicia",
+        lastName: "Keys",
+        companyName: "Keys Construction",
+        mobilePhone: "555-0100",
+        addressLine1: "1 Music Way",
+        city: "Nashville",
+        state: "TN",
+        zip: "37203",
+      },
+    };
+
+    const json = jest.fn();
+    const res = {
+      status: jest.fn(() => ({ json })),
+      setHeader: jest.fn(),
+    };
+
+    await handler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(json).toHaveBeenCalledWith({ success: true });
+  });
 });
