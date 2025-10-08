@@ -15,12 +15,14 @@
     "prisma:migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.2.0",
     "@prisma/client": "^5.16.1",
     "bcryptjs": "^2.4.3",
     "next": "14.2.5",
     "next-auth": "^4.24.7",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "@supabase/supabase-js": "^2.45.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.45.0",
