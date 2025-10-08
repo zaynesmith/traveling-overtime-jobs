@@ -15,7 +15,6 @@
     "prisma:migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.1.0",
     "@prisma/client": "^5.16.1",
     "bcryptjs": "^2.4.3",
     "next": "14.2.5",
