@@ -20,16 +20,32 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Company name is required." });
   }
 
-  const employerProfile = {
-    companyName: profile.companyName,
-    website: profile.website || "",
-    phone: profile.phone || "",
-    location: profile.location || "",
-    notes: profile.notes || "",
-    completedAt: new Date().toISOString(),
+  const existingProfileRecord = await prisma.employerProfile.findUnique({
+    where: { userId: session.user.id },
+  });
+
+  const existingProfile = existingProfileRecord
+    ? decodeProfile(existingProfileRecord)
+    : {};
+
+  const incomingProfile = profile || {};
+
+  const mergedProfile = {
+    ...existingProfile,
+    ...incomingProfile,
   };
 
-  const employerProfileData = encodeProfile(employerProfile);
+  mergedProfile.completedAt =
+    incomingProfile?.completedAt || existingProfile?.completedAt || new Date().toISOString();
+
+  let employerProfileData;
+  try {
+    employerProfileData = encodeProfile(mergedProfile);
+  } catch (error) {
+    return res
+      .status(400)
+      .json({ error: error?.message || "Invalid employer profile payload." });
+  }
 
   const user = await prisma.user.update({
     where: { id: session.user.id },
@@ -49,9 +65,19 @@ export default async function handler(req, res) {
       employerProfile: {
         select: {
           companyName: true,
+          firstName: true,
+          lastName: true,
           website: true,
           phone: true,
+          address1: true,
+          address2: true,
+          city: true,
+          state: true,
+          zip: true,
+          mobilePhone: true,
+          officePhone: true,
           location: true,
+          timezone: true,
           notes: true,
           completedAt: true,
         },
