@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
+    "check:supabase": "node scripts/checkSupabaseAlignment.js",
     "test:e2e": "playwright test",
     "postinstall": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name json_to_text",

@@ -128,7 +128,7 @@ export default async function handler(req, res) {
   }
 }
 
-function buildEmployerProfile(payload) {
+export function buildEmployerProfile(payload) {
   const companyName = sanitize(payload.companyName);
   const firstName = sanitize(payload.firstName);
   const lastName = sanitize(payload.lastName);
@@ -206,7 +206,7 @@ function buildEmployerProfile(payload) {
   return profile;
 }
 
-function buildJobseekerProfile(payload, email) {
+export function buildJobseekerProfile(payload, email) {
   const trade = sanitize(payload.trade);
   if (!trade) {
     return new Error("Trade selection is required.");
