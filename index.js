@@ -19,11 +19,40 @@ class McpClient {
 const { createClient } = require('@supabase/supabase-js');
 
 // Define the Supabase connection parameters required to authenticate with the REST API.
-const SUPABASE_URL = 'https://kaxlvohgqukmfsylscxp.supabase.co';
-const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtheGx2b2hncXVrbWZzeWxzY3hwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTYwMjk5MSwiZXhwIjoyMDc1MTc4OTkxfQ.OhbxaDqCLdcalvfBj16pDbi0AIzBZlmXusPkZYlZyzk';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_API_KEY;
 
-// Name of the table we want to query. Replace this placeholder with an existing table name.
-const TABLE_NAME = 'your_table_name';
+// Name of the table we want to query. Provide this through an environment variable so
+// the script can target any table without editing source code.
+const TABLE_NAME = process.env.SUPABASE_TABLE_NAME;
+
+function validateConfiguration() {
+  const missing = [];
+
+  if (!SUPABASE_URL) {
+    missing.push('SUPABASE_URL');
+  }
+
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    missing.push('SUPABASE_SERVICE_ROLE_KEY');
+  }
+
+  if (!TABLE_NAME) {
+    missing.push('SUPABASE_TABLE_NAME');
+  }
+
+  if (missing.length > 0) {
+    console.error(
+      `Missing required environment variable${missing.length > 1 ? 's' : ''}: ${missing.join(
+        ', '
+      )}. Please configure these values before running the script.`
+    );
+    return false;
+  }
+
+  return true;
+}
 
 async function main() {
   // Instantiate an MCP client instance. In a larger application this could manage
@@ -34,8 +63,12 @@ async function main() {
   });
 
   try {
+    if (!validateConfiguration()) {
+      return;
+    }
+
     // Create a Supabase client using the connection parameters.
-    const supabase = createClient(SUPABASE_URL, SUPABASE_API_KEY, {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       global: {
         headers: {
           // Attach metadata to identify the MCP client making the request (optional).
