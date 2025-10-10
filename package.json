@@ -11,7 +11,8 @@
     "check:supabase": "node scripts/checkSupabaseAlignment.js",
     "test:e2e": "playwright test",
     "postinstall": "prisma generate",
-    "prisma:migrate": "prisma migrate dev --name json_to_text",
+    "prisma:migrate": "node scripts/runPrismaMigration.js --name json_to_text",
+    "supabase:migrations:sync": "node scripts/syncSupabaseMigrations.js",
     "prisma:migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
