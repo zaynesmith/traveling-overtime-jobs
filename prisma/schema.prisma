@@ -11,7 +11,7 @@ model User {
   id               String            @id @default(cuid())
   email            String            @unique
   passwordHash     String
-  role             String            @default("jobseeker") // "jobseeker" or "employer"
+  role             String            @default("jobseeker")
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
 
@@ -22,43 +22,45 @@ model User {
 }
 
 model EmployerProfile {
-  id          String    @id @default(cuid())
-  companyName String
-  firstName   String
-  lastName    String
-  phone       String
+  id          String   @id @default(cuid())
   address1    String
   address2    String?
   city        String
-  state       String
-  zip         String
-  officePhone String?
-  mobilePhone String?
-  website     String?
-  timezone    String?
-  location    String?
-  notes       String?
+  companyName String
   completedAt DateTime?
-  userId      String    @unique
-  user        User      @relation(fields: [userId], references: [id])
+  firstName   String
+  lastName    String
+  location    String?
+  mobilePhone String?
+  notes       String?
+  officePhone String?
+  phone       String
+  state       String
+  timezone    String?
+  userId      String   @unique
+  website     String?
+  zip         String
+
+  user        User     @relation(fields: [userId], references: [id])
 
   @@map("employerprofile")
 }
 
 model JobseekerProfile {
-  id        String   @id @default(cuid())
-  firstName String?
-  lastName  String?
-  email     String?   // optional since User already has email
+  id        String  @id @default(cuid())
   address1  String?
   address2  String?
   city      String?
+  email     String?
+  firstName String?
+  lastName  String?
+  resumeUrl String?
   state     String?
+  trade     String?
+  userId    String  @unique
   zip       String?
-  trade     String?   // dropdown selection
-  resumeUrl String?   // placeholder for resume upload
-  userId    String    @unique
-  user      User      @relation(fields: [userId], references: [id])
+
+  user      User    @relation(fields: [userId], references: [id])
 
   @@map("jobseekerprofile")
 }
