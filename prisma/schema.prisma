@@ -12,8 +12,8 @@ model User {
   email            String            @unique
   passwordHash     String            @map("passwordhash")
   role             String            @default("jobseeker")
-  createdAt        DateTime          @default(now()) @map("created_at")
-  updatedAt        DateTime          @updatedAt @map("updated_at")
+  createdAt        DateTime          @default(now()) @map("createdat")
+  updatedAt        DateTime          @default(now()) @map("updatedat")
 
   employerProfile  EmployerProfile?
   jobseekerProfile JobseekerProfile?
@@ -22,24 +22,18 @@ model User {
 }
 
 model EmployerProfile {
-  id          String   @id @default(uuid()) @db.Uuid
-  address1    String
-  address2    String?
-  city        String
+  id          String  @id @default(uuid()) @db.Uuid
   companyName String
-  completedAt DateTime?
-  firstName   String
-  lastName    String
-  location    String?
-  mobilePhone String?
-  notes       String?
   officePhone String?
-  phone       String
-  state       String
-  timezone    String?
-  userId      String   @unique @db.Uuid
+  mobilePhone String?
+  address1    String?
+  address2    String?
+  city        String?
+  state       String?
+  zip         String?
   website     String?
-  zip         String
+  timezone    String?
+  userId      String  @unique @db.Uuid
 
   user        User     @relation(fields: [userId], references: [id])
 
@@ -48,17 +42,17 @@ model EmployerProfile {
 
 model JobseekerProfile {
   id        String  @id @default(uuid()) @db.Uuid
+  firstName String?
+  lastName  String?
+  email     String?
   address1  String?
   address2  String?
   city      String?
-  email     String?
-  firstName String?
-  lastName  String?
-  resumeUrl String?
   state     String?
-  trade     String?
-  userId    String  @unique @db.Uuid
   zip       String?
+  trade     String?
+  resumeUrl String?
+  userId    String  @unique @db.Uuid
 
   user      User    @relation(fields: [userId], references: [id])
 
