@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,53 +10,62 @@ datasource db {
 }
 
 model User {
-  id               String            @id @default(uuid()) @db.Uuid
-  email            String            @unique
-  passwordHash     String            @map("passwordhash")
-  role             String            @default("jobseeker")
-  createdAt        DateTime          @default(now()) @map("createdat")
-  updatedAt        DateTime          @default(now()) @map("updatedat")
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  // DB column is camelCase "passwordHash" (quoted in SQL), so map to it:
+  passwordHash String   @map("passwordHash")
+  role         String   @default("jobseeker")
+
+  // Your SQL created camelCase columns: createdAt / updatedAt
+  createdAt    DateTime @default(now()) @map("createdAt")
+  updatedAt    DateTime @updatedAt      @map("updatedAt")
 
   employerProfile  EmployerProfile?
   jobseekerProfile JobseekerProfile?
 
-  @@map("user")
+  @@map("user") // table name is "user"
 }
 
 model EmployerProfile {
-  id          String  @id @default(uuid()) @db.Uuid
-  companyName String
-  officePhone String?
-  mobilePhone String?
-  address1    String?
-  address2    String?
-  city        String?
-  state       String?
-  zip         String?
-  website     String?
-  timezone    String?
-  userId      String  @unique @db.Uuid
+  id           String   @id @default(uuid()) @db.Uuid
+  companyName  String
+  officePhone  String?
+  mobilePhone  String?
+  address1     String?
+  address2     String?
+  city         String?
+  state        String?
+  zip          String?
+  website      String?
+  timezone     String?
+  // App expects these, so include them:
+  firstName    String?
+  lastName     String?
+  phone        String?
+  location     String?
+  notes        String?
+  completedAt  DateTime?
 
-  user        User     @relation(fields: [userId], references: [id])
+  userId       String   @unique @db.Uuid
+  user         User     @relation(fields: [userId], references: [id])
 
   @@map("employerprofile")
 }
 
 model JobseekerProfile {
-  id        String  @id @default(uuid()) @db.Uuid
-  firstName String?
-  lastName  String?
-  email     String?
-  address1  String?
-  address2  String?
-  city      String?
-  state     String?
-  zip       String?
-  trade     String?
-  resumeUrl String?
-  userId    String  @unique @db.Uuid
-
-  user      User    @relation(fields: [userId], references: [id])
+  id         String   @id @default(uuid()) @db.Uuid
+  firstName  String?
+  lastName   String?
+  email      String?
+  address1   String?
+  address2   String?
+  city       String?
+  state      String?
+  zip        String?
+  trade      String?
+  resumeUrl  String?
+  userId     String   @unique @db.Uuid
+  user       User     @relation(fields: [userId], references: [id])
 
   @@map("jobseekerprofile")
 }
