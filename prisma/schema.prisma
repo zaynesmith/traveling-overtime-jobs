@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -18,7 +20,7 @@ model User {
   employerProfile  EmployerProfile?
   jobseekerProfile JobseekerProfile?
 
-  @@map("user")
+  @@map("user") // table name is "user"
 }
 
 model EmployerProfile {
@@ -47,20 +49,19 @@ model EmployerProfile {
 }
 
 model JobseekerProfile {
-  id        String  @id @default(uuid()) @db.Uuid
-  firstName String?
-  lastName  String?
-  email     String?
-  address1  String?
-  address2  String?
-  city      String?
-  state     String?
-  zip       String?
-  trade     String?
-  resumeUrl String?
-  userId    String  @unique @db.Uuid
-
-  user      User    @relation(fields: [userId], references: [id])
+  id         String   @id @default(uuid()) @db.Uuid
+  firstName  String?
+  lastName   String?
+  email      String?
+  address1   String?
+  address2   String?
+  city       String?
+  state      String?
+  zip        String?
+  trade      String?
+  resumeUrl  String?
+  userId     String   @unique @db.Uuid
+  user       User     @relation(fields: [userId], references: [id])
 
   @@map("jobseekerprofile")
 }
