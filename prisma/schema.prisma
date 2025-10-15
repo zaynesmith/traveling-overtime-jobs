@@ -16,9 +16,9 @@ model User {
   passwordHash String   @map("passwordHash")
   role         String   @default("jobseeker")
 
-  // Your SQL created camelCase columns: createdAt / updatedAt
-  createdAt    DateTime @default(now()) @map("createdAt")
-  updatedAt    DateTime @updatedAt      @map("updatedAt")
+  // Database columns use snake_case created_at / updated_at
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt      @map("updated_at")
 
   employerProfile  EmployerProfile?
   jobseekerProfile JobseekerProfile?
