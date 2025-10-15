@@ -10,15 +10,12 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid()) @db.Uuid
-  email        String   @unique
-  // DB column is camelCase "passwordHash" (quoted in SQL), so map to it:
-  passwordHash String   @map("passwordHash")
-  role         String   @default("jobseeker")
-
-  // Database columns use snake_case created_at / updated_at
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt      @map("updated_at")
+  id               String            @id @default(uuid()) @db.Uuid
+  email            String            @unique
+  passwordHash     String            @map("passwordhash")
+  role             String            @default("jobseeker")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @default(now()) @map("updated_at")
 
   employerProfile  EmployerProfile?
   jobseekerProfile JobseekerProfile?
@@ -27,27 +24,26 @@ model User {
 }
 
 model EmployerProfile {
-  id           String   @id @default(uuid()) @db.Uuid
-  companyName  String
-  officePhone  String?
-  mobilePhone  String?
-  address1     String?
-  address2     String?
-  city         String?
-  state        String?
-  zip          String?
-  website      String?
-  timezone     String?
-  // App expects these, so include them:
-  firstName    String?
-  lastName     String?
-  phone        String?
-  location     String?
-  notes        String?
-  completedAt  DateTime?
+  id          String     @id @default(uuid()) @db.Uuid
+  companyName String
+  firstName   String
+  lastName    String
+  phone       String
+  officePhone String?
+  mobilePhone String?
+  address1    String
+  address2    String?
+  city        String
+  state       String
+  zip         String
+  website     String?
+  timezone    String?
+  location    String?
+  notes       String?
+  completedAt DateTime?
+  userId      String     @unique @db.Uuid
 
-  userId       String   @unique @db.Uuid
-  user         User     @relation(fields: [userId], references: [id])
+  user        User       @relation(fields: [userId], references: [id])
 
   @@map("employerprofile")
 }
