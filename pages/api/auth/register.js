@@ -68,9 +68,10 @@ export default async function handler(req, res) {
       throw new HttpError(400, employerProfile.message);
     }
 
-    const jobseekerProfile = role === "jobseeker" ? buildJobseekerProfile(payload, normalizedEmail) : null;
-    if (role === "jobseeker" && jobseekerProfile instanceof Error) {
-      throw new HttpError(400, jobseekerProfile.message);
+    const jobseekerProfileData =
+      role === "jobseeker" ? buildJobseekerProfile(payload, normalizedEmail) : null;
+    if (role === "jobseeker" && jobseekerProfileData instanceof Error) {
+      throw new HttpError(400, jobseekerProfileData.message);
     }
 
     const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
@@ -81,16 +82,24 @@ export default async function handler(req, res) {
     const passwordHash = await hash(password, 12);
 
     await prisma.$transaction(async (tx) => {
+      const userCreateData =
+        role === "jobseeker"
+          ? {
+              email: normalizedEmail,
+              passwordHash,
+              role: "jobseeker",
+              jobseekerprofile: {
+                create: jobseekerProfileData,
+              },
+            }
+          : {
+              email: normalizedEmail,
+              passwordHash,
+              role,
+            };
+
       const createdUser = await tx.user.create({
-        data: {
-          email: normalizedEmail,
-          passwordHash,
-          role,
-          jobseekerProfile:
-            jobseekerProfile && !(jobseekerProfile instanceof Error)
-              ? { create: jobseekerProfile }
-              : undefined,
-        },
+        data: userCreateData,
       });
 
       if (role === "employer" && employerProfile && !(employerProfile instanceof Error)) {
@@ -105,7 +114,7 @@ export default async function handler(req, res) {
 
         console.log("Creating employer profile for user", userId);
 
-        await tx.employerProfile.create({
+        await tx.employerprofile.create({
           data: {
             ...employerProfile,
             userId,
@@ -211,15 +220,25 @@ export function buildJobseekerProfile(payload, email) {
     return new Error("Trade selection is required.");
   }
 
+  const firstName = sanitize(payload.firstName);
+  const lastName = sanitize(payload.lastName);
+  const address1 = sanitize(payload.address1);
+  const address2 = sanitize(payload.address2);
+  const city = sanitize(payload.city);
+  const state = sanitize(payload.state);
+  const zip = sanitize(payload.zip ?? payload.zipCode);
+  const resumeUrl = sanitize(payload.resumeUrl ?? payload.resumeURL);
+
   return {
-    firstName: sanitize(payload.firstName),
-    lastName: sanitize(payload.lastName),
+    firstName,
+    lastName,
     email,
-    address1: sanitize(payload.address1),
-    address2: sanitize(payload.address2),
-    city: sanitize(payload.city),
-    state: sanitize(payload.state),
-    zip: sanitize(payload.zipCode),
+    address1,
+    address2,
+    city,
+    state,
+    zip,
     trade,
+    resumeUrl,
   };
 }
