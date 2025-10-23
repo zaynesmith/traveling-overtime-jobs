@@ -1,0 +1,2 @@
+-- Prisma migration to refresh schema alignment.
+-- No structural changes were required as the data model remains unchanged.
