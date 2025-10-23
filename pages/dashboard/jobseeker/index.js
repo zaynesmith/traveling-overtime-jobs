@@ -174,7 +174,7 @@ export default function JobseekerDashboard({ initialProfile, applications, lastA
       }
       setLastActiveDate(payload.lastActive || new Date().toISOString());
       setCanBump(false);
-      setBumpMessage({ type: "success", text: "Resume bumped! You're back on top." });
+      setBumpMessage({ type: "success", text: "Resume bumped! You&apos;re back on top." });
     } catch (error) {
       setBumpMessage({ type: "error", text: error.message || "Unable to bump resume" });
     } finally {
@@ -346,7 +346,7 @@ export default function JobseekerDashboard({ initialProfile, applications, lastA
       <h2 className="text-xl font-semibold text-white">Your Applications</h2>
       {applicationList.length === 0 ? (
         <div className="rounded border border-slate-700 bg-slate-800 p-6 text-center text-slate-400">
-          You haven't applied to any jobs yet.
+          You haven&apos;t applied to any jobs yet.
         </div>
       ) : (
         <ul className="space-y-3">
