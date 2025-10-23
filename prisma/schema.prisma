@@ -12,13 +12,8 @@ model User {
   email            String            @unique
   passwordHash     String            @map("passwordhash")
   role             String?           @default("jobseeker")
-  createdat        DateTime?         @default(now()) @db.Timestamp(6)
-  updatedat        DateTime?         @default(now()) @db.Timestamp(6)
-  passwordHash     String?
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
-  createdAt        DateTime?         @default(now()) @db.Timestamp(6)
-  updatedAt        DateTime?         @default(now()) @db.Timestamp(6)
   employerProfile  EmployerProfile?
   jobseekerprofile JobseekerProfile?
 
