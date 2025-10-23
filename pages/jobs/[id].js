@@ -21,7 +21,7 @@ export default function JobDetails({ job }) {
     return (
       <main className="min-h-screen bg-slate-900 py-16 px-6 text-center text-slate-200">
         <h1 className="text-3xl font-bold">Job not found</h1>
-        <p className="mt-4 text-slate-400">The listing you're looking for may have been removed.</p>
+        <p className="mt-4 text-slate-400">The listing you&apos;re looking for may have been removed.</p>
       </main>
     );
   }

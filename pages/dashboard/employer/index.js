@@ -259,7 +259,7 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
         <p className="text-sm text-slate-400">Recent postings appear here for quick reference.</p>
         {jobs.length === 0 ? (
           <div className="mt-6 rounded border border-slate-700 bg-slate-900/60 p-4 text-center text-slate-400">
-            You haven't posted any jobs yet.
+            You haven&apos;t posted any jobs yet.
           </div>
         ) : (
           <ul className="mt-4 space-y-3">
@@ -419,7 +419,7 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
         <div className="rounded border border-slate-700 bg-slate-800 p-4 text-center text-slate-300">Loading…</div>
       ) : savedCandidates.length === 0 ? (
         <div className="rounded border border-slate-700 bg-slate-800 p-6 text-center text-slate-400">
-          You haven't saved any candidates yet.
+          You haven&apos;t saved any candidates yet.
         </div>
       ) : (
         <ul className="space-y-3">
