@@ -166,10 +166,10 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
     <section
       id="post-job"
       ref={postJobRef}
-      className="flex h-full flex-col rounded-lg border border-gray-300 bg-white p-6 shadow-sm"
+      className="bg-white border border-gray-300 rounded-lg shadow-md p-6 flex h-full flex-col"
     >
       <div>
-        <h2 className="mb-3 text-xl font-semibold text-gray-800">Post a Job</h2>
+        <h2 className="mb-3 text-xl font-semibold text-gray-800">Post Job</h2>
         <p className="mb-4 text-sm text-gray-600">
           Share your next traveling overtime opportunity with our community.
         </p>
@@ -274,7 +274,7 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
   const renderPostedJobsCard = () => {
     const previewJobs = jobs.slice(0, 4);
     return (
-      <section className="flex h-full flex-col rounded-lg border border-gray-300 bg-white p-6 shadow-sm">
+      <section className="bg-white border border-gray-300 rounded-lg shadow-md p-6 flex h-full flex-col">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="mb-3 text-xl font-semibold text-gray-800">Posted Jobs</h2>
@@ -324,7 +324,7 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
       <section
         id="resume-search"
         ref={resumeRef}
-        className="flex h-full flex-col rounded-lg border border-gray-300 bg-white p-6 shadow-sm"
+        className="bg-white border border-gray-300 rounded-lg shadow-md p-6 flex h-full flex-col"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -474,7 +474,7 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
       <section
         id="saved-candidates"
         ref={savedRef}
-        className="flex h-full flex-col rounded-lg border border-gray-300 bg-white p-6 shadow-sm"
+        className="bg-white border border-gray-300 rounded-lg shadow-md p-6 flex h-full flex-col"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -554,8 +554,8 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
     const formatLabel = (value) => value.charAt(0).toUpperCase() + value.slice(1);
 
     return (
-      <section className="flex h-full flex-col rounded-lg border border-gray-300 bg-white p-6 shadow-sm">
-        <h2 className="mb-3 text-xl font-semibold text-gray-800">Billing &amp; Tier Information</h2>
+      <section className="bg-white border border-gray-300 rounded-lg shadow-md p-6 flex h-full flex-col">
+        <h2 className="mb-3 text-xl font-semibold text-gray-800">Billing &amp; Tier Info</h2>
         <p className="mb-4 text-sm text-gray-600">
           Review your current plan and update payment details anytime.
         </p>
@@ -591,7 +591,7 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
           </p>
         </div>
 
-        <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+        <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
           {renderPostJobCard()}
           {renderPostedJobsCard()}
           {renderResumeCard()}
