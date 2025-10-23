@@ -2,30 +2,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { signIn, useSession } from "next-auth/react";
-
-const trades = [
-  "Electrician (Inside Wireman)",
-  "Electrician (Outside Lineman)",
-  "Welder",
-  "Pipefitter",
-  "Plumber",
-  "Carpenter",
-  "Millwright",
-  "Ironworker",
-  "Sheet Metal Worker",
-  "HVAC Technician",
-  "Heavy Equipment Operator",
-  "Laborer",
-  "Concrete Finisher",
-  "Mason / Bricklayer",
-  "Painter / Sandblaster",
-  "Scaffold Builder",
-  "Rigger",
-  "Boilermaker",
-  "Insulator",
-  "Crane Operator",
-  "Instrumentation Technician",
-];
+import TRADES from "@/lib/trades";
 
 const initialForm = {
   firstName: "",
@@ -207,7 +184,7 @@ export default function JobseekerRegisterPage() {
             <option value="" disabled>
               Select your trade
             </option>
-            {trades.map((trade) => (
+            {TRADES.map((trade) => (
               <option key={trade} value={trade}>
                 {trade}
               </option>
