@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import Link from "next/link";
 
-const JOB_TABS = ["Post Job", "Search Resumes", "Saved Candidates", "Billing"];
+const JOB_TABS = ["Post Job", "Search Resumes", "Saved Candidates"];
 const defaultJobForm = {
   title: "",
   trade: "",
@@ -60,16 +60,13 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
   const postJobRef = useRef(null);
   const resumeRef = useRef(null);
   const savedRef = useRef(null);
-  const billingRef = useRef(null);
-
   const sectionRefs = useMemo(
     () => ({
       "Post Job": postJobRef,
       "Search Resumes": resumeRef,
       "Saved Candidates": savedRef,
-      Billing: billingRef,
     }),
-    [postJobRef, resumeRef, savedRef, billingRef]
+    [postJobRef, resumeRef, savedRef]
   );
 
   const handleTabClick = useCallback(
@@ -188,7 +185,7 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
   };
 
   const renderPostJobCard = () => (
-    <section ref={postJobRef} className="flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section ref={postJobRef} className="flex h-full flex-col rounded-xl bg-white p-6 shadow-sm">
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold text-slate-900">Post a Job</h2>
         <p className="text-sm text-slate-500">
@@ -286,7 +283,7 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
   const renderPostedJobsCard = () => {
     const previewJobs = jobs.slice(0, 4);
     return (
-      <section className="flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="flex h-full flex-col rounded-xl bg-white p-6 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-slate-900">Posted Jobs</h2>
@@ -331,7 +328,7 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
   const renderResumeCard = () => {
     const resumePreview = resumeResults.slice(0, 3);
     return (
-      <section ref={resumeRef} className="flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section ref={resumeRef} className="flex h-full flex-col rounded-xl bg-white p-6 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-slate-900">Resume Search</h2>
@@ -475,7 +472,7 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
   const renderSavedCandidatesCard = () => {
     const previewCandidates = savedCandidates.slice(0, 4);
     return (
-      <section ref={savedRef} className="flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section ref={savedRef} className="flex h-full flex-col rounded-xl bg-white p-6 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-slate-900">Saved Candidates</h2>
@@ -546,56 +543,16 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
     );
   };
 
-  const renderBillingCard = () => (
-    <section ref={billingRef} className="flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-900">Billing Summary</h2>
-          <p className="text-sm text-slate-500">Monitor your subscription status at a glance.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => handleTabClick("Billing")}
-          className="text-sm font-semibold text-sky-600 hover:text-sky-500"
-        >
-          See all
-        </button>
-      </div>
-
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <p className="text-sm text-slate-500">Current Tier</p>
-          <p className="text-2xl font-bold text-slate-900 capitalize">{subscription.tier}</p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <p className="text-sm text-slate-500">Status</p>
-          <p className="text-2xl font-bold text-slate-900 capitalize">{subscription.status}</p>
-        </div>
-      </div>
-
-      <div className="mt-4 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-        Stripe-powered upgrades are coming soon. Stay tuned for premium analytics and boosted listings.
-      </div>
-
-      <div className="mt-6 flex justify-end">
-        <button
-          type="button"
-          className="rounded-lg bg-slate-200 px-6 py-2 text-sm font-semibold text-slate-500"
-          disabled
-        >
-          Upgrade (Coming Soon)
-        </button>
-      </div>
-    </section>
-  );
-
   return (
-    <main className="min-h-screen bg-slate-100 py-10 px-4 sm:px-6 lg:px-12">
-      <div className="mx-auto max-w-6xl space-y-8">
+    <main
+      className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-12"
+      data-active-section={activeTab}
+    >
+      <div className="mx-auto max-w-6xl space-y-10">
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
+          <div className="space-y-3 text-center md:text-left">
             <h1 className="text-3xl font-bold text-slate-900">Employer Dashboard</h1>
-            <p className="text-sm text-slate-600">
+            <p className="text-base leading-relaxed text-slate-600">
               Manage job postings, scout resumes, and keep tabs on billing in one streamlined workspace.
             </p>
           </div>
@@ -607,28 +564,11 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
           </Link>
         </div>
 
-        <nav className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          {JOB_TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => handleTabClick(tab)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                activeTab === tab
-                  ? "bg-sky-100 text-sky-700"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-700"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </nav>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-          <div className="md:col-span-2 xl:col-span-2">{renderPostJobCard()}</div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {renderPostJobCard()}
           {renderPostedJobsCard()}
           {renderResumeCard()}
           {renderSavedCandidatesCard()}
-          {renderBillingCard()}
         </div>
       </div>
     </main>
