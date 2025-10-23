@@ -22,7 +22,7 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "@supabase/supabase-js": "^2.45.0",
-    "zipcodes": "^8.0.1"
+    "zipcodes": "^8.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.45.0",
