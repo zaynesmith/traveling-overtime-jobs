@@ -229,9 +229,7 @@ export function buildJobseekerProfile(payload, email) {
   const zip = sanitize(payload.zip ?? payload.zipCode);
   const resumeUrl = sanitize(payload.resumeUrl ?? payload.resumeURL);
 
-  return {
-    firstName,
-    lastName,
+  const profile = {
     email,
     address1,
     address2,
@@ -239,6 +237,19 @@ export function buildJobseekerProfile(payload, email) {
     state,
     zip,
     trade,
-    resumeUrl,
   };
+
+  const optionalFields = {
+    firstname: firstName,
+    lastname: lastName,
+    resumeurl: resumeUrl,
+  };
+
+  for (const [key, value] of Object.entries(optionalFields)) {
+    if (value !== null && value !== undefined) {
+      profile[key] = value;
+    }
+  }
+
+  return profile;
 }
