@@ -162,158 +162,164 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
     }
   };
 
-  const renderPostJobCard = () => (
-    <section
-      id="post-job"
-      ref={postJobRef}
-      className="bg-white border border-gray-300 rounded-lg shadow-md p-6 flex h-full flex-col"
-    >
-      <div>
-        <h2 className="mb-3 text-xl font-semibold text-gray-800">Post Job</h2>
-        <p className="mb-4 text-sm text-gray-600">
-          Share your next traveling overtime opportunity with our community.
-        </p>
-      </div>
-
-      {jobMessage ? (
-        <div
-          className={`mb-4 rounded-lg px-4 py-3 text-sm font-semibold ${
-            jobMessage.type === "success"
-              ? "bg-emerald-50 text-emerald-700"
-              : "bg-rose-50 text-rose-700"
-          }`}
-        >
-          {jobMessage.text}
-        </div>
-      ) : null}
-
-      <form onSubmit={handleCreateJob} className="mt-6 space-y-5">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-slate-700">Title</label>
-            <input
-              name="title"
-              value={jobForm.title}
-              onChange={handleJobChange}
-              required
-              className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            />
+  const renderPostJobCard = () => {
+    return (
+      <section
+        id="post-job"
+        ref={postJobRef}
+        className="bg-white border border-gray-400 rounded-xl shadow-md p-6"
+      >
+        <div className="flex h-full flex-col">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-3">Post a Job</h2>
+            <p className="mb-4 text-sm text-gray-600">
+              Share your next traveling overtime opportunity with our community.
+            </p>
           </div>
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-slate-700">Trade</label>
-            <select
-              name="trade"
-              value={jobForm.trade}
-              onChange={handleJobChange}
-              required
-              className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+
+          {jobMessage ? (
+            <div
+              className={`mb-4 rounded-lg px-4 py-3 text-sm font-semibold ${
+                jobMessage.type === "success"
+                  ? "bg-emerald-50 text-emerald-700"
+                  : "bg-rose-50 text-rose-700"
+              }`}
             >
-              <option value="" disabled>
-                Select a trade
-              </option>
-              {TRADES.map((trade) => (
-                <option key={trade} value={trade}>
-                  {trade}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-slate-700">Location</label>
-            <input
-              name="location"
-              value={jobForm.location}
-              onChange={handleJobChange}
-              className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            />
-          </div>
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-slate-700">ZIP</label>
-            <input
-              name="zip"
-              value={jobForm.zip}
-              onChange={handleJobChange}
-              className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            />
-          </div>
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-slate-700">Pay Rate</label>
-            <input
-              name="payrate"
-              value={jobForm.payrate}
-              onChange={handleJobChange}
-              className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium text-slate-700">Description</label>
-            <textarea
-              name="description"
-              value={jobForm.description}
-              onChange={handleJobChange}
-              required
-              rows={6}
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            />
-          </div>
-        </div>
+              {jobMessage.text}
+            </div>
+          ) : null}
 
-        <div className="flex items-center justify-end">
-          <button
-            type="submit"
-            disabled={jobLoading}
-            className="rounded-lg bg-sky-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {jobLoading ? "Posting…" : "Post Job"}
-          </button>
+          <form onSubmit={handleCreateJob} className="mt-6 space-y-5">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-slate-700">Title</label>
+                <input
+                  name="title"
+                  value={jobForm.title}
+                  onChange={handleJobChange}
+                  required
+                  className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-slate-700">Trade</label>
+                <select
+                  name="trade"
+                  value={jobForm.trade}
+                  onChange={handleJobChange}
+                  required
+                  className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                >
+                  <option value="" disabled>
+                    Select a trade
+                  </option>
+                  {TRADES.map((trade) => (
+                    <option key={trade} value={trade}>
+                      {trade}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-slate-700">Location</label>
+                <input
+                  name="location"
+                  value={jobForm.location}
+                  onChange={handleJobChange}
+                  className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-slate-700">ZIP</label>
+                <input
+                  name="zip"
+                  value={jobForm.zip}
+                  onChange={handleJobChange}
+                  className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-slate-700">Pay Rate</label>
+                <input
+                  name="payrate"
+                  value={jobForm.payrate}
+                  onChange={handleJobChange}
+                  className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-slate-700">Description</label>
+                <textarea
+                  name="description"
+                  value={jobForm.description}
+                  onChange={handleJobChange}
+                  required
+                  rows={6}
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end">
+              <button
+                type="submit"
+                disabled={jobLoading}
+                className="rounded-lg bg-sky-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {jobLoading ? "Posting…" : "Post Job"}
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
-    </section>
-  );
+      </section>
+    );
+  };
 
   const renderPostedJobsCard = () => {
     const previewJobs = jobs.slice(0, 4);
     return (
-      <section className="bg-white border border-gray-300 rounded-lg shadow-md p-6 flex h-full flex-col">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-gray-800">Posted Jobs</h2>
-            <p className="mb-4 text-sm text-gray-600">Quick snapshot of your most recent listings.</p>
+      <section className="bg-white border border-gray-400 rounded-xl shadow-md p-6">
+        <div className="flex h-full flex-col">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800 mb-3">Posted Jobs</h2>
+              <p className="mb-4 text-sm text-gray-600">Quick snapshot of your most recent listings.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                postJobRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
+              className="text-sm font-semibold text-sky-600 hover:text-sky-500"
+            >
+              See all
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() =>
-              postJobRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
-            className="text-sm font-semibold text-sky-600 hover:text-sky-500"
-          >
-            See all
-          </button>
-        </div>
 
-        {jobs.length === 0 ? (
-          <div className="mt-6 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
-            You haven&apos;t posted any jobs yet.
-          </div>
-        ) : (
-          <ul className="mt-4 space-y-3">
-            {previewJobs.map((job) => (
-              <li key={job.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-base font-semibold text-slate-900">{job.title}</h3>
-                  <span className="text-xs font-semibold uppercase tracking-wide text-sky-600">
-                    {job.trade || "General"}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-slate-600">{job.location || job.zip || "Location TBD"}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                  {job.payrate ? <span>{job.payrate}</span> : null}
-                  {job.posted_at ? <span>Posted {formatDate(job.posted_at)}</span> : null}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+          {jobs.length === 0 ? (
+            <div className="mt-6 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
+              You haven&apos;t posted any jobs yet.
+            </div>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {previewJobs.map((job) => (
+                <li key={job.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-base font-semibold text-slate-900">{job.title}</h3>
+                    <span className="text-xs font-semibold uppercase tracking-wide text-sky-600">
+                      {job.trade || "General"}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-slate-600">{job.location || job.zip || "Location TBD"}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                    {job.payrate ? <span>{job.payrate}</span> : null}
+                    {job.posted_at ? <span>Posted {formatDate(job.posted_at)}</span> : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </section>
     );
   };
@@ -324,145 +330,147 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
       <section
         id="resume-search"
         ref={resumeRef}
-        className="bg-white border border-gray-300 rounded-lg shadow-md p-6 flex h-full flex-col"
+        className="bg-white border border-gray-400 rounded-xl shadow-md p-6"
       >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-gray-800">Resume Search</h2>
-            <p className="mb-4 text-sm text-gray-600">Filter by trade and distance to find your next hire.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() =>
-              resumeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
-            className="text-sm font-semibold text-sky-600 hover:text-sky-500"
-          >
-            See all
-          </button>
-        </div>
-
-        <form onSubmit={handleResumeSearch} className="mt-4 grid gap-4 md:grid-cols-2">
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-slate-700">Trade</label>
-            <select
-              name="trade"
-              value={resumeFilters.trade}
-              onChange={handleResumeFilterChange}
-              className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            >
-              <option value="">Any trade</option>
-              {TRADES.map((trade) => (
-                <option key={trade} value={trade}>
-                  {trade}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-slate-700">ZIP</label>
-            <input
-              name="zip"
-              value={resumeFilters.zip}
-              onChange={handleResumeFilterChange}
-              placeholder="Search radius origin"
-              className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            />
-          </div>
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-slate-700">Distance</label>
-            <select
-              name="radius"
-              value={resumeFilters.radius}
-              onChange={handleResumeFilterChange}
-              className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            >
-              {[25, 50, 100, 250, 500].map((distance) => (
-                <option key={distance} value={distance}>
-                  Within {distance} miles
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-slate-700">Keyword</label>
-            <input
-              name="keyword"
-              value={resumeFilters.keyword}
-              onChange={handleResumeFilterChange}
-              placeholder="Name, city, or trade"
-              className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            />
-          </div>
-          <div className="md:col-span-2 flex justify-end">
+        <div className="flex h-full flex-col">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800 mb-3">Resume Search</h2>
+              <p className="mb-4 text-sm text-gray-600">Filter by trade and distance to find your next hire.</p>
+            </div>
             <button
-              type="submit"
-              disabled={resumeLoading}
-              className="rounded-lg bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+              type="button"
+              onClick={() =>
+                resumeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
+              className="text-sm font-semibold text-sky-600 hover:text-sky-500"
             >
-              {resumeLoading ? "Searching…" : "Search"}
+              See all
             </button>
           </div>
-        </form>
 
-        {resumeError ? (
-          <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{resumeError}</div>
-        ) : null}
-
-        <div className="mt-4 space-y-3">
-          {resumeResults.length === 0 && !resumeLoading ? (
-            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
-              No resumes match your filters yet. Try broadening your search.
+          <form onSubmit={handleResumeSearch} className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-slate-700">Trade</label>
+              <select
+                name="trade"
+                value={resumeFilters.trade}
+                onChange={handleResumeFilterChange}
+                className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+              >
+                <option value="">Any trade</option>
+                {TRADES.map((trade) => (
+                  <option key={trade} value={trade}>
+                    {trade}
+                  </option>
+                ))}
+              </select>
             </div>
-          ) : (
-            resumePreview.map((resume) => {
-              const activity = formatLastActive(resume.lastActive);
-              const cityState = [resume.city, resume.state].filter(Boolean).join(", ");
-              const resumeUrl = resume.resumeUrl || resume.resumeurl;
-              return (
-                <article key={resume.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-base font-semibold text-slate-900">
-                        {[resume.firstName, resume.lastName].filter(Boolean).join(" ") || "Unnamed Candidate"}
-                      </h3>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-sky-600">
-                        {resume.trade || "Various trades"}
-                      </p>
-                      <p className="text-sm text-slate-600">{cityState || "Location not provided"}</p>
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-slate-700">ZIP</label>
+              <input
+                name="zip"
+                value={resumeFilters.zip}
+                onChange={handleResumeFilterChange}
+                placeholder="Search radius origin"
+                className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+              />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-slate-700">Distance</label>
+              <select
+                name="radius"
+                value={resumeFilters.radius}
+                onChange={handleResumeFilterChange}
+                className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+              >
+                {[25, 50, 100, 250, 500].map((distance) => (
+                  <option key={distance} value={distance}>
+                    Within {distance} miles
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-slate-700">Keyword</label>
+              <input
+                name="keyword"
+                value={resumeFilters.keyword}
+                onChange={handleResumeFilterChange}
+                placeholder="Name, city, or trade"
+                className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+              />
+            </div>
+            <div className="md:col-span-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={resumeLoading}
+                className="rounded-lg bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {resumeLoading ? "Searching…" : "Search"}
+              </button>
+            </div>
+          </form>
+
+          {resumeError ? (
+            <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{resumeError}</div>
+          ) : null}
+
+          <div className="mt-4 space-y-3">
+            {resumeResults.length === 0 && !resumeLoading ? (
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
+                No resumes match your filters yet. Try broadening your search.
+              </div>
+            ) : (
+              resumePreview.map((resume) => {
+                const activity = formatLastActive(resume.lastActive);
+                const cityState = [resume.city, resume.state].filter(Boolean).join(", ");
+                const resumeUrl = resume.resumeUrl || resume.resumeurl;
+                return (
+                  <article key={resume.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-base font-semibold text-slate-900">
+                          {[resume.firstName, resume.lastName].filter(Boolean).join(" ") || "Unnamed Candidate"}
+                        </h3>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-sky-600">
+                          {resume.trade || "Various trades"}
+                        </p>
+                        <p className="text-sm text-slate-600">{cityState || "Location not provided"}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2 text-xs text-slate-500">
+                        <span className="font-medium text-slate-600">{activity.label}</span>
+                        {activity.isFresh ? (
+                          <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                            Active within 7 days
+                          </span>
+                        ) : null}
+                        {resumeUrl ? (
+                          <a
+                            href={resumeUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs font-semibold text-sky-600 hover:text-sky-500"
+                          >
+                            View Resume
+                          </a>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2 text-xs text-slate-500">
-                      <span className="font-medium text-slate-600">{activity.label}</span>
-                      {activity.isFresh ? (
-                        <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">
-                          Active within 7 days
-                        </span>
-                      ) : null}
-                      {resumeUrl ? (
-                        <a
-                          href={resumeUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs font-semibold text-sky-600 hover:text-sky-500"
-                        >
-                          View Resume
-                        </a>
-                      ) : null}
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        onClick={() => handleSaveCandidate(resume.id)}
+                        className="rounded-lg bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-700 transition hover:bg-sky-200"
+                      >
+                        ⭐ Save Candidate
+                      </button>
                     </div>
-                  </div>
-                  <div className="mt-4">
-                    <button
-                      type="button"
-                      onClick={() => handleSaveCandidate(resume.id)}
-                      className="rounded-lg bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-700 transition hover:bg-sky-200"
-                    >
-                      ⭐ Save Candidate
-                    </button>
-                  </div>
-                </article>
-              );
-            })
-          )}
+                  </article>
+                );
+              })
+            )}
+          </div>
         </div>
       </section>
     );
@@ -474,76 +482,78 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
       <section
         id="saved-candidates"
         ref={savedRef}
-        className="bg-white border border-gray-300 rounded-lg shadow-md p-6 flex h-full flex-col"
+        className="bg-white border border-gray-400 rounded-xl shadow-md p-6"
       >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="mb-3 text-xl font-semibold text-gray-800">Saved Candidates</h2>
-            <p className="mb-4 text-sm text-gray-600">Keep track of prospects you want to revisit.</p>
+        <div className="flex h-full flex-col">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800 mb-3">Saved Candidates</h2>
+              <p className="mb-4 text-sm text-gray-600">Keep track of prospects you want to revisit.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={refreshSavedCandidates}
+                className="text-sm font-semibold text-slate-500 hover:text-slate-700"
+              >
+                Refresh
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  savedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+                className="text-sm font-semibold text-sky-600 hover:text-sky-500"
+              >
+                See all
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={refreshSavedCandidates}
-              className="text-sm font-semibold text-slate-500 hover:text-slate-700"
-            >
-              Refresh
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                savedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-              }
-              className="text-sm font-semibold text-sky-600 hover:text-sky-500"
-            >
-              See all
-            </button>
-          </div>
-        </div>
 
-        {savedLoading ? (
-          <div className="mt-6 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
-            Loading…
-          </div>
-        ) : previewCandidates.length === 0 ? (
-          <div className="mt-6 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
-            You haven&apos;t saved any candidates yet.
-          </div>
-        ) : (
-          <ul className="mt-4 space-y-3">
-            {previewCandidates.map((item) => {
-              const profile = item.jobseekerprofile || {};
-              const resumeUrl = profile.resumeUrl || profile.resumeurl;
-              return (
-                <li key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-base font-semibold text-slate-900">
-                        {[profile.firstName, profile.lastName].filter(Boolean).join(" ") || "Unnamed Candidate"}
-                      </p>
-                      <p className="text-sm text-slate-600">{profile.trade || "Various trades"}</p>
-                      <p className="text-xs text-slate-500">Saved {formatDate(item.saved_at)}</p>
+          {savedLoading ? (
+            <div className="mt-6 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
+              Loading…
+            </div>
+          ) : previewCandidates.length === 0 ? (
+            <div className="mt-6 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
+              You haven&apos;t saved any candidates yet.
+            </div>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {previewCandidates.map((item) => {
+                const profile = item.jobseekerprofile || {};
+                const resumeUrl = profile.resumeUrl || profile.resumeurl;
+                return (
+                  <li key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-base font-semibold text-slate-900">
+                          {[profile.firstName, profile.lastName].filter(Boolean).join(" ") || "Unnamed Candidate"}
+                        </p>
+                        <p className="text-sm text-slate-600">{profile.trade || "Various trades"}</p>
+                        <p className="text-xs text-slate-500">Saved {formatDate(item.saved_at)}</p>
+                      </div>
+                      <div>
+                        {resumeUrl ? (
+                          <a
+                            href={resumeUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-lg bg-sky-100 px-3 py-2 text-sm font-semibold text-sky-700 transition hover:bg-sky-200"
+                          >
+                            Quick View
+                          </a>
+                        ) : (
+                          <span className="text-xs text-slate-500">No resume uploaded</span>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      {resumeUrl ? (
-                        <a
-                          href={resumeUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-lg bg-sky-100 px-3 py-2 text-sm font-semibold text-sky-700 transition hover:bg-sky-200"
-                        >
-                          Quick View
-                        </a>
-                      ) : (
-                        <span className="text-xs text-slate-500">No resume uploaded</span>
-                      )}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </section>
     );
   };
@@ -554,44 +564,56 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
     const formatLabel = (value) => value.charAt(0).toUpperCase() + value.slice(1);
 
     return (
-      <section className="bg-white border border-gray-300 rounded-lg shadow-md p-6 flex h-full flex-col">
-        <h2 className="mb-3 text-xl font-semibold text-gray-800">Billing &amp; Tier Info</h2>
-        <p className="mb-4 text-sm text-gray-600">
-          Review your current plan and update payment details anytime.
-        </p>
+      <section className="bg-white border border-gray-400 rounded-xl shadow-md p-6">
+        <div className="flex h-full flex-col">
+          <h2 className="text-xl font-semibold text-gray-800 mb-3">Billing &amp; Tier Info</h2>
+          <p className="mb-4 text-sm text-gray-600">
+            Review your current plan and update payment details anytime.
+          </p>
 
-        <dl className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="rounded-xl bg-gray-50 px-4 py-3">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Current Tier</dt>
-            <dd className="text-lg font-semibold text-gray-800">{formatLabel(tier)}</dd>
-          </div>
-          <div className="rounded-xl bg-gray-50 px-4 py-3">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Status</dt>
-            <dd className="text-lg font-semibold text-gray-800">{formatLabel(status)}</dd>
-          </div>
-        </dl>
+          <dl className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-xl bg-gray-50 px-4 py-3">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Current Tier</dt>
+              <dd className="text-lg font-semibold text-gray-800">{formatLabel(tier)}</dd>
+            </div>
+            <div className="rounded-xl bg-gray-50 px-4 py-3">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Status</dt>
+              <dd className="text-lg font-semibold text-gray-800">{formatLabel(status)}</dd>
+            </div>
+          </dl>
 
-        <Link
-          href="/dashboard/employer/billing"
-          className="inline-flex w-fit items-center justify-center rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
-        >
-          Manage Billing
-        </Link>
+          <Link
+            href="/dashboard/employer/billing"
+            className="inline-flex w-fit items-center justify-center rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
+          >
+            Manage Billing
+          </Link>
+        </div>
       </section>
     );
   };
 
   return (
-    <main className="min-h-screen bg-gray-100">
-      <div className="container mx-auto px-4 py-10 lg:px-8">
-        <div className="mx-auto max-w-4xl space-y-4 text-center lg:text-left">
-          <h1 className="text-3xl font-bold text-slate-900">Employer Dashboard</h1>
-          <p className="text-base leading-relaxed text-slate-600">
-            Manage job postings, scout resumes, and keep tabs on billing in one streamlined workspace.
-          </p>
+    <main className="bg-gray-100 min-h-screen py-10">
+      <div className="container mx-auto px-4 lg:px-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mx-auto w-full max-w-3xl text-center lg:mx-0 lg:text-left">
+            <h1 className="text-3xl font-bold text-slate-900">Employer Dashboard</h1>
+            <p className="mt-2 text-base leading-relaxed text-slate-600">
+              Manage job postings, scout resumes, and keep tabs on billing in one streamlined workspace.
+            </p>
+          </div>
+          <div className="flex justify-center lg:justify-end">
+            <Link
+              href="/dashboard/employer"
+              className="inline-flex items-center justify-center rounded-lg border border-sky-600 px-4 py-2 text-sm font-semibold text-sky-600 transition hover:bg-sky-50"
+            >
+              Dashboard
+            </Link>
+          </div>
         </div>
 
-        <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
+        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
           {renderPostJobCard()}
           {renderPostedJobsCard()}
           {renderResumeCard()}
