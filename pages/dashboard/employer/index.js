@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import Link from "next/link";
 
-const JOB_TABS = ["Post Job", "Search Resumes", "Saved Candidates"];
 const defaultJobForm = {
   title: "",
   trade: "",
@@ -41,7 +40,6 @@ function formatLastActive(value) {
 }
 
 export default function EmployerDashboard({ initialJobs, trades, initialSaved, subscription }) {
-  const [activeTab, setActiveTab] = useState(JOB_TABS[0]);
   const [jobForm, setJobForm] = useState(defaultJobForm);
   const [jobs, setJobs] = useState(initialJobs);
   const [jobMessage, setJobMessage] = useState(null);
@@ -60,25 +58,6 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
   const postJobRef = useRef(null);
   const resumeRef = useRef(null);
   const savedRef = useRef(null);
-  const sectionRefs = useMemo(
-    () => ({
-      "Post Job": postJobRef,
-      "Search Resumes": resumeRef,
-      "Saved Candidates": savedRef,
-    }),
-    [postJobRef, resumeRef, savedRef]
-  );
-
-  const handleTabClick = useCallback(
-    (tab) => {
-      setActiveTab(tab);
-      const ref = sectionRefs[tab];
-      if (ref?.current) {
-        ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    },
-    [sectionRefs]
-  );
 
   const fetchEmployerJobs = useCallback(async () => {
     try {
@@ -185,17 +164,21 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
   };
 
   const renderPostJobCard = () => (
-    <section ref={postJobRef} className="flex h-full flex-col rounded-xl bg-white p-6 shadow-sm">
-      <div className="space-y-2">
-        <h2 className="text-2xl font-semibold text-slate-900">Post a Job</h2>
-        <p className="text-sm text-slate-500">
+    <section
+      id="post-job"
+      ref={postJobRef}
+      className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg"
+    >
+      <div>
+        <h2 className="mb-3 text-xl font-semibold text-gray-800">Post a Job</h2>
+        <p className="mb-4 text-sm text-gray-600">
           Share your next traveling overtime opportunity with our community.
         </p>
       </div>
 
       {jobMessage ? (
         <div
-          className={`mt-4 rounded-lg px-4 py-3 text-sm font-semibold ${
+          className={`mb-4 rounded-lg px-4 py-3 text-sm font-semibold ${
             jobMessage.type === "success"
               ? "bg-emerald-50 text-emerald-700"
               : "bg-rose-50 text-rose-700"
@@ -283,15 +266,17 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
   const renderPostedJobsCard = () => {
     const previewJobs = jobs.slice(0, 4);
     return (
-      <section className="flex h-full flex-col rounded-xl bg-white p-6 shadow-sm">
+      <section className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">Posted Jobs</h2>
-            <p className="text-sm text-slate-500">Quick snapshot of your most recent listings.</p>
+            <h2 className="mb-3 text-xl font-semibold text-gray-800">Posted Jobs</h2>
+            <p className="mb-4 text-sm text-gray-600">Quick snapshot of your most recent listings.</p>
           </div>
           <button
             type="button"
-            onClick={() => handleTabClick("Post Job")}
+            onClick={() =>
+              postJobRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
             className="text-sm font-semibold text-sky-600 hover:text-sky-500"
           >
             See all
@@ -328,15 +313,21 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
   const renderResumeCard = () => {
     const resumePreview = resumeResults.slice(0, 3);
     return (
-      <section ref={resumeRef} className="flex h-full flex-col rounded-xl bg-white p-6 shadow-sm">
+      <section
+        id="resume-search"
+        ref={resumeRef}
+        className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg"
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">Resume Search</h2>
-            <p className="text-sm text-slate-500">Filter by trade and distance to find your next hire.</p>
+            <h2 className="mb-3 text-xl font-semibold text-gray-800">Resume Search</h2>
+            <p className="mb-4 text-sm text-gray-600">Filter by trade and distance to find your next hire.</p>
           </div>
           <button
             type="button"
-            onClick={() => handleTabClick("Search Resumes")}
+            onClick={() =>
+              resumeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
             className="text-sm font-semibold text-sky-600 hover:text-sky-500"
           >
             See all
@@ -472,11 +463,15 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
   const renderSavedCandidatesCard = () => {
     const previewCandidates = savedCandidates.slice(0, 4);
     return (
-      <section ref={savedRef} className="flex h-full flex-col rounded-xl bg-white p-6 shadow-sm">
+      <section
+        id="saved-candidates"
+        ref={savedRef}
+        className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg"
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">Saved Candidates</h2>
-            <p className="text-sm text-slate-500">Keep track of prospects you want to revisit.</p>
+            <h2 className="mb-3 text-xl font-semibold text-gray-800">Saved Candidates</h2>
+            <p className="mb-4 text-sm text-gray-600">Keep track of prospects you want to revisit.</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -488,7 +483,9 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
             </button>
             <button
               type="button"
-              onClick={() => handleTabClick("Saved Candidates")}
+              onClick={() =>
+                savedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
               className="text-sm font-semibold text-sky-600 hover:text-sky-500"
             >
               See all
@@ -543,12 +540,42 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
     );
   };
 
+  const renderBillingCard = () => {
+    const tier = subscription?.tier || "basic";
+    const status = subscription?.status || "free";
+    const formatLabel = (value) => value.charAt(0).toUpperCase() + value.slice(1);
+
+    return (
+      <section className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg">
+        <h2 className="mb-3 text-xl font-semibold text-gray-800">Billing &amp; Tier Information</h2>
+        <p className="mb-4 text-sm text-gray-600">
+          Review your current plan and update payment details anytime.
+        </p>
+
+        <dl className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="rounded-xl bg-gray-50 px-4 py-3">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Current Tier</dt>
+            <dd className="text-lg font-semibold text-gray-800">{formatLabel(tier)}</dd>
+          </div>
+          <div className="rounded-xl bg-gray-50 px-4 py-3">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Status</dt>
+            <dd className="text-lg font-semibold text-gray-800">{formatLabel(status)}</dd>
+          </div>
+        </dl>
+
+        <Link
+          href="/dashboard/employer/billing"
+          className="inline-flex w-fit items-center justify-center rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
+        >
+          Manage Billing
+        </Link>
+      </section>
+    );
+  };
+
   return (
-    <main
-      className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-12"
-      data-active-section={activeTab}
-    >
-      <div className="mx-auto max-w-6xl space-y-10">
+    <main className="min-h-screen bg-gray-100">
+      <div className="container mx-auto space-y-10 px-4 py-10 lg:px-8">
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="space-y-3 text-center md:text-left">
             <h1 className="text-3xl font-bold text-slate-900">Employer Dashboard</h1>
@@ -564,11 +591,12 @@ export default function EmployerDashboard({ initialJobs, trades, initialSaved, s
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {renderPostJobCard()}
           {renderPostedJobsCard()}
           {renderResumeCard()}
           {renderSavedCandidatesCard()}
+          {renderBillingCard()}
         </div>
       </div>
     </main>
