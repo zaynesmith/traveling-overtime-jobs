@@ -114,7 +114,7 @@ export default async function handler(req, res) {
 
         console.log("Creating employer profile for user", userId);
 
-        await tx.employerprofile.create({
+        await tx.employerProfile.create({
           data: {
             ...employerProfile,
             userId,
