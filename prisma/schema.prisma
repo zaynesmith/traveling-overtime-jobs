@@ -7,9 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/**
- * TABLE: public.user
- */
+// TABLE: public.user
 model User {
   id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email            String            @unique
@@ -25,9 +23,7 @@ model User {
   @@map("user")
 }
 
-/**
- * TABLE: public.employerprofile
- */
+// TABLE: public.employerprofile
 model EmployerProfile {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   companyName   String
@@ -60,11 +56,9 @@ model EmployerProfile {
   @@map("employerprofile")
 }
 
-/**
- * TABLE: public.jobseekerprofile
- * NOTE: These field names exactly match your Supabase columns:
- * firstName, lastName, email, address1, address2, city, state, zip, trade, resumeUrl, userId
- */
+// TABLE: public.jobseekerprofile
+// NOTE: These field names exactly match your Supabase columns:
+// firstName, lastName, email, address1, address2, city, state, zip, trade, resumeUrl, userId
 model JobseekerProfile {
   id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   firstName    String?
@@ -90,9 +84,7 @@ model JobseekerProfile {
   @@map("jobseekerprofile")
 }
 
-/**
- * TABLE: public.applications
- */
+// TABLE: public.applications
 model applications {
   id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   job_id           String?           @db.Uuid
@@ -106,9 +98,7 @@ model applications {
   @@unique([job_id, jobseeker_id], map: "applications_unique")
 }
 
-/**
- * TABLE: public.jobs
- */
+// TABLE: public.jobs
 model jobs {
   id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   employer_id       String?          @db.Uuid
@@ -124,6 +114,7 @@ model jobs {
   employerprofile   EmployerProfile? @relation(fields: [employer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
+// TABLE: public.saved_candidates
 model saved_candidates {
   id           String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   employer_id  String?           @db.Uuid
