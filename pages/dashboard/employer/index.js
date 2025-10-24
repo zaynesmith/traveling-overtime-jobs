@@ -21,7 +21,7 @@ const defaultResumeFilters = {
 };
 
 const cardContainer =
-  "rounded-2xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-300/70";
+  "bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-lg p-6 transition";
 
 function formatDate(value) {
   if (!value) return "";
@@ -594,26 +594,25 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-100 via-white to-white py-12">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-10">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="mx-auto w-full max-w-3xl text-center lg:mx-0 lg:text-left">
-            <h1 className="text-3xl font-bold text-slate-900">Employer Dashboard</h1>
-            <p className="mt-2 text-base leading-relaxed text-slate-600">
-              Manage job postings, scout resumes, and keep tabs on billing in one streamlined workspace.
-            </p>
-          </div>
-          <div className="flex justify-center lg:justify-end">
-            <Link
-              href="/dashboard/employer"
-              className="inline-flex items-center justify-center rounded-lg border border-sky-600 px-5 py-2 text-sm font-semibold text-sky-600 shadow-sm transition hover:bg-sky-50"
-            >
-              Dashboard
-            </Link>
-          </div>
+    <main className="min-h-screen bg-gray-100 py-12">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <header className="mx-auto max-w-3xl text-center">
+          <h1 className="text-3xl font-bold text-slate-900">Employer Dashboard</h1>
+          <p className="mt-3 text-base leading-relaxed text-slate-600">
+            Manage job postings, scout resumes, and keep tabs on billing in one streamlined workspace.
+          </p>
+        </header>
+
+        <div className="mt-6 flex justify-center">
+          <Link
+            href="/dashboard/employer"
+            className="inline-flex items-center justify-center rounded-lg border border-sky-600 px-5 py-2 text-sm font-semibold text-sky-600 shadow-sm transition hover:bg-sky-50"
+          >
+            Dashboard
+          </Link>
         </div>
 
-        <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {renderPostJobCard()}
           {renderPostedJobsCard()}
           {renderResumeCard()}
