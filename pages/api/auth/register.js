@@ -240,9 +240,9 @@ export function buildJobseekerProfile(payload, email) {
   };
 
   const optionalFields = {
-    firstname: firstName,
-    lastname: lastName,
-    resumeurl: resumeUrl,
+    firstName,
+    lastName,
+    resumeUrl,
   };
 
   for (const [key, value] of Object.entries(optionalFields)) {
