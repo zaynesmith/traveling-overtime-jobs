@@ -20,6 +20,9 @@ const defaultResumeFilters = {
   keyword: "",
 };
 
+const cardContainer =
+  "rounded-2xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-300/70";
+
 function formatDate(value) {
   if (!value) return "";
   const date = new Date(value);
@@ -164,11 +167,7 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
 
   const renderPostJobCard = () => {
     return (
-      <section
-        id="post-job"
-        ref={postJobRef}
-        className="bg-white border border-gray-400 rounded-xl shadow-md p-6"
-      >
+      <section id="post-job" ref={postJobRef} className={cardContainer}>
         <div className="flex h-full flex-col">
           <div>
             <h2 className="text-xl font-semibold text-gray-800 mb-3">Post a Job</h2>
@@ -278,7 +277,7 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
   const renderPostedJobsCard = () => {
     const previewJobs = jobs.slice(0, 4);
     return (
-      <section className="bg-white border border-gray-400 rounded-xl shadow-md p-6">
+      <section className={cardContainer}>
         <div className="flex h-full flex-col">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -297,13 +296,16 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
           </div>
 
           {jobs.length === 0 ? (
-            <div className="mt-6 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
+            <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
               You haven&apos;t posted any jobs yet.
             </div>
           ) : (
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-4 space-y-4">
               {previewJobs.map((job) => (
-                <li key={job.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <li
+                  key={job.id}
+                  className="rounded-xl border border-slate-200 bg-white/90 p-4 shadow-sm shadow-slate-200/70"
+                >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h3 className="text-base font-semibold text-slate-900">{job.title}</h3>
                     <span className="text-xs font-semibold uppercase tracking-wide text-sky-600">
@@ -327,11 +329,7 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
   const renderResumeCard = () => {
     const resumePreview = resumeResults.slice(0, 3);
     return (
-      <section
-        id="resume-search"
-        ref={resumeRef}
-        className="bg-white border border-gray-400 rounded-xl shadow-md p-6"
-      >
+      <section id="resume-search" ref={resumeRef} className={cardContainer}>
         <div className="flex h-full flex-col">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -416,9 +414,9 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
             <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{resumeError}</div>
           ) : null}
 
-          <div className="mt-4 space-y-3">
+          <div className="mt-6 space-y-4">
             {resumeResults.length === 0 && !resumeLoading ? (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
                 No resumes match your filters yet. Try broadening your search.
               </div>
             ) : (
@@ -427,7 +425,10 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
                 const cityState = [resume.city, resume.state].filter(Boolean).join(", ");
                 const resumeUrl = resume.resumeUrl || resume.resumeurl;
                 return (
-                  <article key={resume.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <article
+                    key={resume.id}
+                    className="rounded-xl border border-slate-200 bg-white/90 p-4 shadow-sm shadow-slate-200/70"
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <h3 className="text-base font-semibold text-slate-900">
@@ -461,7 +462,7 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
                       <button
                         type="button"
                         onClick={() => handleSaveCandidate(resume.id)}
-                        className="rounded-lg bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-700 transition hover:bg-sky-200"
+                        className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
                       >
                         ⭐ Save Candidate
                       </button>
@@ -479,11 +480,7 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
   const renderSavedCandidatesCard = () => {
     const previewCandidates = savedCandidates.slice(0, 4);
     return (
-      <section
-        id="saved-candidates"
-        ref={savedRef}
-        className="bg-white border border-gray-400 rounded-xl shadow-md p-6"
-      >
+      <section id="saved-candidates" ref={savedRef} className={cardContainer}>
         <div className="flex h-full flex-col">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -511,20 +508,23 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
           </div>
 
           {savedLoading ? (
-            <div className="mt-6 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
+            <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
               Loading…
             </div>
           ) : previewCandidates.length === 0 ? (
-            <div className="mt-6 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
+            <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
               You haven&apos;t saved any candidates yet.
             </div>
           ) : (
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-4 space-y-4">
               {previewCandidates.map((item) => {
                 const profile = item.jobseekerprofile || {};
                 const resumeUrl = profile.resumeUrl || profile.resumeurl;
                 return (
-                  <li key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <li
+                    key={item.id}
+                    className="rounded-xl border border-slate-200 bg-white/90 p-4 shadow-sm shadow-slate-200/70"
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <p className="text-base font-semibold text-slate-900">
@@ -539,7 +539,7 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
                             href={resumeUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="rounded-lg bg-sky-100 px-3 py-2 text-sm font-semibold text-sky-700 transition hover:bg-sky-200"
+                            className="rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
                           >
                             Quick View
                           </a>
@@ -564,7 +564,7 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
     const formatLabel = (value) => value.charAt(0).toUpperCase() + value.slice(1);
 
     return (
-      <section className="bg-white border border-gray-400 rounded-xl shadow-md p-6">
+      <section className={cardContainer}>
         <div className="flex h-full flex-col">
           <h2 className="text-xl font-semibold text-gray-800 mb-3">Billing &amp; Tier Info</h2>
           <p className="mb-4 text-sm text-gray-600">
@@ -594,8 +594,8 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
   };
 
   return (
-    <main className="bg-gray-100 min-h-screen py-10">
-      <div className="container mx-auto px-4 lg:px-8">
+    <main className="min-h-screen bg-gradient-to-b from-slate-100 via-white to-white py-12">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-10">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="mx-auto w-full max-w-3xl text-center lg:mx-0 lg:text-left">
             <h1 className="text-3xl font-bold text-slate-900">Employer Dashboard</h1>
@@ -606,14 +606,14 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
           <div className="flex justify-center lg:justify-end">
             <Link
               href="/dashboard/employer"
-              className="inline-flex items-center justify-center rounded-lg border border-sky-600 px-4 py-2 text-sm font-semibold text-sky-600 transition hover:bg-sky-50"
+              className="inline-flex items-center justify-center rounded-lg border border-sky-600 px-5 py-2 text-sm font-semibold text-sky-600 shadow-sm transition hover:bg-sky-50"
             >
               Dashboard
             </Link>
           </div>
         </div>
 
-        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
+        <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
           {renderPostJobCard()}
           {renderPostedJobsCard()}
           {renderResumeCard()}
