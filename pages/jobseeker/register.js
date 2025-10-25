@@ -22,6 +22,7 @@ export default function JobseekerRegisterPage() {
   const { data: session } = useSession();
   const [form, setForm] = useState(initialForm);
   const [resumeName, setResumeName] = useState("");
+  const [resumeFile, setResumeFile] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -39,9 +40,18 @@ export default function JobseekerRegisterPage() {
   };
 
   const handleResumeChange = (event) => {
-    const file = event.target.files?.[0];
+    const file = event.target.files?.[0] || null;
+    setResumeFile(file);
     setResumeName(file ? file.name : "");
   };
+
+  const readFileAsDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsDataURL(file);
+    });
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -49,6 +59,21 @@ export default function JobseekerRegisterPage() {
     setError(null);
 
     try {
+      let resumePayload = null;
+      if (resumeFile) {
+        try {
+          const base64 = await readFileAsDataUrl(resumeFile);
+          resumePayload = {
+            base64,
+            fileName: resumeFile.name,
+            fileType: resumeFile.type || "application/octet-stream",
+          };
+        } catch (fileError) {
+          console.error(fileError);
+          throw new Error("Unable to read resume file. Please try again.");
+        }
+      }
+
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,6 +89,7 @@ export default function JobseekerRegisterPage() {
           state: form.state,
           zipCode: form.zipCode,
           trade: form.trade,
+          resume: resumePayload,
         }),
       });
 
