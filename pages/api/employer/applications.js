@@ -36,9 +36,9 @@ export default async function handler(req, res) {
         city: true,
         state: true,
         zip: true,
-        hourlyPay: true,
-        perDiem: true,
-        additionalRequirements: true,
+        hourly_pay: true,
+        per_diem: true,
+        additional_requirements: true,
         posted_at: true,
         applications: {
           orderBy: { applied_at: "desc" },

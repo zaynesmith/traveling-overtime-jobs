@@ -11,9 +11,9 @@ const blankJob = {
   city: "",
   state: "",
   zip: "",
-  hourlyPay: "",
-  perDiem: "",
-  additionalRequirements: "",
+  hourly_pay: "",
+  per_diem: "",
+  additional_requirements: "",
 };
 
 function Field({ label, htmlFor, children }) {
@@ -47,9 +47,9 @@ export default function PostJobPage({ jobId }) {
             city: data.city || "",
             state: data.state || "",
             zip: data.zip || "",
-            hourlyPay: data.hourlyPay || "",
-            perDiem: data.perDiem || "",
-            additionalRequirements: data.additionalRequirements || "",
+            hourly_pay: data.hourly_pay || "",
+            per_diem: data.per_diem || "",
+            additional_requirements: data.additional_requirements || "",
           });
         }
       } catch (error) {
@@ -82,9 +82,9 @@ export default function PostJobPage({ jobId }) {
         city: form.city,
         state: form.state,
         zip: form.zip,
-        hourlyPay: form.hourlyPay,
-        perDiem: form.perDiem,
-        additionalRequirements: form.additionalRequirements,
+        hourly_pay: form.hourly_pay,
+        per_diem: form.per_diem,
+        additional_requirements: form.additional_requirements,
       };
 
       const endpoint = jobId ? `/api/jobs/${jobId}` : "/api/jobs/create";
@@ -160,21 +160,21 @@ export default function PostJobPage({ jobId }) {
                 </select>
               </Field>
 
-              <Field label="Hourly Pay" htmlFor="hourlyPay">
+              <Field label="Hourly Pay" htmlFor="hourly_pay">
                 <input
-                  id="hourlyPay"
-                  name="hourlyPay"
-                  value={form.hourlyPay}
+                  id="hourly_pay"
+                  name="hourly_pay"
+                  value={form.hourly_pay}
                   onChange={handleChange}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
                 />
               </Field>
 
-              <Field label="Per Diem" htmlFor="perDiem">
+              <Field label="Per Diem" htmlFor="per_diem">
                 <input
-                  id="perDiem"
-                  name="perDiem"
-                  value={form.perDiem}
+                  id="per_diem"
+                  name="per_diem"
+                  value={form.per_diem}
                   onChange={handleChange}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
                 />
@@ -222,11 +222,11 @@ export default function PostJobPage({ jobId }) {
               />
             </Field>
 
-            <Field label="Additional Requirements" htmlFor="additionalRequirements">
+            <Field label="Additional Requirements" htmlFor="additional_requirements">
               <textarea
-                id="additionalRequirements"
-                name="additionalRequirements"
-                value={form.additionalRequirements}
+                id="additional_requirements"
+                name="additional_requirements"
+                value={form.additional_requirements}
                 onChange={handleChange}
                 rows={4}
                 className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"

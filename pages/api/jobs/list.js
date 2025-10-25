@@ -40,7 +40,7 @@ export default async function handler(req, res) {
             { city: { contains: searchTerm, mode: "insensitive" } },
             { state: { contains: searchTerm, mode: "insensitive" } },
             {
-              additionalRequirements: {
+              additional_requirements: {
                 contains: searchTerm,
                 mode: "insensitive",
               },

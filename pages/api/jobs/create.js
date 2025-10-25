@@ -31,9 +31,9 @@ export default async function handler(req, res) {
       city,
       state,
       zip,
-      hourlyPay,
-      perDiem,
-      additionalRequirements,
+      hourly_pay,
+      per_diem,
+      additional_requirements,
     } = req.body || {};
 
     if (!title || !trade || !description) {
@@ -52,9 +52,9 @@ export default async function handler(req, res) {
         city: city || null,
         state: state || null,
         zip: zip || null,
-        hourlyPay: hourlyPay || null,
-        perDiem: perDiem || null,
-        additionalRequirements: additionalRequirements || null,
+        hourly_pay: hourly_pay || null,
+        per_diem: per_diem || null,
+        additional_requirements: additional_requirements || null,
         employer_id: employerProfile.id,
       },
     });

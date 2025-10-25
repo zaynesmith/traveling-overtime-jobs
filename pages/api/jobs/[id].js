@@ -44,9 +44,9 @@ export default async function handler(req, res) {
       city: job.city,
       state: job.state,
       zip: job.zip,
-      hourlyPay: job.hourlyPay,
-      perDiem: job.perDiem,
-      additionalRequirements: job.additionalRequirements,
+      hourly_pay: job.hourly_pay,
+      per_diem: job.per_diem,
+      additional_requirements: job.additional_requirements,
       posted_at: job.posted_at,
     });
     return;
@@ -64,9 +64,10 @@ export default async function handler(req, res) {
           city: payload.city ?? job.city,
           state: payload.state ?? job.state,
           zip: payload.zip ?? job.zip,
-          hourlyPay: payload.hourlyPay ?? job.hourlyPay,
-          perDiem: payload.perDiem ?? job.perDiem,
-          additionalRequirements: payload.additionalRequirements ?? job.additionalRequirements,
+          hourly_pay: payload.hourly_pay ?? job.hourly_pay,
+          per_diem: payload.per_diem ?? job.per_diem,
+          additional_requirements:
+            payload.additional_requirements ?? job.additional_requirements,
         },
       });
 

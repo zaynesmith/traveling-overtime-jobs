@@ -15,11 +15,11 @@ function JobCard({ job }) {
           <p className="text-sm font-medium uppercase tracking-wide text-slate-500">{trade}</p>
           {location ? <p className="text-sm text-slate-600">{location}</p> : null}
         </div>
-        {job.hourlyPay || job.perDiem ? (
+        {job.hourly_pay || job.per_diem ? (
           <p className="text-sm text-slate-600">
-            {job.hourlyPay ? `Pay: ${job.hourlyPay}` : null}
-            {job.hourlyPay && job.perDiem ? " • " : ""}
-            {job.perDiem ? `Per diem: ${job.perDiem}` : null}
+            {job.hourly_pay ? `Pay: ${job.hourly_pay}` : null}
+            {job.hourly_pay && job.per_diem ? " • " : ""}
+            {job.per_diem ? `Per diem: ${job.per_diem}` : null}
           </p>
         ) : null}
         <Link
@@ -102,8 +102,8 @@ export async function getServerSideProps(context) {
       state: job.state,
       location: job.location,
       zip: job.zip,
-      hourlyPay: job.hourlyPay,
-      perDiem: job.perDiem,
+      hourly_pay: job.hourly_pay,
+      per_diem: job.per_diem,
     }));
 
     return {
