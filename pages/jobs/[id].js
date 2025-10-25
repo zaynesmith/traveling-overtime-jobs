@@ -18,8 +18,8 @@ function formatJobLocation(job) {
 function formatJobHighlights(job) {
   if (!job) return "";
   const tradeName = normalizeTrade(job.trade) || job.trade || "Trade not specified";
-  const hourly = job.hourlyPay || "Hourly pay not provided";
-  const perDiem = job.perDiem || "Per diem not provided";
+  const hourly = job.hourly_pay || "Hourly pay not provided";
+  const perDiem = job.per_diem || "Per diem not provided";
   return [tradeName, hourly, perDiem].join(" • ");
 }
 
@@ -81,7 +81,7 @@ export default function JobDetails({ job }) {
   const disableApplyButton = submitting || hasApplied;
   const listingLocation = formatJobLocation(job) || job.employerLocation || "Location TBD";
   const requirementsText =
-    job.additionalRequirements ||
+    job.additional_requirements ||
     job.requirements ||
     job.qualifications ||
     "Requirements not provided.";

@@ -186,11 +186,11 @@ export default function Jobs() {
                   <dl className="mt-4 grid gap-4 sm:grid-cols-2">
                     <div>
                       <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hourly Pay</dt>
-                      <dd className="mt-1 text-sm text-slate-700">{job.hourlyPay || "Not specified"}</dd>
+                      <dd className="mt-1 text-sm text-slate-700">{job.hourly_pay || "Not specified"}</dd>
                     </div>
                     <div>
                       <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Per Diem</dt>
-                      <dd className="mt-1 text-sm text-slate-700">{job.perDiem || "Not specified"}</dd>
+                      <dd className="mt-1 text-sm text-slate-700">{job.per_diem || "Not specified"}</dd>
                     </div>
                   </dl>
 
