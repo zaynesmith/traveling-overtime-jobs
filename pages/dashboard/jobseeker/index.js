@@ -1,493 +1,118 @@
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
-import { normalizeTrade } from "@/lib/trades";
 
-const TABS = ["Profile", "Job Search", "Applications", "Activity", "Settings"];
-const profileFields = [
-  { name: "firstName", label: "First Name" },
-  { name: "lastName", label: "Last Name" },
-  { name: "email", label: "Email" },
-  { name: "trade", label: "Primary Trade" },
-  { name: "address1", label: "Address Line 1" },
-  { name: "address2", label: "Address Line 2" },
-  { name: "city", label: "City" },
-  { name: "state", label: "State" },
-  { name: "zip", label: "ZIP" },
-];
-
-const defaultJobFilters = {
-  keyword: "",
-  trade: "",
-  zip: "",
-  radius: "50",
-};
-
-function formatDate(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString();
-}
-
-function formatJobLocation(job) {
-  if (!job) return "";
-  const cityState = [job.city, job.state].filter(Boolean).join(", ");
-  return cityState || job.location || job.zip || "";
-}
-
-export default function JobseekerDashboard({ initialProfile, applications, lastActive, bumpEligible }) {
-  const [activeTab, setActiveTab] = useState(TABS[0]);
-  const [profile, setProfile] = useState(() => ({
-    ...initialProfile,
-    resumeUrl: initialProfile?.resumeUrl || initialProfile?.resumeurl || initialProfile?.resumeURL || "",
-  }));
-  const [profileMessage, setProfileMessage] = useState(null);
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [resumeFile, setResumeFile] = useState(null);
-
-  const [jobFilters, setJobFilters] = useState(defaultJobFilters);
-  const [jobResults, setJobResults] = useState([]);
-  const [jobLoading, setJobLoading] = useState(false);
-  const [jobError, setJobError] = useState(null);
-
-  const [applicationList, setApplicationList] = useState(applications);
-  const [lastActiveDate, setLastActiveDate] = useState(lastActive);
-  const [canBump, setCanBump] = useState(bumpEligible);
-  const [bumpMessage, setBumpMessage] = useState(null);
-  const [bumpLoading, setBumpLoading] = useState(false);
-
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams();
-    if (jobFilters.keyword) params.set("keyword", jobFilters.keyword);
-    if (jobFilters.trade) params.set("trade", jobFilters.trade);
-    if (jobFilters.zip) {
-      params.set("zip", jobFilters.zip);
-      if (jobFilters.radius) params.set("radius", jobFilters.radius);
-    }
-    return params.toString();
-  }, [jobFilters]);
-
-  useEffect(() => {
-    async function loadJobs() {
-      setJobLoading(true);
-      setJobError(null);
-      try {
-        const response = await fetch(`/api/jobs/list${queryString ? `?${queryString}` : ""}`);
-        if (!response.ok) throw new Error("Unable to load jobs");
-        const data = await response.json();
-        setJobResults(Array.isArray(data) ? data : []);
-      } catch (error) {
-        setJobError(error.message || "Unable to load jobs");
-        setJobResults([]);
-      } finally {
-        setJobLoading(false);
-      }
-    }
-
-    if (activeTab === "Job Search") {
-      loadJobs();
-    }
-  }, [activeTab, queryString]);
-
-  const handleProfileChange = (event) => {
-    const { name, value } = event.target;
-    setProfile((current) => ({ ...current, [name]: value }));
-  };
-
-  const handleResumeChange = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      setResumeFile(null);
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setResumeFile({
-        fileName: file.name,
-        fileType: file.type,
-        base64: reader.result,
-      });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleProfileSave = async (event) => {
-    event.preventDefault();
-    setProfileSaving(true);
-    setProfileMessage(null);
-    try {
-      const response = await fetch("/api/profile/jobseeker", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, resume: resumeFile }),
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.error || "Failed to save profile");
-      }
-      setProfile((current) => {
-        const next = { ...current, ...payload };
-        if (payload?.resumeUrl || payload?.resumeurl || payload?.resumeURL) {
-          next.resumeUrl = payload.resumeUrl || payload.resumeurl || payload.resumeURL;
-        }
-        return next;
-      });
-      setResumeFile(null);
-      setProfileMessage({ type: "success", text: "Profile updated successfully." });
-    } catch (error) {
-      setProfileMessage({ type: "error", text: error.message || "Failed to save profile" });
-    } finally {
-      setProfileSaving(false);
-    }
-  };
-
-  const handleJobFilterChange = (event) => {
-    const { name, value } = event.target;
-    setJobFilters((current) => ({ ...current, [name]: value }));
-  };
-
-  const handleApply = async (jobId) => {
-    try {
-      const response = await fetch("/api/jobs/apply", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId }),
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.error || "Unable to apply");
-      }
-      setApplicationList((current) => {
-        const exists = current.find((item) => item.job_id === payload.job_id);
-        if (exists) return current;
-        return [payload, ...current];
-      });
-      alert("Application submitted!");
-    } catch (error) {
-      alert(error.message || "Unable to apply");
-    }
-  };
-
-  const handleBump = async () => {
-    setBumpLoading(true);
-    setBumpMessage(null);
-    try {
-      const response = await fetch("/api/profile/bump", { method: "POST" });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.error || "Unable to bump resume");
-      }
-      setLastActiveDate(payload.lastActive || new Date().toISOString());
-      setCanBump(false);
-      setBumpMessage({ type: "success", text: "Resume bumped! You&apos;re back on top." });
-    } catch (error) {
-      setBumpMessage({ type: "error", text: error.message || "Unable to bump resume" });
-    } finally {
-      setBumpLoading(false);
-    }
-  };
-
-  const renderProfileTab = () => (
-    <form onSubmit={handleProfileSave} className="space-y-6 rounded-lg border border-slate-700 bg-slate-800 p-6 shadow">
-      <div>
-        <h2 className="text-2xl font-semibold text-white">Your Profile</h2>
-        <p className="text-sm text-slate-400">
-          Keep your contact details and trade information up to date so employers can reach you fast.
-        </p>
-      </div>
-
-      {profileMessage ? (
-        <div
-          className={`rounded-md px-4 py-2 text-sm font-semibold ${
-            profileMessage.type === "success"
-              ? "bg-emerald-500/20 text-emerald-200"
-              : "bg-red-500/20 text-red-200"
-          }`}
-        >
-          {profileMessage.text}
-        </div>
-      ) : null}
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {profileFields.map((field) => (
-          <div key={field.name}>
-            <label className="block text-sm font-semibold text-slate-200">{field.label}</label>
-            <input
-              name={field.name}
-              value={profile[field.name] || ""}
-              onChange={handleProfileChange}
-              className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 p-2 text-slate-100 focus:border-amber-400 focus:outline-none"
-            />
-          </div>
-        ))}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <label className="block text-sm font-semibold text-slate-200">Resume File</label>
-          <input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={handleResumeChange}
-            className="mt-1 w-full rounded-md border border-dashed border-slate-600 bg-slate-900 p-2 text-sm text-slate-200"
-          />
-          {resumeFile ? (
-            <p className="mt-2 text-xs text-amber-300">Selected: {resumeFile.fileName}</p>
-          ) : profile.resumeUrl ? (
-            <a href={profile.resumeUrl} target="_blank" rel="noreferrer" className="mt-2 block text-xs text-amber-300">
-              View current resume
-            </a>
-          ) : (
-            <p className="mt-2 text-xs text-slate-500">No resume uploaded yet.</p>
-          )}
-        </div>
-      </div>
-
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={profileSaving}
-          className="rounded-md bg-amber-500 px-6 py-2 text-sm font-semibold text-slate-900 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {profileSaving ? "Saving…" : "Save Profile"}
-        </button>
-      </div>
-    </form>
-  );
-
-  const renderJobSearch = () => (
-    <div className="space-y-6">
-      <form
-        onSubmit={(event) => event.preventDefault()}
-        className="grid gap-4 rounded-lg border border-slate-700 bg-slate-800 p-6 shadow md:grid-cols-4"
-      >
-        <div className="md:col-span-2">
-          <label className="block text-sm font-semibold text-slate-200">Keyword</label>
-          <input
-            name="keyword"
-            value={jobFilters.keyword}
-            onChange={handleJobFilterChange}
-            placeholder="Job title or contractor"
-            className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 p-2 text-slate-100 focus:border-amber-400 focus:outline-none"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-slate-200">Trade</label>
-          <input
-            name="trade"
-            value={jobFilters.trade}
-            onChange={handleJobFilterChange}
-            placeholder="e.g. Millwright"
-            className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 p-2 text-slate-100 focus:border-amber-400 focus:outline-none"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-slate-200">ZIP</label>
-          <input
-            name="zip"
-            value={jobFilters.zip}
-            onChange={handleJobFilterChange}
-            placeholder="Near ZIP"
-            className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 p-2 text-slate-100 focus:border-amber-400 focus:outline-none"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-slate-200">Radius (miles)</label>
-          <input
-            type="number"
-            name="radius"
-            min="10"
-            max="500"
-            step="10"
-            value={jobFilters.radius}
-            onChange={handleJobFilterChange}
-            className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 p-2 text-slate-100 focus:border-amber-400 focus:outline-none"
-          />
-        </div>
-      </form>
-
-      {jobLoading ? (
-        <div className="rounded border border-slate-700 bg-slate-800 p-6 text-center text-slate-300">Searching…</div>
-      ) : jobError ? (
-        <div className="rounded border border-red-500 bg-red-900/30 p-6 text-center text-red-200">{jobError}</div>
-      ) : jobResults.length === 0 ? (
-        <div className="rounded border border-slate-700 bg-slate-800 p-6 text-center text-slate-400">
-          No matching jobs yet. Adjust your filters and try again.
-        </div>
-      ) : (
-        <div className="flex flex-col items-center gap-4">
-          {jobResults.map((job) => (
-            <article
-              key={job.id}
-              className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-md"
-            >
-              <div className="flex flex-col gap-2">
-                <h3 className="text-2xl font-bold text-slate-900">{job.title}</h3>
-                <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">
-                  {normalizeTrade(job.trade) || "General"}
-                </p>
-                <p className="text-sm text-slate-600">{formatJobLocation(job) || "Location TBD"}</p>
-              </div>
-
-              <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div>
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hourly Pay</dt>
-                  <dd className="mt-1 text-sm text-slate-700">{job.hourlyPay || "Not specified"}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Per Diem</dt>
-                  <dd className="mt-1 text-sm text-slate-700">{job.perDiem || "Not specified"}</dd>
-                </div>
-              </dl>
-
-              {job.description ? (
-                <p className="mt-4 text-sm text-slate-500 line-clamp-3">{job.description}</p>
-              ) : null}
-
-              <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-                <Link
-                  href={`/jobs/${job.id}`}
-                  className="text-sm font-semibold text-sky-600 transition hover:text-sky-500"
-                >
-                  See Details
-                </Link>
-                <button
-                  onClick={() => handleApply(job.id)}
-                  className="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500"
-                >
-                  Apply
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderApplications = () => (
-    <section className="space-y-4">
-      <h2 className="text-xl font-semibold text-white">Your Applications</h2>
-      {applicationList.length === 0 ? (
-        <div className="rounded border border-slate-700 bg-slate-800 p-6 text-center text-slate-400">
-          You haven&apos;t applied to any jobs yet.
-        </div>
-      ) : (
-        <ul className="space-y-3">
-          {applicationList.map((app) => (
-            <li key={app.id} className="rounded border border-slate-700 bg-slate-800 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="text-lg font-semibold text-white">{app.jobs?.title || "Job"}</p>
-                  <p className="text-sm text-slate-300">
-                    {normalizeTrade(app.jobs?.trade) || "General"}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-amber-300 capitalize">{app.status || "pending"}</p>
-                  {app.applied_at ? (
-                    <p className="text-xs text-slate-500">Applied {formatDate(app.applied_at)}</p>
-                  ) : null}
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-
-  const renderActivity = () => (
-    <section className="space-y-4 rounded-lg border border-slate-700 bg-slate-800 p-6 shadow">
-      <h2 className="text-xl font-semibold text-white">Stay Active</h2>
-      <p className="text-sm text-slate-300">
-        Boost your visibility by bumping your resume. Employers see the freshest profiles first.
-      </p>
-      <div className="rounded border border-slate-700 bg-slate-900/60 p-4 text-slate-200">
-        <p className="text-sm">Last Active: {lastActiveDate ? formatDate(lastActiveDate) : "No activity yet"}</p>
-      </div>
-      {bumpMessage ? (
-        <div
-          className={`rounded-md px-4 py-2 text-sm font-semibold ${
-            bumpMessage.type === "success"
-              ? "bg-emerald-500/20 text-emerald-200"
-              : "bg-red-500/20 text-red-200"
-          }`}
-        >
-          {bumpMessage.text}
-        </div>
-      ) : null}
-      <button
-        onClick={handleBump}
-        disabled={!canBump || bumpLoading}
-        className="rounded-md bg-amber-500 px-6 py-2 text-sm font-semibold text-slate-900 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {bumpLoading ? "Bumping…" : canBump ? "Bump Resume" : "Available again soon"}
-      </button>
-      {!canBump ? (
-        <p className="text-xs text-slate-400">
-          Resume bumps unlock every 7 days. Check back soon to stay on top of searches.
-        </p>
-      ) : null}
-    </section>
-  );
-
-  const renderSettings = () => (
-    <section className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow">
-      <h2 className="text-xl font-semibold text-white">Account Settings</h2>
-      <p className="mt-2 text-sm text-slate-300">
-        Password updates and account deletion tools are coming soon. For now, contact support for assistance.
-      </p>
-    </section>
-  );
-
-  const renderActiveTab = () => {
-    switch (activeTab) {
-      case "Profile":
-        return renderProfileTab();
-      case "Job Search":
-        return renderJobSearch();
-      case "Applications":
-        return renderApplications();
-      case "Activity":
-        return renderActivity();
-      case "Settings":
-        return renderSettings();
-      default:
-        return null;
-    }
-  };
-
+function DashboardCard({ href, title, description, children, cta = "Open" }) {
   return (
-    <main className="min-h-screen bg-slate-900 py-12 px-4 sm:px-8 lg:px-16">
-      <div className="mx-auto max-w-6xl space-y-8">
-        <header className="text-white">
-          <h1 className="text-3xl font-bold tracking-wide">Jobseeker HQ</h1>
-          <p className="mt-2 text-slate-300">
-            Polish your profile, track applications, and snag the next traveling overtime gig.
+    <Link
+      href={href}
+      className="group block rounded-2xl bg-white p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200"
+    >
+      <div className="flex h-full flex-col gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
+          <p className="mt-1 text-sm text-slate-600">{description}</p>
+        </div>
+        {children}
+        <span className="mt-auto inline-flex items-center gap-2 text-sm font-semibold text-sky-600">
+          {cta}
+          <svg
+            aria-hidden="true"
+            className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+function formatLastActive(value) {
+  if (!value) return "No recent activity";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "No recent activity";
+  const diffMs = Date.now() - date.getTime();
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (days <= 0) return "Active today";
+  return `Active ${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+export default function JobseekerDashboard({ profileSummary, applicationCount, recentActivity, bumpEligible }) {
+  return (
+    <main className="bg-slate-50 py-12">
+      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 sm:px-6 lg:px-8">
+        <header className="space-y-3 text-center sm:text-left">
+          <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">Jobseeker Dashboard</p>
+          <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Your next assignment starts here</h1>
+          <p className="max-w-3xl text-base text-slate-600">
+            Keep your profile sharp, explore fresh postings, and monitor applications—all from this polished hub.
           </p>
         </header>
 
-        <nav className="flex flex-wrap gap-3">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                activeTab === tab
-                  ? "border-amber-500 bg-amber-500 text-slate-900"
-                  : "border-slate-700 bg-slate-800 text-slate-200 hover:border-amber-500 hover:text-amber-300"
-              }`}
+        <section>
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <DashboardCard
+              href="/dashboard/jobseeker/profile"
+              title="Profile"
+              description="Update your basics, upload a resume, and stay discoverable."
             >
-              {tab}
-            </button>
-          ))}
-        </nav>
+              <div className="rounded-xl bg-slate-100 p-4 text-sm text-slate-600">
+                <p className="font-semibold text-slate-900">{profileSummary.completed}/{profileSummary.total} fields complete</p>
+                <p className="mt-2 text-xs text-slate-500">Complete your profile to stand out to employers.</p>
+              </div>
+            </DashboardCard>
 
-        <section className="space-y-6 text-slate-200">{renderActiveTab()}</section>
+            <DashboardCard
+              href="/dashboard/jobseeker/jobs"
+              title="Job Search"
+              description="Browse the newest travel roles with powerful filters."
+            >
+              <ul className="space-y-2 text-sm text-slate-600">
+                <li>• Filter by trade, location, and keywords</li>
+                <li>• Preview overtime and per diem quickly</li>
+                <li>• Save roles for later follow-up</li>
+              </ul>
+            </DashboardCard>
+
+            <DashboardCard
+              href="/dashboard/jobseeker/applications"
+              title="Applications"
+              description="Track submissions and see status updates."
+            >
+              <p className="text-sm text-slate-600">
+                You&apos;ve applied to <span className="font-semibold text-slate-900">{applicationCount}</span> job
+                {applicationCount === 1 ? "" : "s"}.
+              </p>
+            </DashboardCard>
+
+            <DashboardCard
+              href="/dashboard/jobseeker/activity"
+              title="Activity"
+              description="Control visibility and boost your profile."
+            >
+              <p className="text-sm text-slate-600">
+                {formatLastActive(recentActivity)} · {bumpEligible ? "Eligible for profile bump" : "Bump available soon"}
+              </p>
+            </DashboardCard>
+
+            <DashboardCard
+              href="/dashboard/jobseeker/settings"
+              title="Settings"
+              description="Manage alerts, privacy, and account access."
+            >
+              <p className="text-sm text-slate-600">
+                Configure job alerts, update security preferences, and control visibility.
+              </p>
+            </DashboardCard>
+          </div>
+        </section>
       </div>
     </main>
   );
@@ -524,9 +149,21 @@ export async function getServerSideProps(context) {
 
     const applications = await prisma.applications.findMany({
       where: { jobseeker_id: profile?.id || "" },
-      include: { jobs: true },
-      orderBy: { applied_at: "desc" },
+      select: { id: true },
     });
+
+    const totalFields = 9;
+    const completed = [
+      profile?.firstName,
+      profile?.lastName,
+      profile?.email,
+      profile?.trade,
+      profile?.address1,
+      profile?.city,
+      profile?.state,
+      profile?.zip,
+      profile?.resumeUrl,
+    ].filter((value) => Boolean(value && String(value).trim())).length;
 
     const lastActive = profile?.lastActive ? profile.lastActive.toISOString?.() ?? profile.lastActive : null;
     const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
@@ -534,9 +171,9 @@ export async function getServerSideProps(context) {
 
     return {
       props: {
-        initialProfile: JSON.parse(JSON.stringify(profile || {})),
-        applications: JSON.parse(JSON.stringify(applications)),
-        lastActive: lastActive,
+        profileSummary: { total: totalFields, completed },
+        applicationCount: applications.length,
+        recentActivity: lastActive,
         bumpEligible,
       },
     };
@@ -544,9 +181,9 @@ export async function getServerSideProps(context) {
     console.error(error);
     return {
       props: {
-        initialProfile: {},
-        applications: [],
-        lastActive: null,
+        profileSummary: { total: 9, completed: 0 },
+        applicationCount: 0,
+        recentActivity: null,
         bumpEligible: true,
       },
     };
