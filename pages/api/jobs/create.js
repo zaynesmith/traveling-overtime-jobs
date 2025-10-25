@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
+import { normalizeTrade } from "@/lib/trades";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -40,11 +41,12 @@ export default async function handler(req, res) {
     }
 
     const combinedLocation = [city, state].filter(Boolean).join(", ");
+    const normalizedTrade = normalizeTrade(trade);
 
     const job = await prisma.jobs.create({
       data: {
         title,
-        trade,
+        trade: normalizedTrade,
         description,
         location: combinedLocation || null,
         city: city || null,

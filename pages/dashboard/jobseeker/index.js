@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
+import { normalizeTrade } from "@/lib/trades";
 
 const TABS = ["Profile", "Job Search", "Applications", "Activity", "Settings"];
 const profileFields = [
@@ -339,7 +340,9 @@ export default function JobseekerDashboard({ initialProfile, applications, lastA
                   </span>
                 ) : null}
               </div>
-              <p className="text-sm uppercase tracking-wide text-amber-400">{job.trade || "General"}</p>
+              <p className="text-sm uppercase tracking-wide text-amber-400">
+                {normalizeTrade(job.trade) || "General"}
+              </p>
               <p className="mt-1 text-slate-300">{formatJobLocation(job) || "Location TBD"}</p>
               <p className="mt-3 text-sm text-slate-400 line-clamp-2">
                 {job.description || "No description provided."}
@@ -373,7 +376,9 @@ export default function JobseekerDashboard({ initialProfile, applications, lastA
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="text-lg font-semibold text-white">{app.jobs?.title || "Job"}</p>
-                  <p className="text-sm text-slate-300">{app.jobs?.trade || "General"}</p>
+                  <p className="text-sm text-slate-300">
+                    {normalizeTrade(app.jobs?.trade) || "General"}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-amber-300 capitalize">{app.status || "pending"}</p>

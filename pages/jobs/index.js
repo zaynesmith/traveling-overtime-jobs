@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { normalizeTrade } from "@/lib/trades";
 
 const defaultFilters = {
   keyword: "",
@@ -84,7 +85,11 @@ export default function Jobs() {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    setActiveFilters(formFilters);
+    const normalizedFilters = {
+      ...formFilters,
+      trade: normalizeTrade(formFilters.trade),
+    };
+    setActiveFilters(normalizedFilters);
   };
 
   return (
@@ -189,7 +194,7 @@ export default function Jobs() {
                   ) : null}
                 </div>
                 <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-sky-600">
-                  {job.trade || "General"}
+                  {normalizeTrade(job.trade) || "General"}
                 </p>
                 <p className="mt-2 text-sm text-slate-600">{formatJobLocation(job) || "Location TBD"}</p>
                 <p className="mt-3 text-sm text-slate-500 line-clamp-2">

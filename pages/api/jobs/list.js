@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
 import { getZipsWithinRadius } from "@/lib/zipDistance";
+import { getTradeSynonyms, normalizeTrade } from "@/lib/trades";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -16,6 +17,9 @@ export default async function handler(req, res) {
     const searchTerm = (keyword || q || "").toString().trim();
     const zipCode = (zip || location || "").toString().trim();
     const distance = radius ? parseInt(radius, 10) : undefined;
+    const normalizedTradeFilter = trade
+      ? normalizeTrade(trade.toString())
+      : undefined;
 
     let nearbyZips = [];
     if (zipCode && distance) {
@@ -23,7 +27,9 @@ export default async function handler(req, res) {
     }
 
     const filters = {
-      trade: trade ? trade.toString() : undefined,
+      trade: normalizedTradeFilter
+        ? { in: getTradeSynonyms(normalizedTradeFilter) }
+        : undefined,
       zip: nearbyZips.length ? { in: nearbyZips } : zipCode ? zipCode : undefined,
       OR: searchTerm
         ? [
@@ -69,7 +75,12 @@ export default async function handler(req, res) {
       },
     });
 
-    res.status(200).json(jobs);
+    const normalizedJobs = jobs.map((job) => ({
+      ...job,
+      trade: normalizeTrade(job.trade),
+    }));
+
+    res.status(200).json(normalizedJobs);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to load jobs" });
