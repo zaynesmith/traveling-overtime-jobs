@@ -2,58 +2,34 @@ import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 
-const cards = [
-  {
-    href: "/dashboard/jobseeker/profile",
-    title: "Profile",
-    description: "Complete your profile and catch the eyes of employers.",
-    cta: "Update",
-  },
-  {
-    href: "/dashboard/jobseeker/jobs",
-    title: "Job Search",
-    description: "Explore new assignments tailored to your skills and travel goals.",
-    cta: "Search",
-  },
-  {
-    href: "/dashboard/jobseeker/applications",
-    title: "Applications",
-    description: "Check on your submissions and see any updates.",
-    cta: "View",
-  },
-  {
-    href: "/dashboard/jobseeker/activity",
-    title: "Activity",
-    description: "See your recent searches, saved jobs, and more.",
-    cta: "View",
-  },
-];
-
-function DashboardCard({ href, title, description, cta }) {
+function DashboardCard({ href, title, description, children, cta = "Open" }) {
   return (
     <Link
       href={href}
-      className="group flex h-full flex-col justify-between rounded-3xl bg-white/95 p-8 text-left shadow-[0_20px_48px_rgba(15,23,42,0.1)] ring-1 ring-slate-200 transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-[0_26px_64px_rgba(15,23,42,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+      className="group block h-full rounded-3xl bg-white/90 p-6 shadow-xl ring-1 ring-slate-900/5 transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200"
     >
-      <div className="space-y-3">
-        <h2 className="text-2xl font-semibold text-slate-900">{title}</h2>
-        <p className="text-sm leading-6 text-slate-600">{description}</p>
+      <div className="flex h-full flex-col gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
+          <p className="mt-1 text-sm text-slate-600">{description}</p>
+        </div>
+        {children}
+        <span className="mt-auto inline-flex items-center justify-center gap-2 self-start rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition-colors duration-300 group-hover:bg-slate-700">
+          {cta}
+          <svg
+            aria-hidden="true"
+            className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </span>
       </div>
-      <span className="mt-8 inline-flex items-center gap-2 self-start rounded-full bg-white px-5 py-2 text-sm font-bold text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.15)] transition-all duration-300 group-hover:translate-x-1 group-hover:shadow-[0_12px_32px_rgba(15,23,42,0.2)]">
-        {cta}
-        <svg
-          aria-hidden="true"
-          className="h-4 w-4 text-slate-500 transition-transform duration-300 group-hover:translate-x-1"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-        >
-          <path d="M5 12h14M12 5l7 7-7 7" />
-        </svg>
-      </span>
     </Link>
   );
 }
@@ -62,23 +38,79 @@ export default function JobseekerDashboard({ greetingName }) {
   const heading = greetingName ? `Welcome back, ${greetingName}` : "Welcome back";
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white via-white to-slate-100">
-      <section className="bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-6 py-16 text-center sm:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Jobseeker Dashboard</p>
-          <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">{heading}</h1>
-          <p className="max-w-3xl text-base text-slate-500 sm:text-lg">
-            Keep your profile updated, search for fresh opportunities, and monitor your application status.
+    <main className="bg-slate-100">
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-16 text-slate-100">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.25),transparent_55%)]" aria-hidden="true" />
+        <div className="relative mx-auto flex max-w-6xl flex-col gap-4 px-4 sm:px-6 lg:px-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-300">Jobseeker Dashboard</p>
+          <h1 className="text-3xl font-bold sm:text-4xl">{heading}</h1>
+          <p className="max-w-2xl text-sm text-slate-300 sm:text-base">
+            Keep your profile updated, explore new assignments, and stay on top of every application.
           </p>
         </div>
-      </section>
+      </div>
 
-      <section className="-mt-8 pb-20">
-        <div className="mx-auto max-w-6xl px-6 sm:px-8">
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {cards.map((card) => (
-              <DashboardCard key={card.href} {...card} />
-            ))}
+      <section className="relative z-10 -mt-12 pb-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <DashboardCard
+              href="/dashboard/jobseeker/profile"
+              title="Keep Your Profile Updated"
+              description="Fine-tune your skills, certifications, and travel preferences to stand out."
+              cta="Update"
+            >
+              <ul className="space-y-2 text-sm text-slate-600">
+                <li>• Upload licenses, references, and availability</li>
+                <li>• Showcase recent assignments and specialties</li>
+                <li>• Ensure employers see the most current details</li>
+              </ul>
+            </DashboardCard>
+
+            <DashboardCard
+              href="/dashboard/jobseeker/jobs"
+              title="Search Jobs"
+              description="Discover traveling assignments that match your goals and experience."
+              cta="Search"
+            >
+              <ul className="space-y-2 text-sm text-slate-600">
+                <li>• Filter by trade, pay, per diem, and location</li>
+                <li>• Save roles that catch your eye for later review</li>
+                <li>• Set alerts to get notified of fresh postings</li>
+              </ul>
+            </DashboardCard>
+
+            <DashboardCard
+              href="/dashboard/jobseeker/applications"
+              title="Track Applications"
+              description="Monitor statuses, interview requests, and employer messages."
+              cta="Review"
+            >
+              <p className="text-sm text-slate-600">
+                Keep tabs on pending, accepted, and declined applications so you never miss an update or next step.
+              </p>
+            </DashboardCard>
+
+            <DashboardCard
+              href="/dashboard/jobseeker/activity"
+              title="Recent Activity"
+              description="Revisit saved jobs and follow up on leads from your dashboard history."
+              cta="Open"
+            >
+              <p className="text-sm text-slate-600">
+                Review searches, saved postings, and profile views to stay informed about what employers are exploring.
+              </p>
+            </DashboardCard>
+
+            <DashboardCard
+              href="/dashboard/jobseeker/settings"
+              title="Account Settings"
+              description="Control alerts, privacy, and communication preferences in one place."
+              cta="Manage"
+            >
+              <p className="text-sm text-slate-600">
+                Update login details, manage notifications, and tailor how employers can reach out.
+              </p>
+            </DashboardCard>
           </div>
         </div>
       </section>
