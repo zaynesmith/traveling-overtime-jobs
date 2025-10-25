@@ -1,116 +1,60 @@
-import { useState } from "react";
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 
-function formatDate(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString();
-}
-
-export default function SavedCandidatesPage({ initialSaved }) {
-  const [savedCandidates, setSavedCandidates] = useState(initialSaved);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const handleRefresh = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/candidates/save");
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.error || "Unable to load saved candidates");
-      }
-      setSavedCandidates(Array.isArray(payload?.saved) ? payload.saved : []);
-    } catch (err) {
-      setError(err.message || "Unable to load saved candidates");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+export default function SavedCandidatesPage({ saved }) {
   return (
     <main className="bg-slate-50 py-12">
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-        <header className="mb-8 space-y-2">
+      <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 sm:px-6 lg:px-8">
+        <header className="space-y-2 text-center sm:text-left">
           <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">Saved Candidates</p>
-          <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Keep tabs on your shortlist</h1>
-          <p className="text-sm text-slate-600">
-            Quickly revisit profiles you&apos;ve bookmarked for future assignments.
+          <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Bookmark your top prospects</h1>
+          <p className="max-w-2xl text-base text-slate-600">
+            Reach back out to traveling professionals you&apos;ve saved and move them forward in your hiring process.
           </p>
         </header>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
-          <div className="mb-6 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={loading}
+        {saved.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-lg">
+            <p className="text-lg font-semibold text-slate-900">You haven&apos;t saved any candidates yet.</p>
+            <p className="mt-2 text-sm text-slate-600">Search the resume database and bookmark promising talent.</p>
+            <Link
+              href="/dashboard/employer/resume-search"
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
             >
-              {loading ? "Refreshing..." : "Refresh list"}
-            </button>
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              {savedCandidates.length} saved candidate{savedCandidates.length === 1 ? "" : "s"}
-            </span>
+              Start searching
+              <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </Link>
           </div>
-
-          {error ? (
-            <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
-          ) : null}
-
-          {savedCandidates.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">
-              You haven&apos;t saved any candidates yet. Browse the <Link className="font-semibold text-sky-600" href="/dashboard/employer/resume-search">resume search</Link> to get started.
-            </div>
-          ) : (
-            <ul className="space-y-5">
-              {savedCandidates.map((item) => {
-                const profile = item.jobseekerprofile || {};
-                const resumeUrl = profile.resumeUrl || profile.resumeurl || profile.resumeURL;
-                const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(" ") || "Unnamed Candidate";
-                return (
-                  <li key={item.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div>
-                        <h2 className="text-lg font-semibold text-slate-900">{fullName}</h2>
-                        <p className="text-sm text-slate-600">{profile.trade || "Various trades"}</p>
-                        <p className="text-xs text-slate-500">Saved {formatDate(item.saved_at)}</p>
-                      </div>
-                      {resumeUrl ? (
-                        <a
-                          href={resumeUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
-                        >
-                          View resume
-                          <svg
-                            aria-hidden="true"
-                            className="h-4 w-4"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            viewBox="0 0 24 24"
-                          >
-                            <path d="M7 17l9-9M7 7h10v10" />
-                          </svg>
-                        </a>
-                      ) : (
-                        <span className="text-xs font-medium text-slate-500">No resume uploaded</span>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
+        ) : (
+          <ul className="space-y-4">
+            {saved.map((candidate) => (
+              <li key={candidate.id} className="rounded-2xl bg-white p-5 shadow-lg">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-base font-semibold text-slate-900">{candidate.name}</p>
+                    <p className="text-sm text-slate-600">{candidate.trade || "General"} • {candidate.location}</p>
+                  </div>
+                  {candidate.resumeUrl ? (
+                    <a
+                      href={candidate.resumeUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-sky-600"
+                    >
+                      View resume
+                      <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                      </svg>
+                    </a>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </main>
   );
@@ -140,35 +84,30 @@ export async function getServerSideProps(context) {
 
   try {
     const { default: prisma } = await import("@/lib/prisma");
-    const employerProfile = await prisma.employerProfile.findUnique({
-      where: { userId: session.user.id },
+
+    const saved = await prisma.saved_candidates.findMany({
+      where: { employerprofile: { userId: session.user.id } },
       include: {
-        savedCandidates: {
-          orderBy: { saved_at: "desc" },
-          include: {
-            jobseekerprofile: true,
-          },
-        },
+        jobseekerprofile: true,
       },
+      orderBy: { saved_at: "desc" },
     });
 
-    const initialSaved = (employerProfile?.savedCandidates || []).map((item) => ({
-      id: item.id,
-      saved_at: item.saved_at?.toISOString?.() ?? item.saved_at,
-      jobseekerprofile: item.jobseekerprofile,
+    const formatted = saved.map((entry) => ({
+      id: entry.id,
+      name: [entry.jobseekerprofile?.firstName, entry.jobseekerprofile?.lastName].filter(Boolean).join(" ") || "Unnamed candidate",
+      trade: entry.jobseekerprofile?.trade,
+      location: [entry.jobseekerprofile?.city, entry.jobseekerprofile?.state].filter(Boolean).join(", "),
+      resumeUrl: entry.jobseekerprofile?.resumeUrl || null,
     }));
 
     return {
-      props: {
-        initialSaved,
-      },
+      props: { saved: formatted },
     };
   } catch (error) {
     console.error(error);
     return {
-      props: {
-        initialSaved: [],
-      },
+      props: { saved: [] },
     };
   }
 }

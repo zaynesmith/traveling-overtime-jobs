@@ -1,62 +1,66 @@
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 
-const BENEFITS = {
-  basic: ["Post jobs and track applicants", "Save up to 25 candidates", "Email support"],
-  pro: ["Unlimited job postings", "Advanced resume search filters", "Priority support"],
-  enterprise: ["Dedicated account manager", "Custom integrations", "Bulk applicant messaging"],
-};
+const plans = [
+  {
+    name: "Basic",
+    price: "$299/mo",
+    features: ["Up to 5 active job posts", "Resume search with limited filters", "Email support"],
+  },
+  {
+    name: "Growth",
+    price: "$499/mo",
+    features: ["Unlimited job posts", "Full resume search", "Saved candidate sync", "Priority support"],
+  },
+  {
+    name: "Enterprise",
+    price: "Custom",
+    features: ["Dedicated success manager", "ATS integrations", "Custom billing", "Onsite hiring events"],
+  },
+];
 
 export default function BillingPage({ subscription }) {
-  const tierKey = (subscription?.tier || "basic").toLowerCase();
-  const benefits = BENEFITS[tierKey] || BENEFITS.basic;
-
   return (
     <main className="bg-slate-50 py-12">
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-        <header className="mb-8 space-y-2">
-          <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">Billing &amp; Tier Info</p>
+      <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 sm:px-6 lg:px-8">
+        <header className="space-y-2 text-center sm:text-left">
+          <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">Billing &amp; Tier</p>
           <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Manage your plan</h1>
-          <p className="text-sm text-slate-600">
-            Review the benefits of your current subscription and reach out to upgrade when you&apos;re ready.
+          <p className="max-w-2xl text-base text-slate-600">
+            Review your current subscription, explore upgrade options, and keep payment details current.
           </p>
         </header>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="rounded-2xl bg-slate-900 p-6 text-white shadow-lg">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-200">Current tier</p>
-              <h2 className="mt-2 text-2xl font-bold capitalize">{subscription?.tier || "basic"}</h2>
-              <p className="mt-4 text-sm text-slate-200/80">
-                Status: <span className="font-semibold capitalize">{subscription?.status || "free"}</span>
-              </p>
-              <p className="mt-4 text-xs text-slate-300">
-                Need to adjust billing? Contact support and we&apos;ll handle updates within one business day.
-              </p>
+        <section className="rounded-2xl bg-white p-6 shadow-lg">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">Current tier</p>
+              <p className="text-2xl font-bold text-slate-900">{subscription.tier}</p>
+              <p className="text-sm text-slate-600 capitalize">Status: {subscription.status}</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Included benefits</p>
-              <ul className="mt-3 space-y-2 text-sm text-slate-600">
-                {benefits.map((item) => (
-                  <li key={item} className="flex items-start gap-2">
-                    <span className="mt-1 h-2 w-2 rounded-full bg-sky-500" aria-hidden="true" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <button className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500">
+              Update payment method
+            </button>
           </div>
+        </section>
 
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
-            <a
-              href="mailto:support@travelingovertimejobs.com"
-              className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
-            >
-              Contact support
-            </a>
-            <p className="text-xs text-slate-500">
-              Next invoice details will appear once billing is connected to your workspace.
-            </p>
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-slate-900">Compare plans</h2>
+          <div className="grid gap-6 md:grid-cols-3">
+            {plans.map((plan) => (
+              <div key={plan.name} className="rounded-2xl bg-white p-6 shadow-lg">
+                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">{plan.name}</p>
+                <p className="mt-2 text-2xl font-bold text-slate-900">{plan.price}</p>
+                <ul className="mt-4 space-y-2 text-sm text-slate-600">
+                  {plan.features.map((feature) => (
+                    <li key={feature}>• {feature}</li>
+                  ))}
+                </ul>
+                <button className="mt-6 w-full rounded-xl border border-sky-200 px-4 py-2 text-sm font-semibold text-sky-600 transition hover:bg-sky-50">
+                  {plan.name === subscription.tier ? "Current plan" : "Talk to sales"}
+                </button>
+              </div>
+            ))}
           </div>
         </section>
       </div>
@@ -88,19 +92,15 @@ export async function getServerSideProps(context) {
 
   try {
     const { default: prisma } = await import("@/lib/prisma");
-    const employerProfile = await prisma.employerProfile.findUnique({
+    const profile = await prisma.employerProfile.findUnique({
       where: { userId: session.user.id },
-      select: {
-        subscription_status: true,
-        subscription_tier: true,
-      },
     });
 
     return {
       props: {
         subscription: {
-          status: employerProfile?.subscription_status || "free",
-          tier: employerProfile?.subscription_tier || "basic",
+          tier: profile?.subscription_tier || "Basic",
+          status: profile?.subscription_status || "active",
         },
       },
     };
@@ -108,7 +108,7 @@ export async function getServerSideProps(context) {
     console.error(error);
     return {
       props: {
-        subscription: { status: "free", tier: "basic" },
+        subscription: { tier: "Basic", status: "active" },
       },
     };
   }

@@ -2,11 +2,11 @@ import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 
-function Card({ href, title, description, children }) {
+function DashboardCard({ href, title, description, children, cta = "Open" }) {
   return (
     <Link
       href={href}
-      className="group block rounded-2xl border border-slate-200 bg-white p-6 shadow-lg transition-all duration-300 ease-out hover:scale-105 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200"
+      className="group block rounded-2xl bg-white p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200"
     >
       <div className="flex h-full flex-col gap-4">
         <div>
@@ -15,7 +15,7 @@ function Card({ href, title, description, children }) {
         </div>
         {children}
         <span className="mt-auto inline-flex items-center gap-2 text-sm font-semibold text-sky-600">
-          Open
+          {cta}
           <svg
             aria-hidden="true"
             className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
@@ -52,45 +52,65 @@ export default function JobseekerDashboard({ profileSummary, applicationCount, r
           <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">Jobseeker Dashboard</p>
           <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Your next assignment starts here</h1>
           <p className="max-w-3xl text-base text-slate-600">
-            Keep your profile sharp, explore new postings, and track applications—all from this streamlined control center.
+            Keep your profile sharp, explore fresh postings, and monitor applications—all from this polished hub.
           </p>
         </header>
 
         <section>
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            <Card href="/dashboard/jobseeker/profile" title="Profile" description="Update your info and upload your resume.">
+            <DashboardCard
+              href="/dashboard/jobseeker/profile"
+              title="Profile"
+              description="Update your basics, upload a resume, and stay discoverable."
+            >
               <div className="rounded-xl bg-slate-100 p-4 text-sm text-slate-600">
                 <p className="font-semibold text-slate-900">{profileSummary.completed}/{profileSummary.total} fields complete</p>
                 <p className="mt-2 text-xs text-slate-500">Complete your profile to stand out to employers.</p>
               </div>
-            </Card>
+            </DashboardCard>
 
-            <Card href="/dashboard/jobseeker/jobs" title="Job Search" description="Browse and filter the latest travel jobs.">
+            <DashboardCard
+              href="/dashboard/jobseeker/jobs"
+              title="Job Search"
+              description="Browse the newest travel roles with powerful filters."
+            >
               <ul className="space-y-2 text-sm text-slate-600">
-                <li>• Search by trade, location, and keywords</li>
-                <li>• See overtime and per diem details at a glance</li>
-                <li>• Apply directly from the listings</li>
+                <li>• Filter by trade, location, and keywords</li>
+                <li>• Preview overtime and per diem quickly</li>
+                <li>• Save roles for later follow-up</li>
               </ul>
-            </Card>
+            </DashboardCard>
 
-            <Card href="/dashboard/jobseeker/applications" title="Applications" description="Track your recent submissions.">
+            <DashboardCard
+              href="/dashboard/jobseeker/applications"
+              title="Applications"
+              description="Track submissions and see status updates."
+            >
               <p className="text-sm text-slate-600">
-                You&apos;ve submitted <span className="font-semibold text-slate-900">{applicationCount}</span> application
+                You&apos;ve applied to <span className="font-semibold text-slate-900">{applicationCount}</span> job
                 {applicationCount === 1 ? "" : "s"}.
               </p>
-            </Card>
+            </DashboardCard>
 
-            <Card href="/dashboard/jobseeker/activity" title="Activity" description="Control visibility and boost your profile.">
+            <DashboardCard
+              href="/dashboard/jobseeker/activity"
+              title="Activity"
+              description="Control visibility and boost your profile."
+            >
               <p className="text-sm text-slate-600">
                 {formatLastActive(recentActivity)} · {bumpEligible ? "Eligible for profile bump" : "Bump available soon"}
               </p>
-            </Card>
+            </DashboardCard>
 
-            <Card href="/dashboard/jobseeker/settings" title="Settings" description="Manage alerts, privacy, and account access.">
+            <DashboardCard
+              href="/dashboard/jobseeker/settings"
+              title="Settings"
+              description="Manage alerts, privacy, and account access."
+            >
               <p className="text-sm text-slate-600">
-                Configure job alerts, update your password, and control who can view your profile.
+                Configure job alerts, update security preferences, and control visibility.
               </p>
-            </Card>
+            </DashboardCard>
           </div>
         </section>
       </div>
@@ -132,7 +152,7 @@ export async function getServerSideProps(context) {
       select: { id: true },
     });
 
-    const totalFields = 9; // matches profile fields tracked in the editor
+    const totalFields = 9;
     const completed = [
       profile?.firstName,
       profile?.lastName,

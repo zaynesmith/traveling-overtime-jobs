@@ -1,21 +1,22 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
+import { normalizeTrade } from "@/lib/trades";
 
-function Card({ href, title, description, children }) {
+function DashboardCard({ href, title, description, children, cta = "Open" }) {
   return (
     <Link
       href={href}
-      className="group block rounded-2xl border border-slate-200 bg-white p-6 shadow-lg transition-all duration-300 ease-out hover:scale-105 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200"
+      className="group block rounded-2xl bg-white p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200"
     >
-      <div className="flex flex-col gap-4">
+      <div className="flex h-full flex-col gap-4">
         <div>
           <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
           <p className="mt-1 text-sm text-slate-600">{description}</p>
         </div>
         {children}
         <span className="mt-auto inline-flex items-center gap-2 text-sm font-semibold text-sky-600">
-          Manage
+          {cta}
           <svg
             aria-hidden="true"
             className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
@@ -34,6 +35,25 @@ function Card({ href, title, description, children }) {
   );
 }
 
+function JobPreview({ job }) {
+  const location = [job.city, job.state].filter(Boolean).join(", ") || job.location || job.zip || "";
+  const trade = normalizeTrade(job.trade) || "General";
+
+  return (
+    <li className="flex items-center justify-between gap-3 text-sm">
+      <div className="min-w-0">
+        <p className="truncate font-semibold text-slate-800">{job.title}</p>
+        <p className="truncate text-slate-500">{trade}{location ? ` • ${location}` : ""}</p>
+      </div>
+      {job.newApplicants > 0 ? (
+        <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+          {job.newApplicants} new
+        </span>
+      ) : null}
+    </li>
+  );
+}
+
 export default function EmployerDashboard({ previewJobs, savedCount, subscription }) {
   return (
     <main className="bg-slate-50 py-12">
@@ -42,60 +62,74 @@ export default function EmployerDashboard({ previewJobs, savedCount, subscriptio
           <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">Employer Dashboard</p>
           <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Welcome back</h1>
           <p className="max-w-3xl text-base text-slate-600">
-            Navigate between your hiring tools. Post new listings, review applicants, and manage your subscription in just a
-            couple of clicks.
+            Quickly jump to hiring tasks, monitor recent postings, and keep an eye on your subscription in one polished hub.
           </p>
         </header>
 
         <section>
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            <Card href="/dashboard/employer/post-job" title="Post a Job" description="Share a new travel assignment in minutes.">
+            <DashboardCard
+              href="/dashboard/employer/post-job"
+              title="Post a Job"
+              description="Publish a new assignment with guided fields and instant confirmation."
+              cta="Create"
+            >
               <ul className="space-y-2 text-sm text-slate-600">
-                <li>• Guided form with required fields</li>
-                <li>• Preview pay, per diem, and requirements</li>
-                <li>• Auto-redirect to manage applicants</li>
+                <li>• Add pay, per diem, and requirements</li>
+                <li>• Preview trade and location details</li>
+                <li>• Redirects to manage applicants</li>
               </ul>
-            </Card>
+            </DashboardCard>
 
-            <Card href="/dashboard/employer/posted-jobs" title="Posted Jobs" description="See your latest listings and applicant activity.">
+            <DashboardCard
+              href="/dashboard/employer/posted-jobs"
+              title="Posted Jobs"
+              description="Review your latest listings and applicant activity."
+            >
               {previewJobs.length === 0 ? (
-                <p className="text-sm font-medium text-slate-500">No jobs posted yet. Create your first listing to see it here.</p>
+                <p className="text-sm font-medium text-slate-500">No active listings yet—post your first job to see it here.</p>
               ) : (
                 <ul className="space-y-3">
                   {previewJobs.map((job) => (
-                    <li key={job.id} className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-slate-700 line-clamp-1">{job.title}</span>
-                      {job.newApplicants > 0 ? (
-                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                          {job.newApplicants} new applicant{job.newApplicants === 1 ? "" : "s"}
-                        </span>
-                      ) : null}
-                    </li>
+                    <JobPreview key={job.id} job={job} />
                   ))}
                 </ul>
               )}
-            </Card>
+            </DashboardCard>
 
-            <Card href="/dashboard/employer/resume-search" title="Resume Search" description="Filter the candidate pool by trade and location.">
+            <DashboardCard
+              href="/dashboard/employer/resume-search"
+              title="Resume Search"
+              description="Explore the candidate pool by trade, location, and keywords."
+            >
               <p className="text-sm text-slate-600">
-                Search by trade, radius, and keywords to find traveling professionals that match your open assignments.
+                Dial in the right traveling professionals using filters for trade, proximity, and experience.
               </p>
-            </Card>
+            </DashboardCard>
 
-            <Card href="/dashboard/employer/saved" title="Saved Candidates" description="Revisit the talent you bookmarked for later.">
+            <DashboardCard
+              href="/dashboard/employer/saved"
+              title="Saved Candidates"
+              description="Revisit talent you bookmarked for quick follow-up."
+            >
               <p className="text-sm text-slate-600">
-                You have <span className="font-semibold text-slate-900">{savedCount}</span> saved candidate{savedCount === 1 ? "" : "s"}
-                ready for follow-up.
+                You have <span className="font-semibold text-slate-900">{savedCount}</span> saved candidate
+                {savedCount === 1 ? "" : "s"} ready for outreach.
               </p>
-            </Card>
+            </DashboardCard>
 
-            <Card href="/dashboard/employer/billing" title="Billing &amp; Tier Info" description="Review your subscription and plan details.">
+            <DashboardCard
+              href="/dashboard/employer/billing"
+              title="Billing &amp; Tier Info"
+              description="Manage your subscription and invoices."
+              cta="Manage"
+            >
               <div className="rounded-xl bg-slate-100 p-4 text-sm text-slate-600">
                 <p className="font-semibold text-slate-900">Current tier: {subscription.tier || "Basic"}</p>
                 <p className="mt-1 capitalize">Status: {subscription.status || "active"}</p>
-                <p className="mt-2 text-xs text-slate-500">Manage invoices, upgrade tiers, and update payment methods.</p>
+                <p className="mt-2 text-xs text-slate-500">Update payment methods or upgrade plans with a few clicks.</p>
               </div>
-            </Card>
+            </DashboardCard>
           </div>
         </section>
       </div>
@@ -141,15 +175,18 @@ export async function getServerSideProps(context) {
             },
           },
         },
-        savedCandidates: {
-          select: { id: true },
-        },
+        savedCandidates: { select: { id: true } },
       },
     });
 
     const previewJobs = (employerProfile?.jobs || []).map((job) => ({
       id: job.id,
       title: job.title,
+      city: job.city,
+      state: job.state,
+      location: job.location,
+      zip: job.zip,
+      trade: job.trade,
       newApplicants: job.applications?.length || 0,
     }));
 
