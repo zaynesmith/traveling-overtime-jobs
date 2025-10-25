@@ -14,6 +14,24 @@ const filterPanelClasses =
 const listingCardClasses =
   "bg-white border border-gray-200 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.12)] transition-transform transform hover:-translate-y-0.5 p-6";
 
+function formatJobLocation(job) {
+  if (!job) return "";
+  const cityState = [job.city, job.state].filter(Boolean).join(", ");
+  const parts = [cityState, job.zip].filter(Boolean);
+  if (parts.length) {
+    return parts.join(" ");
+  }
+  return job.location || job.zip || "";
+}
+
+function formatCompensation(job) {
+  if (!job) return "";
+  const values = [];
+  if (job.hourlyPay) values.push(job.hourlyPay);
+  if (job.perDiem) values.push(`Per diem: ${job.perDiem}`);
+  return values.join(" • ");
+}
+
 export default function Jobs() {
   const [formFilters, setFormFilters] = useState(defaultFilters);
   const [activeFilters, setActiveFilters] = useState(defaultFilters);
@@ -164,20 +182,16 @@ export default function Jobs() {
               <Link key={job.id} href={`/jobs/${job.id}`} className={`${listingCardClasses} block`}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className="text-xl font-semibold text-slate-900">{job.title}</h2>
-                  {job.payrate ? (
+                  {formatCompensation(job) ? (
                     <span className="rounded-full bg-sky-100 px-3 py-1 text-sm font-semibold text-sky-700">
-                      {job.payrate}
+                      {formatCompensation(job)}
                     </span>
                   ) : null}
                 </div>
                 <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-sky-600">
                   {job.trade || "General"}
                 </p>
-                <p className="mt-2 text-sm text-slate-600">
-                  {job.location || job.zip
-                    ? `${job.location || ""}${job.location && job.zip ? " • " : ""}${job.zip || ""}`
-                    : "Location TBD"}
-                </p>
+                <p className="mt-2 text-sm text-slate-600">{formatJobLocation(job) || "Location TBD"}</p>
                 <p className="mt-3 text-sm text-slate-500 line-clamp-2">
                   {job.description || "No description provided."}
                 </p>

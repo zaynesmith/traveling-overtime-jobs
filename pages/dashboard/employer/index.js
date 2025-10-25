@@ -8,9 +8,12 @@ const defaultJobForm = {
   title: "",
   trade: "",
   description: "",
-  location: "",
+  city: "",
+  state: "",
   zip: "",
-  payrate: "",
+  hourlyPay: "",
+  perDiem: "",
+  additionalRequirements: "",
 };
 
 const defaultResumeFilters = {
@@ -28,6 +31,24 @@ function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString();
+}
+
+function formatJobLocation(job) {
+  if (!job) return "";
+  const cityState = [job.city, job.state].filter(Boolean).join(", ");
+  const parts = [cityState, job.zip].filter(Boolean);
+  if (parts.length) {
+    return parts.join(" ");
+  }
+  return job.location || job.zip || "";
+}
+
+function formatCompensation(job) {
+  if (!job) return "";
+  const details = [];
+  if (job.hourlyPay) details.push(job.hourlyPay);
+  if (job.perDiem) details.push(`Per diem: ${job.perDiem}`);
+  return details.join(" • ");
 }
 
 function formatLastActive(value) {
@@ -220,12 +241,22 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
                 </select>
               </div>
               <div className="flex flex-col">
-                <label className="text-sm font-medium text-slate-700">Location</label>
+                <label className="text-sm font-medium text-slate-700">City</label>
                 <input
-                  name="location"
-                  value={jobForm.location}
+                  name="city"
+                  value={jobForm.city}
                   onChange={handleJobChange}
                   className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-slate-700">State</label>
+                <input
+                  name="state"
+                  value={jobForm.state}
+                  onChange={handleJobChange}
+                  maxLength={2}
+                  className="mt-1 uppercase rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
                 />
               </div>
               <div className="flex flex-col">
@@ -238,10 +269,19 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
                 />
               </div>
               <div className="flex flex-col">
-                <label className="text-sm font-medium text-slate-700">Pay Rate</label>
+                <label className="text-sm font-medium text-slate-700">Hourly Pay</label>
                 <input
-                  name="payrate"
-                  value={jobForm.payrate}
+                  name="hourlyPay"
+                  value={jobForm.hourlyPay}
+                  onChange={handleJobChange}
+                  className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-slate-700">Per Diem</label>
+                <input
+                  name="perDiem"
+                  value={jobForm.perDiem}
                   onChange={handleJobChange}
                   className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
                 />
@@ -254,6 +294,18 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
                   onChange={handleJobChange}
                   required
                   rows={6}
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-slate-700">
+                  Additional Requirements / Certifications
+                </label>
+                <textarea
+                  name="additionalRequirements"
+                  value={jobForm.additionalRequirements}
+                  onChange={handleJobChange}
+                  rows={4}
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
                 />
               </div>
@@ -312,9 +364,9 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
                       {job.trade || "General"}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">{job.location || job.zip || "Location TBD"}</p>
+                  <p className="mt-1 text-sm text-slate-600">{formatJobLocation(job) || "Location TBD"}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                    {job.payrate ? <span>{job.payrate}</span> : null}
+                    {formatCompensation(job) ? <span>{formatCompensation(job)}</span> : null}
                     {job.posted_at ? <span>Posted {formatDate(job.posted_at)}</span> : null}
                   </div>
                 </li>

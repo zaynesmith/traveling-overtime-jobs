@@ -106,8 +106,12 @@ model jobs {
   description       String?
   trade             String?
   location          String?
+  city              String?
+  state             String?
   zip               String?
-  payrate           String?
+  hourlyPay         String?         @map("payrate")
+  perDiem           String?         @map("per_diem")
+  additionalRequirements String?    @map("additional_requirements")
   posted_at         DateTime?        @default(now()) @db.Timestamp(6)
 
   applications      applications[]

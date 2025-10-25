@@ -29,6 +29,24 @@ function formatDate(value) {
   return date.toLocaleDateString();
 }
 
+function formatJobLocation(job) {
+  if (!job) return "";
+  const cityState = [job.city, job.state].filter(Boolean).join(", ");
+  const parts = [cityState, job.zip].filter(Boolean);
+  if (parts.length) {
+    return parts.join(" ");
+  }
+  return job.location || job.zip || "";
+}
+
+function formatCompensation(job) {
+  if (!job) return "";
+  const values = [];
+  if (job.hourlyPay) values.push(job.hourlyPay);
+  if (job.perDiem) values.push(`Per diem: ${job.perDiem}`);
+  return values.join(" • ");
+}
+
 export default function JobseekerDashboard({ initialProfile, applications, lastActive, bumpEligible }) {
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [profile, setProfile] = useState(() => ({
@@ -315,14 +333,14 @@ export default function JobseekerDashboard({ initialProfile, applications, lastA
             <article key={job.id} className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-xl font-semibold text-white">{job.title}</h3>
-                {job.payrate ? (
+                {formatCompensation(job) ? (
                   <span className="rounded bg-amber-500/20 px-3 py-1 text-sm font-semibold text-amber-300">
-                    {job.payrate}
+                    {formatCompensation(job)}
                   </span>
                 ) : null}
               </div>
               <p className="text-sm uppercase tracking-wide text-amber-400">{job.trade || "General"}</p>
-              <p className="mt-1 text-slate-300">{job.location || job.zip || "Location TBD"}</p>
+              <p className="mt-1 text-slate-300">{formatJobLocation(job) || "Location TBD"}</p>
               <p className="mt-3 text-sm text-slate-400 line-clamp-2">
                 {job.description || "No description provided."}
               </p>
