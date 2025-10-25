@@ -2,131 +2,83 @@ import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 
-function DashboardCard({ href, title, description, children, cta = "Open" }) {
+const cards = [
+  {
+    href: "/dashboard/jobseeker/profile",
+    title: "Profile",
+    description: "Complete your profile and catch the eyes of employers.",
+    cta: "Update",
+  },
+  {
+    href: "/dashboard/jobseeker/jobs",
+    title: "Job Search",
+    description: "Explore new assignments tailored to your skills and travel goals.",
+    cta: "Search",
+  },
+  {
+    href: "/dashboard/jobseeker/applications",
+    title: "Applications",
+    description: "Check on your submissions and see any updates.",
+    cta: "View",
+  },
+  {
+    href: "/dashboard/jobseeker/activity",
+    title: "Activity",
+    description: "See your recent searches, saved jobs, and more.",
+    cta: "View",
+  },
+];
+
+function DashboardCard({ href, title, description, cta }) {
   return (
     <Link
       href={href}
-      className="group block h-full rounded-3xl bg-white/90 p-6 shadow-xl ring-1 ring-slate-900/5 transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200"
+      className="group flex h-full flex-col justify-between rounded-3xl bg-white/95 p-8 text-left shadow-[0_20px_48px_rgba(15,23,42,0.1)] ring-1 ring-slate-200 transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-[0_26px_64px_rgba(15,23,42,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
     >
-      <div className="flex h-full flex-col gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
-          <p className="mt-1 text-sm text-slate-600">{description}</p>
-        </div>
-        {children}
-        <span className="mt-auto inline-flex items-center justify-center gap-2 self-start rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition-colors duration-300 group-hover:bg-slate-700">
-          {cta}
-          <svg
-            aria-hidden="true"
-            className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <path d="M5 12h14M12 5l7 7-7 7" />
-          </svg>
-        </span>
+      <div className="space-y-3">
+        <h2 className="text-2xl font-semibold text-slate-900">{title}</h2>
+        <p className="text-sm leading-6 text-slate-600">{description}</p>
       </div>
+      <span className="mt-8 inline-flex items-center gap-2 self-start rounded-full bg-white px-5 py-2 text-sm font-bold text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.15)] transition-all duration-300 group-hover:translate-x-1 group-hover:shadow-[0_12px_32px_rgba(15,23,42,0.2)]">
+        {cta}
+        <svg
+          aria-hidden="true"
+          className="h-4 w-4 text-slate-500 transition-transform duration-300 group-hover:translate-x-1"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          viewBox="0 0 24 24"
+        >
+          <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+      </span>
     </Link>
   );
 }
 
-function formatLastActive(value) {
-  if (!value) return "No recent activity";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "No recent activity";
-  const diffMs = Date.now() - date.getTime();
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (days <= 0) return "Active today";
-  return `Active ${days} day${days === 1 ? "" : "s"} ago`;
-}
-
-export default function JobseekerDashboard({
-  profileSummary,
-  applicationCount,
-  recentActivity,
-  bumpEligible,
-  greetingName,
-}) {
+export default function JobseekerDashboard({ greetingName }) {
   const heading = greetingName ? `Welcome back, ${greetingName}` : "Welcome back";
 
   return (
-    <main className="bg-slate-100">
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-16 text-slate-100">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.25),transparent_55%)]" aria-hidden="true" />
-        <div className="relative mx-auto flex max-w-6xl flex-col gap-4 px-4 sm:px-6 lg:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-300">Jobseeker Dashboard</p>
-          <h1 className="text-3xl font-bold sm:text-4xl">{heading}</h1>
-          <p className="max-w-2xl text-sm text-slate-300 sm:text-base">
-            Jump straight into the tools designed to keep your profile sharp, uncover fresh postings, and stay ahead of new opportunities in traveling skilled trades.
+    <main className="min-h-screen bg-gradient-to-b from-white via-white to-slate-100">
+      <section className="bg-white">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-6 py-16 text-center sm:px-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Jobseeker Dashboard</p>
+          <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">{heading}</h1>
+          <p className="max-w-3xl text-base text-slate-500 sm:text-lg">
+            Keep your profile updated, search for fresh opportunities, and monitor your application status.
           </p>
         </div>
-      </div>
+      </section>
 
-      <section className="relative z-10 -mt-12 pb-16">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            <DashboardCard
-              href="/dashboard/jobseeker/profile"
-              title="Profile"
-              description="Keep your travel-ready profile polished with the essentials employers want to see."
-              cta="Review"
-            >
-              <div className="rounded-xl bg-slate-100 p-4 text-sm text-slate-600">
-                <p className="font-semibold text-slate-900">{profileSummary.completed}/{profileSummary.total} fields complete</p>
-                <p className="mt-2 text-xs text-slate-500">Complete your profile to stand out to employers.</p>
-              </div>
-            </DashboardCard>
-
-            <DashboardCard
-              href="/dashboard/jobseeker/jobs"
-              title="Job Search"
-              description="Browse curated overtime roles with the filters and signals you rely on."
-              cta="Explore"
-            >
-              <ul className="space-y-2 text-sm text-slate-600">
-                <li>• Filter by trade, location, and keywords</li>
-                <li>• Preview overtime and per diem quickly</li>
-                <li>• Save roles for later follow-up</li>
-              </ul>
-            </DashboardCard>
-
-            <DashboardCard
-              href="/dashboard/jobseeker/applications"
-              title="Applications"
-              description="See where you stand at a glance with every assignment you&apos;ve pursued."
-              cta="Track"
-            >
-              <p className="text-sm text-slate-600">
-                You&apos;ve applied to <span className="font-semibold text-slate-900">{applicationCount}</span> job
-                {applicationCount === 1 ? "" : "s"}.
-              </p>
-            </DashboardCard>
-
-            <DashboardCard
-              href="/dashboard/jobseeker/activity"
-              title="Activity"
-              description="Control when employers can find you and trigger boosts when you&apos;re ready."
-              cta="Manage"
-            >
-              <p className="text-sm text-slate-600">
-                {formatLastActive(recentActivity)} · {bumpEligible ? "Eligible for profile bump" : "Bump available soon"}
-              </p>
-            </DashboardCard>
-
-            <DashboardCard
-              href="/dashboard/jobseeker/settings"
-              title="Settings"
-              description="Fine-tune alerts, privacy controls, and account access in one spot."
-              cta="Adjust"
-            >
-              <p className="text-sm text-slate-600">
-                Configure job alerts, update security preferences, and control visibility.
-              </p>
-            </DashboardCard>
+      <section className="-mt-8 pb-20">
+        <div className="mx-auto max-w-6xl px-6 sm:px-8">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {cards.map((card) => (
+              <DashboardCard key={card.href} {...card} />
+            ))}
           </div>
         </div>
       </section>
@@ -156,54 +108,33 @@ export async function getServerSideProps(context) {
     };
   }
 
-  const baseGreeting = session.user?.name?.split?.(" ")[0] || "";
+  const baseGreeting = session.user?.name?.trim?.() || "";
 
   try {
     const { default: prisma } = await import("@/lib/prisma");
 
     const profile = await prisma.jobseekerProfile.findUnique({
       where: { userId: session.user.id },
+      select: {
+        firstName: true,
+        lastName: true,
+      },
     });
 
-    const applications = await prisma.applications.findMany({
-      where: { jobseeker_id: profile?.id || "" },
-      select: { id: true },
-    });
-
-    const totalFields = 9;
-    const completed = [
-      profile?.firstName,
-      profile?.lastName,
-      profile?.email,
-      profile?.trade,
-      profile?.address1,
-      profile?.city,
-      profile?.state,
-      profile?.zip,
-      profile?.resumeUrl,
-    ].filter((value) => Boolean(value && String(value).trim())).length;
-
-    const lastActive = profile?.lastActive ? profile.lastActive.toISOString?.() ?? profile.lastActive : null;
-    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-    const bumpEligible = !lastActive || Date.now() - new Date(lastActive).getTime() >= sevenDaysMs;
+    const profileName = [profile?.firstName, profile?.lastName]
+      .map((value) => (value ? String(value).trim() : ""))
+      .filter(Boolean)
+      .join(" ");
 
     return {
       props: {
-        profileSummary: { total: totalFields, completed },
-        applicationCount: applications.length,
-        recentActivity: lastActive,
-        bumpEligible,
-        greetingName: profile?.firstName?.trim() || baseGreeting,
+        greetingName: profileName || baseGreeting,
       },
     };
   } catch (error) {
     console.error(error);
     return {
       props: {
-        profileSummary: { total: 9, completed: 0 },
-        applicationCount: 0,
-        recentActivity: null,
-        bumpEligible: true,
         greetingName: baseGreeting,
       },
     };

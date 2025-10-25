@@ -8,48 +8,32 @@ export default function Header() {
   const dashboardHref = role === "employer" ? "/employer/dashboard" : "/jobseeker/dashboard";
 
   return (
-    <header style={wrap}>
-      <Link href="/" style={brand}>
-        Traveling Overtime Jobs
-      </Link>
-      {session ? (
-        <nav style={nav}>
-          <Link href={dashboardHref} style={navLink}>
-            Dashboard
-          </Link>
-          <button type="button" onClick={() => signOut({ callbackUrl: "/" })} style={buttonLink}>
-            Sign out
-          </button>
-        </nav>
-      ) : null}
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+        <Link
+          href="/"
+          className="text-base font-semibold tracking-tight text-slate-900 transition-colors hover:text-slate-600"
+        >
+          Traveling Overtime Jobs
+        </Link>
+        {session ? (
+          <nav className="flex items-center gap-3">
+            <Link
+              href={dashboardHref}
+              className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+            >
+              Dashboard
+            </Link>
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(15,23,42,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+            >
+              Sign out
+            </button>
+          </nav>
+        ) : null}
+      </div>
     </header>
   );
 }
-
-const wrap = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: "14px 20px",
-  borderBottom: "1px solid #eee",
-  position: "sticky",
-  top: 0,
-  background: "#fff",
-  zIndex: 10,
-};
-
-const brand = { fontWeight: 800, textDecoration: "none", color: "#111" };
-const nav = { display: "flex", gap: 10, alignItems: "center" };
-const navLink = {
-  textDecoration: "none",
-  color: "#111",
-  padding: "8px 10px",
-  borderRadius: 8,
-  border: "1px solid #eee",
-};
-const buttonLink = {
-  ...navLink,
-  background: "#111",
-  color: "#fff",
-  cursor: "pointer",
-};
