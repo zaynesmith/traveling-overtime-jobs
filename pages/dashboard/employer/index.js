@@ -7,7 +7,7 @@ function DashboardCard({ href, title, description, children, cta = "Open" }) {
   return (
     <Link
       href={href}
-      className="group block rounded-2xl bg-white p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200"
+      className="group block h-full rounded-3xl bg-white/90 p-6 shadow-xl ring-1 ring-slate-900/5 transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200"
     >
       <div className="flex h-full flex-col gap-4">
         <div>
@@ -15,11 +15,11 @@ function DashboardCard({ href, title, description, children, cta = "Open" }) {
           <p className="mt-1 text-sm text-slate-600">{description}</p>
         </div>
         {children}
-        <span className="mt-auto inline-flex items-center gap-2 text-sm font-semibold text-sky-600">
+        <span className="mt-auto inline-flex items-center justify-center gap-2 self-start rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition-colors duration-300 group-hover:bg-slate-700">
           {cta}
           <svg
             aria-hidden="true"
-            className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+            className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1"
             fill="none"
             stroke="currentColor"
             strokeLinecap="round"
@@ -54,37 +54,43 @@ function JobPreview({ job }) {
   );
 }
 
-export default function EmployerDashboard({ previewJobs, savedCount, subscription }) {
-  return (
-    <main className="bg-slate-50 py-12">
-      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 sm:px-6 lg:px-8">
-        <header className="space-y-3 text-center sm:text-left">
-          <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">Employer Dashboard</p>
-          <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Welcome back</h1>
-          <p className="max-w-3xl text-base text-slate-600">
-            Quickly jump to hiring tasks, monitor recent postings, and keep an eye on your subscription in one polished hub.
-          </p>
-        </header>
+export default function EmployerDashboard({ previewJobs, savedCount, subscription, greetingName }) {
+  const heading = greetingName ? `Welcome back, ${greetingName}` : "Welcome back";
 
-        <section>
+  return (
+    <main className="bg-slate-100">
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-16 text-slate-100">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.25),transparent_55%)]" aria-hidden="true" />
+        <div className="relative mx-auto flex max-w-6xl flex-col gap-4 px-4 sm:px-6 lg:px-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-300">Employer Dashboard</p>
+          <h1 className="text-3xl font-bold sm:text-4xl">{heading}</h1>
+          <p className="max-w-2xl text-sm text-slate-300 sm:text-base">
+            Keep your hiring pipeline in motion with quick access to posting tools, candidate insights, and billing controls tailored for traveling trades teams.
+          </p>
+        </div>
+      </div>
+
+      <section className="relative z-10 -mt-12 pb-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
             <DashboardCard
               href="/dashboard/employer/post-job"
               title="Post a Job"
-              description="Publish a new assignment with guided fields and instant confirmation."
+              description="Launch a new assignment with guided fields and instant confirmation."
               cta="Create"
             >
               <ul className="space-y-2 text-sm text-slate-600">
-                <li>• Add pay, per diem, and requirements</li>
-                <li>• Preview trade and location details</li>
-                <li>• Redirects to manage applicants</li>
+                <li>• Share pay, per diem, and schedule details</li>
+                <li>• Highlight trades, locations, and certifications</li>
+                <li>• Publish in minutes and start receiving applicants</li>
               </ul>
             </DashboardCard>
 
             <DashboardCard
               href="/dashboard/employer/posted-jobs"
               title="Posted Jobs"
-              description="Review your latest listings and applicant activity."
+              description="Review live listings and monitor fresh applicant activity."
+              cta="View"
             >
               {previewJobs.length === 0 ? (
                 <p className="text-sm font-medium text-slate-500">No active listings yet—post your first job to see it here.</p>
@@ -100,39 +106,41 @@ export default function EmployerDashboard({ previewJobs, savedCount, subscriptio
             <DashboardCard
               href="/dashboard/employer/resume-search"
               title="Resume Search"
-              description="Explore the candidate pool by trade, location, and keywords."
+              description="Explore the talent pool by trade, experience, and travel readiness."
+              cta="Search"
             >
               <p className="text-sm text-slate-600">
-                Dial in the right traveling professionals using filters for trade, proximity, and experience.
+                Dial in the right traveling professionals using filters for trade focus, proximity, and certifications.
               </p>
             </DashboardCard>
 
             <DashboardCard
               href="/dashboard/employer/saved"
               title="Saved Candidates"
-              description="Revisit talent you bookmarked for quick follow-up."
+              description="Revisit high-potential talent you bookmarked for outreach."
+              cta="Review"
             >
               <p className="text-sm text-slate-600">
                 You have <span className="font-semibold text-slate-900">{savedCount}</span> saved candidate
-                {savedCount === 1 ? "" : "s"} ready for outreach.
+                {savedCount === 1 ? "" : "s"} ready for follow-up.
               </p>
             </DashboardCard>
 
             <DashboardCard
               href="/dashboard/employer/billing"
               title="Billing &amp; Tier Info"
-              description="Manage your subscription and invoices."
+              description="Manage your subscription tier, invoices, and payment methods."
               cta="Manage"
             >
               <div className="rounded-xl bg-slate-100 p-4 text-sm text-slate-600">
                 <p className="font-semibold text-slate-900">Current tier: {subscription.tier || "Basic"}</p>
                 <p className="mt-1 capitalize">Status: {subscription.status || "active"}</p>
-                <p className="mt-2 text-xs text-slate-500">Update payment methods or upgrade plans with a few clicks.</p>
+                <p className="mt-2 text-xs text-slate-500">Update payment preferences or upgrade plans without leaving this hub.</p>
               </div>
             </DashboardCard>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </main>
   );
 }
@@ -158,6 +166,8 @@ export async function getServerSideProps(context) {
       },
     };
   }
+
+  const baseGreeting = session.user?.companyName?.trim?.() || session.user?.name?.split?.(" ")[0] || "";
 
   try {
     const { default: prisma } = await import("@/lib/prisma");
@@ -198,6 +208,7 @@ export async function getServerSideProps(context) {
           status: employerProfile?.subscription_status || "free",
           tier: employerProfile?.subscription_tier || "basic",
         },
+        greetingName: employerProfile?.companyName?.trim() || baseGreeting,
       },
     };
   } catch (error) {
@@ -207,6 +218,7 @@ export async function getServerSideProps(context) {
         previewJobs: [],
         savedCount: 0,
         subscription: { status: "free", tier: "basic" },
+        greetingName: baseGreeting,
       },
     };
   }
