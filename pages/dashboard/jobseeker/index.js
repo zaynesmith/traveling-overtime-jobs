@@ -6,7 +6,7 @@ function DashboardCard({ href, title, description, children, cta = "Open" }) {
   return (
     <Link
       href={href}
-      className="group block rounded-2xl bg-white p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200"
+      className="group block h-full rounded-3xl bg-white/90 p-6 shadow-xl ring-1 ring-slate-900/5 transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200"
     >
       <div className="flex h-full flex-col gap-4">
         <div>
@@ -14,11 +14,11 @@ function DashboardCard({ href, title, description, children, cta = "Open" }) {
           <p className="mt-1 text-sm text-slate-600">{description}</p>
         </div>
         {children}
-        <span className="mt-auto inline-flex items-center gap-2 text-sm font-semibold text-sky-600">
+        <span className="mt-auto inline-flex items-center justify-center gap-2 self-start rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition-colors duration-300 group-hover:bg-slate-700">
           {cta}
           <svg
             aria-hidden="true"
-            className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+            className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1"
             fill="none"
             stroke="currentColor"
             strokeLinecap="round"
@@ -44,24 +44,36 @@ function formatLastActive(value) {
   return `Active ${days} day${days === 1 ? "" : "s"} ago`;
 }
 
-export default function JobseekerDashboard({ profileSummary, applicationCount, recentActivity, bumpEligible }) {
-  return (
-    <main className="bg-slate-50 py-12">
-      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 sm:px-6 lg:px-8">
-        <header className="space-y-3 text-center sm:text-left">
-          <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">Jobseeker Dashboard</p>
-          <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Your next assignment starts here</h1>
-          <p className="max-w-3xl text-base text-slate-600">
-            Keep your profile sharp, explore fresh postings, and monitor applications—all from this polished hub.
-          </p>
-        </header>
+export default function JobseekerDashboard({
+  profileSummary,
+  applicationCount,
+  recentActivity,
+  bumpEligible,
+  greetingName,
+}) {
+  const heading = greetingName ? `Welcome back, ${greetingName}` : "Welcome back";
 
-        <section>
+  return (
+    <main className="bg-slate-100">
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-16 text-slate-100">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.25),transparent_55%)]" aria-hidden="true" />
+        <div className="relative mx-auto flex max-w-6xl flex-col gap-4 px-4 sm:px-6 lg:px-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-300">Jobseeker Dashboard</p>
+          <h1 className="text-3xl font-bold sm:text-4xl">{heading}</h1>
+          <p className="max-w-2xl text-sm text-slate-300 sm:text-base">
+            Jump straight into the tools designed to keep your profile sharp, uncover fresh postings, and stay ahead of new opportunities in traveling skilled trades.
+          </p>
+        </div>
+      </div>
+
+      <section className="relative z-10 -mt-12 pb-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
             <DashboardCard
               href="/dashboard/jobseeker/profile"
               title="Profile"
-              description="Update your basics, upload a resume, and stay discoverable."
+              description="Keep your travel-ready profile polished with the essentials employers want to see."
+              cta="Review"
             >
               <div className="rounded-xl bg-slate-100 p-4 text-sm text-slate-600">
                 <p className="font-semibold text-slate-900">{profileSummary.completed}/{profileSummary.total} fields complete</p>
@@ -72,7 +84,8 @@ export default function JobseekerDashboard({ profileSummary, applicationCount, r
             <DashboardCard
               href="/dashboard/jobseeker/jobs"
               title="Job Search"
-              description="Browse the newest travel roles with powerful filters."
+              description="Browse curated overtime roles with the filters and signals you rely on."
+              cta="Explore"
             >
               <ul className="space-y-2 text-sm text-slate-600">
                 <li>• Filter by trade, location, and keywords</li>
@@ -84,7 +97,8 @@ export default function JobseekerDashboard({ profileSummary, applicationCount, r
             <DashboardCard
               href="/dashboard/jobseeker/applications"
               title="Applications"
-              description="Track submissions and see status updates."
+              description="See where you stand at a glance with every assignment you&apos;ve pursued."
+              cta="Track"
             >
               <p className="text-sm text-slate-600">
                 You&apos;ve applied to <span className="font-semibold text-slate-900">{applicationCount}</span> job
@@ -95,7 +109,8 @@ export default function JobseekerDashboard({ profileSummary, applicationCount, r
             <DashboardCard
               href="/dashboard/jobseeker/activity"
               title="Activity"
-              description="Control visibility and boost your profile."
+              description="Control when employers can find you and trigger boosts when you&apos;re ready."
+              cta="Manage"
             >
               <p className="text-sm text-slate-600">
                 {formatLastActive(recentActivity)} · {bumpEligible ? "Eligible for profile bump" : "Bump available soon"}
@@ -105,15 +120,16 @@ export default function JobseekerDashboard({ profileSummary, applicationCount, r
             <DashboardCard
               href="/dashboard/jobseeker/settings"
               title="Settings"
-              description="Manage alerts, privacy, and account access."
+              description="Fine-tune alerts, privacy controls, and account access in one spot."
+              cta="Adjust"
             >
               <p className="text-sm text-slate-600">
                 Configure job alerts, update security preferences, and control visibility.
               </p>
             </DashboardCard>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </main>
   );
 }
@@ -139,6 +155,8 @@ export async function getServerSideProps(context) {
       },
     };
   }
+
+  const baseGreeting = session.user?.name?.split?.(" ")[0] || "";
 
   try {
     const { default: prisma } = await import("@/lib/prisma");
@@ -175,6 +193,7 @@ export async function getServerSideProps(context) {
         applicationCount: applications.length,
         recentActivity: lastActive,
         bumpEligible,
+        greetingName: profile?.firstName?.trim() || baseGreeting,
       },
     };
   } catch (error) {
@@ -185,6 +204,7 @@ export async function getServerSideProps(context) {
         applicationCount: 0,
         recentActivity: null,
         bumpEligible: true,
+        greetingName: baseGreeting,
       },
     };
   }
