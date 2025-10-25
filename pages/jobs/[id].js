@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
+import { normalizeTrade } from "@/lib/trades";
 
 const detailPanelClasses =
   "bg-white border border-gray-200 rounded-2xl shadow-xl p-8";
@@ -90,7 +91,7 @@ export default function JobDetails({ job }) {
         <div className={detailPanelClasses}>
           <header className="border-b border-gray-200 pb-6">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
-              {job.trade || "General"}
+              {normalizeTrade(job.trade) || "General"}
             </p>
             <h1 className="mt-3 text-3xl font-bold text-slate-900">{job.title}</h1>
             <div className="mt-4 flex flex-wrap items-center gap-3 text-slate-600">
@@ -213,6 +214,7 @@ export async function getServerSideProps({ params }) {
       props: {
         job: {
           ...JSON.parse(JSON.stringify(job)),
+          trade: normalizeTrade(job.trade),
           employerName: job.employerprofile?.companyName || null,
           employerLocation: employerLocation || null,
         },

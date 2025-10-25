@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import Link from "next/link";
-import TRADES from "@/lib/trades";
+import TRADES, { normalizeTrade } from "@/lib/trades";
 
 const defaultJobForm = {
   title: "",
@@ -361,7 +361,7 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h3 className="text-base font-semibold text-slate-900">{job.title}</h3>
                     <span className="text-xs font-semibold uppercase tracking-wide text-sky-600">
-                      {job.trade || "General"}
+                      {normalizeTrade(job.trade) || "General"}
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-slate-600">{formatJobLocation(job) || "Location TBD"}</p>
