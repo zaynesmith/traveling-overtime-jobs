@@ -13,24 +13,12 @@ const filterPanelClasses =
   "bg-white border border-gray-200 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.08)] p-6";
 
 const listingCardClasses =
-  "bg-white border border-gray-200 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.12)] transition-transform transform hover:-translate-y-0.5 p-6";
+  "w-full max-w-2xl bg-white border border-gray-200 rounded-2xl shadow-md p-6";
 
-function formatJobLocation(job) {
+function formatCityState(job) {
   if (!job) return "";
-  const cityState = [job.city, job.state].filter(Boolean).join(", ");
-  const parts = [cityState, job.zip].filter(Boolean);
-  if (parts.length) {
-    return parts.join(" ");
-  }
-  return job.location || job.zip || "";
-}
-
-function formatCompensation(job) {
-  if (!job) return "";
-  const values = [];
-  if (job.hourlyPay) values.push(job.hourlyPay);
-  if (job.perDiem) values.push(`Per diem: ${job.perDiem}`);
-  return values.join(" • ");
+  const parts = [job.city, job.state].filter(Boolean);
+  return parts.join(", ");
 }
 
 export default function Jobs() {
@@ -171,7 +159,7 @@ export default function Jobs() {
           </div>
         </form>
 
-        <section className="mt-12 flex flex-col items-stretch gap-6">
+        <section className="mt-12 flex flex-col items-center gap-6">
           {loading ? (
             <div className={`${filterPanelClasses} text-center text-slate-600`}>Loading jobs…</div>
           ) : error ? (
@@ -183,25 +171,44 @@ export default function Jobs() {
               No jobs found. Try adjusting your filters.
             </div>
           ) : (
-            jobs.map((job) => (
-              <Link key={job.id} href={`/jobs/${job.id}`} className={`${listingCardClasses} block`}>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-xl font-semibold text-slate-900">{job.title}</h2>
-                  {formatCompensation(job) ? (
-                    <span className="rounded-full bg-sky-100 px-3 py-1 text-sm font-semibold text-sky-700">
-                      {formatCompensation(job)}
-                    </span>
+            jobs.map((job) => {
+              const cityState = formatCityState(job) || job.location || job.zip || "Location TBD";
+              return (
+                <article key={job.id} className={listingCardClasses}>
+                  <header className="flex flex-col gap-2">
+                    <h2 className="text-2xl font-bold text-slate-900">{job.title}</h2>
+                    <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">
+                      {normalizeTrade(job.trade) || "General"}
+                    </p>
+                    <p className="text-sm text-slate-600">{cityState}</p>
+                  </header>
+
+                  <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hourly Pay</dt>
+                      <dd className="mt-1 text-sm text-slate-700">{job.hourlyPay || "Not specified"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Per Diem</dt>
+                      <dd className="mt-1 text-sm text-slate-700">{job.perDiem || "Not specified"}</dd>
+                    </div>
+                  </dl>
+
+                  {job.description ? (
+                    <p className="mt-4 text-sm text-slate-500 line-clamp-3">{job.description}</p>
                   ) : null}
-                </div>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-sky-600">
-                  {normalizeTrade(job.trade) || "General"}
-                </p>
-                <p className="mt-2 text-sm text-slate-600">{formatJobLocation(job) || "Location TBD"}</p>
-                <p className="mt-3 text-sm text-slate-500 line-clamp-2">
-                  {job.description || "No description provided."}
-                </p>
-              </Link>
-            ))
+
+                  <div className="mt-6 flex justify-end">
+                    <Link
+                      href={`/jobs/${job.id}`}
+                      className="text-sm font-semibold text-sky-600 transition hover:text-sky-500"
+                    >
+                      See Details
+                    </Link>
+                  </div>
+                </article>
+              );
+            })
           )}
         </section>
       </section>
