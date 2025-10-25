@@ -15,6 +15,24 @@ function formatDate(value) {
   });
 }
 
+function formatJobLocation(job) {
+  if (!job) return "";
+  const cityState = [job.city, job.state].filter(Boolean).join(", ");
+  const parts = [cityState, job.zip].filter(Boolean);
+  if (parts.length) {
+    return parts.join(" ");
+  }
+  return job.location || job.zip || "";
+}
+
+function formatCompensation(job) {
+  if (!job) return "";
+  const details = [];
+  if (job.hourlyPay) details.push(job.hourlyPay);
+  if (job.perDiem) details.push(`Per diem: ${job.perDiem}`);
+  return details.join(" • ");
+}
+
 export default function JobDetails({ job }) {
   const { data: session } = useSession();
   const [status, setStatus] = useState(null);
@@ -57,8 +75,14 @@ export default function JobDetails({ job }) {
   };
 
   const canApply = session?.user?.role === "jobseeker";
-  const employerLocation = job.employerLocation || job.location || job.zip || "Location TBD";
-  const requirementsText = job.requirements || job.qualifications || "Requirements not provided.";
+  const listingLocation = formatJobLocation(job) || job.employerLocation || "Location TBD";
+  const employerLocation = job.employerLocation || null;
+  const requirementsText =
+    job.additionalRequirements ||
+    job.requirements ||
+    job.qualifications ||
+    "Requirements not provided.";
+  const compensationDetails = formatCompensation(job);
 
   return (
     <main className="min-h-screen bg-gray-100 py-12">
@@ -70,12 +94,12 @@ export default function JobDetails({ job }) {
             </p>
             <h1 className="mt-3 text-3xl font-bold text-slate-900">{job.title}</h1>
             <div className="mt-4 flex flex-wrap items-center gap-3 text-slate-600">
-              {job.payrate ? (
+              {compensationDetails ? (
                 <span className="rounded-full bg-sky-100 px-3 py-1 text-sm font-semibold text-sky-700">
-                  {job.payrate}
+                  {compensationDetails}
                 </span>
               ) : null}
-              <span>{employerLocation}</span>
+              <span>{listingLocation}</span>
               {job.posted_at ? (
                 <span className="text-slate-500">Posted {formatDate(job.posted_at)}</span>
               ) : null}
@@ -92,8 +116,34 @@ export default function JobDetails({ job }) {
               <p className="mt-1 text-sm text-slate-700">
                 {job.employerName || "Private listing"}
               </p>
-              <p className="text-sm text-slate-500">{employerLocation}</p>
+              <p className="text-sm text-slate-500">{employerLocation || listingLocation}</p>
             </div>
+          </section>
+
+          <section className="border-b border-gray-200 py-6">
+            <h2 className="text-lg font-semibold text-slate-900">Role Snapshot</h2>
+            <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-sm font-semibold text-slate-600">Location</dt>
+                <dd className="mt-1 text-sm text-slate-700">{listingLocation}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-semibold text-slate-600">Hourly Pay</dt>
+                <dd className="mt-1 text-sm text-slate-700">
+                  {job.hourlyPay || "Not provided"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-semibold text-slate-600">Per Diem</dt>
+                <dd className="mt-1 text-sm text-slate-700">{job.perDiem || "Not provided"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-semibold text-slate-600">Posted</dt>
+                <dd className="mt-1 text-sm text-slate-700">
+                  {job.posted_at ? formatDate(job.posted_at) : "Not available"}
+                </dd>
+              </div>
+            </dl>
           </section>
 
           <section className="border-b border-gray-200 py-6">

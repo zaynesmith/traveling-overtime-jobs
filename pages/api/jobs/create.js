@@ -23,20 +23,36 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Employer profile not found" });
     }
 
-    const { title, trade, description, location, zip, payrate } = req.body || {};
+    const {
+      title,
+      trade,
+      description,
+      city,
+      state,
+      zip,
+      hourlyPay,
+      perDiem,
+      additionalRequirements,
+    } = req.body || {};
 
     if (!title || !trade || !description) {
       return res.status(400).json({ error: "Title, trade, and description are required." });
     }
+
+    const combinedLocation = [city, state].filter(Boolean).join(", ");
 
     const job = await prisma.jobs.create({
       data: {
         title,
         trade,
         description,
-        location: location || null,
+        location: combinedLocation || null,
+        city: city || null,
+        state: state || null,
         zip: zip || null,
-        payrate: payrate || null,
+        hourlyPay: hourlyPay || null,
+        perDiem: perDiem || null,
+        additionalRequirements: additionalRequirements || null,
         employer_id: employerProfile.id,
       },
     });

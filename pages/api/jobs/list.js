@@ -31,6 +31,14 @@ export default async function handler(req, res) {
             { description: { contains: searchTerm, mode: "insensitive" } },
             { trade: { contains: searchTerm, mode: "insensitive" } },
             { location: { contains: searchTerm, mode: "insensitive" } },
+            { city: { contains: searchTerm, mode: "insensitive" } },
+            { state: { contains: searchTerm, mode: "insensitive" } },
+            {
+              additionalRequirements: {
+                contains: searchTerm,
+                mode: "insensitive",
+              },
+            },
           ]
         : undefined,
     };
