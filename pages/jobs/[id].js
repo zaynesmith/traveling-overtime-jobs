@@ -3,18 +3,7 @@ import { useSession } from "next-auth/react";
 import { normalizeTrade } from "@/lib/trades";
 
 const detailPanelClasses =
-  "bg-white border border-gray-200 rounded-2xl shadow-xl p-8";
-
-function formatDate(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
+  "bg-white border border-gray-100 rounded-3xl shadow-2xl p-10";
 
 function formatJobLocation(job) {
   if (!job) return "";
@@ -26,12 +15,12 @@ function formatJobLocation(job) {
   return job.location || job.zip || "";
 }
 
-function formatCompensation(job) {
+function formatJobHighlights(job) {
   if (!job) return "";
-  const details = [];
-  if (job.hourlyPay) details.push(job.hourlyPay);
-  if (job.perDiem) details.push(`Per diem: ${job.perDiem}`);
-  return details.join(" • ");
+  const tradeName = normalizeTrade(job.trade) || job.trade || "Trade not specified";
+  const hourly = job.hourlyPay || "Hourly pay not provided";
+  const perDiem = job.perDiem || "Per diem not provided";
+  return [tradeName, hourly, perDiem].join(" • ");
 }
 
 export default function JobDetails({ job }) {
@@ -77,87 +66,48 @@ export default function JobDetails({ job }) {
 
   const canApply = session?.user?.role === "jobseeker";
   const listingLocation = formatJobLocation(job) || job.employerLocation || "Location TBD";
-  const employerLocation = job.employerLocation || null;
   const requirementsText =
     job.additionalRequirements ||
     job.requirements ||
     job.qualifications ||
     "Requirements not provided.";
-  const compensationDetails = formatCompensation(job);
+  const jobHighlights = formatJobHighlights(job);
 
   return (
     <main className="min-h-screen bg-gray-100 py-12">
       <article className="mx-auto mt-10 mb-16 max-w-3xl px-4 sm:px-6 lg:px-8">
         <div className={detailPanelClasses}>
-          <header className="border-b border-gray-200 pb-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
-              {normalizeTrade(job.trade) || "General"}
+          <header className="text-center">
+            <h1 className="text-4xl font-bold text-slate-900">{job.title}</h1>
+            <p className="mt-3 text-lg font-semibold text-slate-700">
+              {job.employerName || "Private listing"}
             </p>
-            <h1 className="mt-3 text-3xl font-bold text-slate-900">{job.title}</h1>
-            <div className="mt-4 flex flex-wrap items-center gap-3 text-slate-600">
-              {compensationDetails ? (
-                <span className="rounded-full bg-sky-100 px-3 py-1 text-sm font-semibold text-sky-700">
-                  {compensationDetails}
-                </span>
-              ) : null}
-              <span>{listingLocation}</span>
-              {job.posted_at ? (
-                <span className="text-slate-500">Posted {formatDate(job.posted_at)}</span>
-              ) : null}
-            </div>
+            <p className="mt-2 text-sm text-slate-500">{listingLocation}</p>
+            <p className="mt-4 text-base font-medium text-slate-600">
+              {jobHighlights}
+            </p>
           </header>
 
-          <section className="border-b border-gray-200 py-6">
-            <h2 className="text-lg font-semibold text-slate-900">Description</h2>
-            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-700">
-              {job.description || "No description provided."}
-            </p>
-            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-5 py-4">
-              <h3 className="text-sm font-semibold text-slate-900">Company</h3>
-              <p className="mt-1 text-sm text-slate-700">
-                {job.employerName || "Private listing"}
+          <div className="mt-10 space-y-6">
+            <section className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-left">
+              <h2 className="text-xl font-semibold text-slate-900">Description</h2>
+              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-700">
+                {job.description || "No description provided."}
               </p>
-              <p className="text-sm text-slate-500">{employerLocation || listingLocation}</p>
-            </div>
-          </section>
+            </section>
 
-          <section className="border-b border-gray-200 py-6">
-            <h2 className="text-lg font-semibold text-slate-900">Role Snapshot</h2>
-            <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-sm font-semibold text-slate-600">Location</dt>
-                <dd className="mt-1 text-sm text-slate-700">{listingLocation}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-semibold text-slate-600">Hourly Pay</dt>
-                <dd className="mt-1 text-sm text-slate-700">
-                  {job.hourlyPay || "Not provided"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm font-semibold text-slate-600">Per Diem</dt>
-                <dd className="mt-1 text-sm text-slate-700">{job.perDiem || "Not provided"}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-semibold text-slate-600">Posted</dt>
-                <dd className="mt-1 text-sm text-slate-700">
-                  {job.posted_at ? formatDate(job.posted_at) : "Not available"}
-                </dd>
-              </div>
-            </dl>
-          </section>
+            <section className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-left">
+              <h2 className="text-xl font-semibold text-slate-900">Additional Requirements</h2>
+              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-700">
+                {requirementsText}
+              </p>
+            </section>
+          </div>
 
-          <section className="border-b border-gray-200 py-6">
-            <h2 className="text-lg font-semibold text-slate-900">Requirements</h2>
-            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-700">
-              {requirementsText}
-            </p>
-          </section>
-
-          <footer className="pt-6">
+          <footer className="mt-10 flex flex-col items-center">
             {status ? (
               <div
-                className={`mb-4 rounded-lg px-4 py-3 text-sm font-semibold ${
+                className={`mb-4 w-full max-w-md rounded-lg px-4 py-3 text-center text-sm font-semibold ${
                   status.type === "success"
                     ? "bg-emerald-100 text-emerald-700"
                     : "bg-rose-100 text-rose-700"
@@ -170,12 +120,12 @@ export default function JobDetails({ job }) {
               <button
                 onClick={handleApply}
                 disabled={submitting}
-                className="mt-6 inline-block rounded-lg bg-sky-600 px-6 py-3 text-white font-semibold hover:bg-sky-500 transition disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full max-w-md rounded-full bg-sky-600 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? "Sending application…" : "Apply Now"}
               </button>
             ) : (
-              <p className="mt-6 text-sm text-slate-500">
+              <p className="w-full max-w-md text-center text-sm text-slate-500">
                 Sign in as a jobseeker to apply for this position.
               </p>
             )}
