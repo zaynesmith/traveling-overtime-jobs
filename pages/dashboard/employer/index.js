@@ -36,19 +36,7 @@ function formatDate(value) {
 function formatJobLocation(job) {
   if (!job) return "";
   const cityState = [job.city, job.state].filter(Boolean).join(", ");
-  const parts = [cityState, job.zip].filter(Boolean);
-  if (parts.length) {
-    return parts.join(" ");
-  }
-  return job.location || job.zip || "";
-}
-
-function formatCompensation(job) {
-  if (!job) return "";
-  const details = [];
-  if (job.hourlyPay) details.push(job.hourlyPay);
-  if (job.perDiem) details.push(`Per diem: ${job.perDiem}`);
-  return details.join(" • ");
+  return cityState || job.location || job.zip || "";
 }
 
 function formatLastActive(value) {
@@ -352,26 +340,43 @@ export default function EmployerDashboard({ initialJobs, initialSaved, subscript
               You haven&apos;t posted any jobs yet.
             </div>
           ) : (
-            <ul className="mt-4 space-y-4">
+            <div className="mt-6 flex flex-col items-center gap-4">
               {previewJobs.map((job) => (
-                <li
+                <article
                   key={job.id}
-                  className="rounded-xl border border-slate-200 bg-white/90 p-4 shadow-sm shadow-slate-200/70"
+                  className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-5 shadow-md"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-base font-semibold text-slate-900">{job.title}</h3>
-                    <span className="text-xs font-semibold uppercase tracking-wide text-sky-600">
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-lg font-bold text-slate-900">{job.title}</h3>
+                    <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">
                       {normalizeTrade(job.trade) || "General"}
-                    </span>
+                    </p>
+                    <p className="text-sm text-slate-600">{formatJobLocation(job) || "Location TBD"}</p>
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">{formatJobLocation(job) || "Location TBD"}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                    {formatCompensation(job) ? <span>{formatCompensation(job)}</span> : null}
-                    {job.posted_at ? <span>Posted {formatDate(job.posted_at)}</span> : null}
+
+                  <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hourly Pay</dt>
+                      <dd className="mt-1 text-sm text-slate-700">{job.hourlyPay || "Not specified"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Per Diem</dt>
+                      <dd className="mt-1 text-sm text-slate-700">{job.perDiem || "Not specified"}</dd>
+                    </div>
+                  </dl>
+
+                  <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+                    {job.posted_at ? <span>Posted {formatDate(job.posted_at)}</span> : <span />}
+                    <Link
+                      href={`/jobs/${job.id}`}
+                      className="text-sm font-semibold text-sky-600 transition hover:text-sky-500"
+                    >
+                      See Details
+                    </Link>
                   </div>
-                </li>
+                </article>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       </section>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import { normalizeTrade } from "@/lib/trades";
@@ -33,19 +34,7 @@ function formatDate(value) {
 function formatJobLocation(job) {
   if (!job) return "";
   const cityState = [job.city, job.state].filter(Boolean).join(", ");
-  const parts = [cityState, job.zip].filter(Boolean);
-  if (parts.length) {
-    return parts.join(" ");
-  }
-  return job.location || job.zip || "";
-}
-
-function formatCompensation(job) {
-  if (!job) return "";
-  const values = [];
-  if (job.hourlyPay) values.push(job.hourlyPay);
-  if (job.perDiem) values.push(`Per diem: ${job.perDiem}`);
-  return values.join(" • ");
+  return cityState || job.location || job.zip || "";
 }
 
 export default function JobseekerDashboard({ initialProfile, applications, lastActive, bumpEligible }) {
@@ -329,28 +318,45 @@ export default function JobseekerDashboard({ initialProfile, applications, lastA
           No matching jobs yet. Adjust your filters and try again.
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="flex flex-col items-center gap-4">
           {jobResults.map((job) => (
-            <article key={job.id} className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-xl font-semibold text-white">{job.title}</h3>
-                {formatCompensation(job) ? (
-                  <span className="rounded bg-amber-500/20 px-3 py-1 text-sm font-semibold text-amber-300">
-                    {formatCompensation(job)}
-                  </span>
-                ) : null}
+            <article
+              key={job.id}
+              className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-md"
+            >
+              <div className="flex flex-col gap-2">
+                <h3 className="text-2xl font-bold text-slate-900">{job.title}</h3>
+                <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">
+                  {normalizeTrade(job.trade) || "General"}
+                </p>
+                <p className="text-sm text-slate-600">{formatJobLocation(job) || "Location TBD"}</p>
               </div>
-              <p className="text-sm uppercase tracking-wide text-amber-400">
-                {normalizeTrade(job.trade) || "General"}
-              </p>
-              <p className="mt-1 text-slate-300">{formatJobLocation(job) || "Location TBD"}</p>
-              <p className="mt-3 text-sm text-slate-400 line-clamp-2">
-                {job.description || "No description provided."}
-              </p>
-              <div className="mt-4 flex justify-end">
+
+              <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hourly Pay</dt>
+                  <dd className="mt-1 text-sm text-slate-700">{job.hourlyPay || "Not specified"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Per Diem</dt>
+                  <dd className="mt-1 text-sm text-slate-700">{job.perDiem || "Not specified"}</dd>
+                </div>
+              </dl>
+
+              {job.description ? (
+                <p className="mt-4 text-sm text-slate-500 line-clamp-3">{job.description}</p>
+              ) : null}
+
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                <Link
+                  href={`/jobs/${job.id}`}
+                  className="text-sm font-semibold text-sky-600 transition hover:text-sky-500"
+                >
+                  See Details
+                </Link>
                 <button
                   onClick={() => handleApply(job.id)}
-                  className="rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-amber-400"
+                  className="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500"
                 >
                   Apply
                 </button>
