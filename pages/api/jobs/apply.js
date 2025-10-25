@@ -45,13 +45,14 @@ export default async function handler(req, res) {
     });
 
     if (existingApplication) {
-      return res.status(200).json(existingApplication);
+      return res.status(409).json({ error: "You have already applied to this job." });
     }
 
     const application = await prisma.applications.create({
       data: {
         job_id: job.id,
         jobseeker_id: jobseekerProfile.id,
+        applied_at: new Date(),
         status: "pending",
       },
       include: {
@@ -59,7 +60,7 @@ export default async function handler(req, res) {
       },
     });
 
-    res.status(200).json(application);
+    res.status(201).json(application);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to apply" });
