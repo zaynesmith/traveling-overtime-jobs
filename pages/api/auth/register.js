@@ -1,5 +1,14 @@
 import { hash } from "bcryptjs";
 import prisma from "../../../lib/prisma";
+import { getSupabaseServiceClient } from "../../../lib/supabaseServer";
+
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "10mb",
+    },
+  },
+};
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -12,6 +21,58 @@ function sanitize(value) {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed.length ? trimmed : null;
+}
+
+function sanitizeFileName(fileName) {
+  if (typeof fileName !== "string") {
+    return `resume-${Date.now()}`;
+  }
+  const trimmed = fileName.trim().replace(/[\\/]/g, "_");
+  if (!trimmed) {
+    return `resume-${Date.now()}`;
+  }
+  return trimmed.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
+async function uploadJobseekerResume(userId, resume) {
+  if (!userId) {
+    throw new Error("User ID is required for resume upload");
+  }
+
+  const base64String = typeof resume.base64 === "string" ? resume.base64 : "";
+  const base64Data = base64String.includes(",") ? base64String.split(",").pop() : base64String;
+  if (!base64Data) {
+    throw new Error("Invalid resume payload");
+  }
+
+  const buffer = Buffer.from(base64Data, "base64");
+  const fileName = sanitizeFileName(resume.fileName);
+  const contentType = typeof resume.fileType === "string" && resume.fileType ? resume.fileType : "application/octet-stream";
+  const supabase = getSupabaseServiceClient();
+
+  if (!supabase) {
+    console.warn("Supabase client unavailable during registration resume upload");
+    return resume.base64;
+  }
+
+  const storage = supabase.storage.from("resumes");
+  const filePath = `jobseekers/${userId}/${fileName}`;
+  const { error: uploadError } = await storage.upload(filePath, buffer, { contentType, upsert: true });
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data: publicData, error: publicError } = storage.getPublicUrl(filePath);
+  if (publicError) {
+    throw publicError;
+  }
+
+  const publicUrl = publicData?.publicUrl;
+  if (!publicUrl) {
+    throw new Error("Unable to retrieve public resume URL");
+  }
+
+  return publicUrl;
 }
 
 export default async function handler(req, res) {
@@ -29,6 +90,12 @@ export default async function handler(req, res) {
     const safeLogPayload = { ...payload };
     if (safeLogPayload.password) {
       safeLogPayload.password = "[REDACTED]";
+    }
+    if (safeLogPayload.resume?.base64) {
+      safeLogPayload.resume = {
+        ...safeLogPayload.resume,
+        base64: `[${safeLogPayload.resume.base64.length}]`,
+      };
     }
     console.log("Incoming registration payload", safeLogPayload);
 
@@ -81,7 +148,7 @@ export default async function handler(req, res) {
 
     const passwordHash = await hash(password, 12);
 
-    await prisma.$transaction(async (tx) => {
+    const createdUser = await prisma.$transaction(async (tx) => {
       const userCreateData =
         role === "jobseeker"
           ? {
@@ -121,7 +188,32 @@ export default async function handler(req, res) {
           },
         });
       }
+
+      return createdUser;
     });
+
+    if (
+      role === "jobseeker" &&
+      createdUser?.id &&
+      payload.resume?.base64 &&
+      payload.resume?.fileName
+    ) {
+      try {
+        const resumeUrl = await uploadJobseekerResume(createdUser.id, payload.resume);
+        if (resumeUrl) {
+          await prisma.jobseekerProfile.update({
+            where: { userId: createdUser.id },
+            data: { resumeUrl },
+          });
+        }
+      } catch (error) {
+        console.error("Failed to upload jobseeker resume during registration", error);
+        await prisma.user
+          .delete({ where: { id: createdUser.id } })
+          .catch((cleanupError) => console.error("Failed to cleanup user after resume upload error", cleanupError));
+        throw new HttpError(500, "Failed to upload resume. Your account was not created.");
+      }
+    }
 
     return res.status(201).json({ success: true });
   } catch (error) {
