@@ -1,170 +1,195 @@
-import { useCallback, useMemo, useState } from "react";
-import { useRouter } from "next/router";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
-import { normalizeTrade } from "@/lib/trades";
 
-function formatDate(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString();
+function formatLocation(job) {
+  if (!job) return "";
+  const parts = [job.city, job.state].filter(Boolean);
+  if (parts.length > 0) return parts.join(", ");
+  return job.location || job.zip || "";
 }
 
-function JobRow({ job, onDelete }) {
+export default function EmployerPostedJobs() {
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const router = useRouter();
-  const location = [job.city, job.state].filter(Boolean).join(", ") || job.location || job.zip || "";
-  const trade = normalizeTrade(job.trade) || "General";
 
-  return (
-    <li
-      id={`job-${job.id}`}
-      className={`rounded-2xl border border-slate-200 bg-white p-6 shadow-lg transition-all duration-300 hover:shadow-2xl ${
-        job.highlight ? "ring-4 ring-sky-200" : ""
-      }`}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold text-slate-900">{job.title}</h2>
-          <p className="text-sm font-medium uppercase tracking-wide text-slate-500">{trade}</p>
-          {location ? <p className="text-sm text-slate-600">{location}</p> : null}
-        </div>
-        <div className="flex flex-col items-end gap-1 text-sm text-slate-600">
-          {job.posted_at ? <span>Posted {formatDate(job.posted_at)}</span> : null}
-          <span>
-            {job.totalApplicants} applicant{job.totalApplicants === 1 ? "" : "s"}
-            {job.newApplicants > 0 ? (
-              <span className="ml-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                {job.newApplicants} new
-              </span>
-            ) : null}
-          </span>
-        </div>
-      </div>
+  const selectedJobId = useMemo(() => {
+    const { job } = router.query || {};
+    return typeof job === "string" ? job : null;
+  }, [router.query]);
 
-      {job.description ? (
-        <p className="mt-4 text-sm text-slate-600 line-clamp-3">{job.description}</p>
-      ) : null}
-
-      <div className="mt-6 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={() => router.push(`/dashboard/employer/post-job?id=${job.id}`)}
-          className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-        >
-          Edit
-        </button>
-        <button
-          type="button"
-          onClick={() => onDelete(job.id)}
-          className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
-        >
-          Delete
-        </button>
-        <Link
-          href={`/jobs/${job.id}`}
-          className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
-        >
-          View listing
-          <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M5 12h14M12 5l7 7-7 7" />
-          </svg>
-        </Link>
-      </div>
-    </li>
-  );
-}
-
-export default function PostedJobsPage({ initialJobs }) {
-  const [jobs, setJobs] = useState(initialJobs);
-  const [removing, setRemoving] = useState(null);
-
-  const deleteJob = useCallback(
-    async (id) => {
-      if (!id || removing) return;
-      const confirmDelete = window.confirm("Remove this job listing?");
-      if (!confirmDelete) return;
-      setRemoving(id);
+  useEffect(() => {
+    let isMounted = true;
+    async function loadJobs() {
+      setLoading(true);
+      setError(null);
       try {
-        const response = await fetch(`/api/jobs/${id}`, { method: "DELETE" });
-        if (!response.ok) throw new Error("Unable to delete job");
-        setJobs((current) => current.filter((job) => job.id !== id));
-      } catch (error) {
-        console.error(error);
-        alert("We couldn\'t delete that job. Try again.");
+        const response = await fetch("/api/employer/applications");
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload?.error || "Unable to load posted jobs");
+        }
+        const payload = await response.json();
+        if (isMounted) {
+          setJobs(Array.isArray(payload) ? payload : []);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setJobs([]);
+          setError(err.message || "Unable to load posted jobs");
+        }
       } finally {
-        setRemoving(null);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-    },
-    [removing]
-  );
+    }
 
-  const summary = useMemo(() => {
-    if (jobs.length === 0) return { total: 0, applicants: 0 };
-    return jobs.reduce(
-      (acc, job) => ({
-        total: acc.total + 1,
-        applicants: acc.applicants + job.totalApplicants,
-      }),
-      { total: 0, applicants: 0 }
-    );
-  }, [jobs]);
+    loadJobs();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-  return (
-    <main className="bg-slate-50 py-12">
-      <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 sm:px-6 lg:px-8">
-        <header className="space-y-2 text-center sm:text-left">
-          <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">Posted Jobs</p>
-          <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Manage your active listings</h1>
-          <p className="max-w-2xl text-base text-slate-600">
-            Keep tabs on applicants, edit details, or remove listings once roles are filled.
-          </p>
-        </header>
+  const selectedJob = useMemo(() => {
+    if (!selectedJobId) return null;
+    return jobs.find((job) => job.id === selectedJobId) || null;
+  }, [jobs, selectedJobId]);
 
-        <section className="rounded-2xl bg-white p-6 shadow-lg">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-slate-600">{summary.total} active job{summary.total === 1 ? "" : "s"}</p>
-              <p className="text-xs text-slate-500">
-                {summary.applicants} total applicant{summary.applicants === 1 ? "" : "s"} across all listings
-              </p>
-            </div>
-            <Link
-              href="/dashboard/employer/post-job"
-              className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
-            >
-              Post new job
-              <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M12 5v14m-7-7h14" />
-              </svg>
-            </Link>
+  const renderApplicants = () => {
+    if (!selectedJob) return null;
+    const applicants = Array.isArray(selectedJob.applications)
+      ? selectedJob.applications.filter((application) => application.jobseeker)
+      : [];
+
+    return (
+      <section className="mt-10 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-800">
+              Applicants for {selectedJob.title}
+            </h2>
+            <p className="text-sm text-gray-500">Review each applicant&apos;s details below.</p>
           </div>
-        </section>
+          <Link
+            href="/dashboard/employer/posted-jobs"
+            className="text-sm font-medium text-blue-600 hover:text-blue-500"
+          >
+            Close
+          </Link>
+        </div>
 
-        {jobs.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-lg">
-            <p className="text-lg font-semibold text-slate-900">You haven&apos;t posted any jobs yet.</p>
-            <p className="mt-2 text-sm text-slate-600">Create your first listing to start receiving applicants.</p>
-            <Link
-              href="/dashboard/employer/post-job"
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
-            >
-              Post a job
-              <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M12 5v14m-7-7h14" />
-              </svg>
-            </Link>
-          </div>
+        {applicants.length === 0 ? (
+          <p className="text-sm text-gray-600">No applicants have applied to this job yet.</p>
         ) : (
-          <ul className="space-y-6">
-            {jobs.map((job) => (
-              <JobRow key={job.id} job={job} onDelete={deleteJob} />
-            ))}
+          <ul className="space-y-4">
+            {applicants.map((application) => {
+              const jobseeker = application.jobseeker;
+              const name = [jobseeker.firstName, jobseeker.lastName].filter(Boolean).join(" ");
+              return (
+                <li
+                  key={application.id}
+                  className="rounded-xl border border-gray-200 p-4 hover:border-gray-300"
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-800">
+                        {name || "Unnamed Applicant"}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {[jobseeker.trade, jobseeker.city, jobseeker.state]
+                          .filter(Boolean)
+                          .join(" · ") || "Details not available"}
+                      </p>
+                    </div>
+                    {jobseeker.resumeUrl ? (
+                      <a
+                        href={jobseeker.resumeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-semibold text-blue-600 hover:text-blue-500"
+                      >
+                        View Resume
+                      </a>
+                    ) : null}
+                  </div>
+                  <p className="mt-2 text-xs uppercase tracking-wide text-gray-500">
+                    Status: {application.status || "Pending"}
+                  </p>
+                </li>
+              );
+            })}
           </ul>
         )}
-      </div>
-    </main>
+      </section>
+    );
+  };
+
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Posted Jobs</h1>
+        <p className="mt-2 text-sm text-gray-600">
+          Track your active job postings and review applicants in one place.
+        </p>
+      </header>
+
+      {loading ? (
+        <p className="text-sm text-gray-600">Loading posted jobs…</p>
+      ) : error ? (
+        <p className="text-sm text-rose-600">{error}</p>
+      ) : jobs.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-sm text-gray-600">
+          You haven&apos;t posted any jobs yet.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {jobs.map((job) => {
+            const applicantCount = Array.isArray(job.applications)
+              ? job.applications.filter((application) => application.jobseeker).length
+              : 0;
+            return (
+              <article
+                key={job.id}
+                className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:border-gray-300"
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-800">{job.title}</h2>
+                    <p className="mt-1 text-sm text-gray-600">
+                      {formatLocation(job) || "Location not specified"}
+                    </p>
+                    {job.trade ? (
+                      <p className="mt-1 text-sm text-gray-500">Trade: {job.trade}</p>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-col items-start gap-2 sm:items-end">
+                    <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
+                      {applicantCount} applicant{applicantCount === 1 ? "" : "s"}
+                    </span>
+                    <Link
+                      href={{
+                        pathname: "/dashboard/employer/posted-jobs",
+                        query: { job: job.id },
+                      }}
+                      className="text-sm font-semibold text-blue-600 hover:text-blue-500"
+                    >
+                      View applicants
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      {renderApplicants()}
+    </div>
   );
 }
 
@@ -181,7 +206,9 @@ export async function getServerSideProps(context) {
   }
 
   if (session.user?.role !== "employer") {
-    const destination = session.user?.role === "jobseeker" ? "/dashboard/jobseeker" : "/";
+    const destination =
+      session.user?.role === "jobseeker" ? "/dashboard/jobseeker" : "/";
+
     return {
       redirect: {
         destination,
@@ -190,51 +217,7 @@ export async function getServerSideProps(context) {
     };
   }
 
-  try {
-    const { default: prisma } = await import("@/lib/prisma");
-
-    const employerProfile = await prisma.employerProfile.findUnique({
-      where: { userId: session.user.id },
-      include: {
-        jobs: {
-          orderBy: { posted_at: "desc" },
-          include: {
-            applications: {
-              select: { id: true, status: true },
-            },
-          },
-        },
-      },
-    });
-
-    const highlightId = context.query?.highlight || null;
-
-    const jobs = (employerProfile?.jobs || []).map((job) => ({
-      id: job.id,
-      title: job.title,
-      description: job.description,
-      city: job.city,
-      state: job.state,
-      location: job.location,
-      zip: job.zip,
-      trade: job.trade,
-      posted_at: job.posted_at?.toISOString?.() ?? job.posted_at,
-      totalApplicants: job.applications?.length || 0,
-      newApplicants: job.applications?.filter((app) => app.status === "pending").length || 0,
-      highlight: highlightId === job.id,
-    }));
-
-    return {
-      props: {
-        initialJobs: jobs,
-      },
-    };
-  } catch (error) {
-    console.error(error);
-    return {
-      props: {
-        initialJobs: [],
-      },
-    };
-  }
+  return {
+    props: {},
+  };
 }

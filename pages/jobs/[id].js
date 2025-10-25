@@ -27,6 +27,7 @@ export default function JobDetails({ job }) {
   const { data: session } = useSession();
   const [status, setStatus] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [hasApplied, setHasApplied] = useState(false);
 
   if (!job) {
     return (
@@ -53,9 +54,21 @@ export default function JobDetails({ job }) {
         body: JSON.stringify({ jobId: job.id }),
       });
       const payload = await response.json();
+
+      if (response.status === 409) {
+        setHasApplied(true);
+        setStatus({
+          type: "info",
+          message: payload?.error || "You have already applied to this job.",
+        });
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(payload?.error || "Application failed");
       }
+
+      setHasApplied(true);
       setStatus({ type: "success", message: "Application sent!" });
     } catch (error) {
       setStatus({ type: "error", message: error.message || "Unable to apply" });
@@ -65,6 +78,7 @@ export default function JobDetails({ job }) {
   };
 
   const canApply = session?.user?.role === "jobseeker";
+  const disableApplyButton = submitting || hasApplied;
   const listingLocation = formatJobLocation(job) || job.employerLocation || "Location TBD";
   const requirementsText =
     job.additionalRequirements ||
@@ -72,6 +86,11 @@ export default function JobDetails({ job }) {
     job.qualifications ||
     "Requirements not provided.";
   const jobHighlights = formatJobHighlights(job);
+  const alertStyles = {
+    success: "bg-emerald-100 text-emerald-700",
+    info: "bg-sky-100 text-sky-700",
+    error: "bg-rose-100 text-rose-700",
+  };
 
   return (
     <main className="min-h-screen bg-gray-100 py-12">
@@ -108,9 +127,7 @@ export default function JobDetails({ job }) {
             {status ? (
               <div
                 className={`mb-4 w-full max-w-md rounded-lg px-4 py-3 text-center text-sm font-semibold ${
-                  status.type === "success"
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-rose-100 text-rose-700"
+                  alertStyles[status.type] || alertStyles.error
                 }`}
               >
                 {status.message}
@@ -119,10 +136,14 @@ export default function JobDetails({ job }) {
             {canApply ? (
               <button
                 onClick={handleApply}
-                disabled={submitting}
+                disabled={disableApplyButton}
                 className="w-full max-w-md rounded-full bg-sky-600 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {submitting ? "Sending application…" : "Apply Now"}
+                {submitting
+                  ? "Sending application…"
+                  : hasApplied
+                  ? "Application submitted"
+                  : "Apply Now"}
               </button>
             ) : (
               <p className="w-full max-w-md text-center text-sm text-slate-500">
