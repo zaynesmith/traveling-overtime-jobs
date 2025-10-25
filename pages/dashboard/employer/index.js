@@ -1,681 +1,103 @@
-import { useCallback, useRef, useState } from "react";
+import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
-import Link from "next/link";
-import TRADES, { normalizeTrade } from "@/lib/trades";
 
-const defaultJobForm = {
-  title: "",
-  trade: "",
-  description: "",
-  city: "",
-  state: "",
-  zip: "",
-  hourlyPay: "",
-  perDiem: "",
-  additionalRequirements: "",
-};
-
-const defaultResumeFilters = {
-  trade: "",
-  zip: "",
-  radius: "50",
-  keyword: "",
-};
-
-const cardContainer =
-  "bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-lg p-6 transition";
-
-function formatDate(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString();
-}
-
-function formatJobLocation(job) {
-  if (!job) return "";
-  const cityState = [job.city, job.state].filter(Boolean).join(", ");
-  return cityState || job.location || job.zip || "";
-}
-
-function formatLastActive(value) {
-  if (!value) return { label: "No recent activity", isFresh: false };
-  const last = new Date(value).getTime();
-  if (Number.isNaN(last)) return { label: "No recent activity", isFresh: false };
-  const now = Date.now();
-  const diffMs = Math.max(now - last, 0);
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  return {
-    label: days === 0 ? "Active today" : `Active ${days} day${days === 1 ? "" : "s"} ago`,
-    isFresh: diffMs <= 7 * 24 * 60 * 60 * 1000,
-  };
-}
-
-export default function EmployerDashboard({ initialJobs, initialSaved, subscription }) {
-  const [jobForm, setJobForm] = useState(defaultJobForm);
-  const [jobs, setJobs] = useState(initialJobs);
-  const [jobMessage, setJobMessage] = useState(null);
-  const [jobLoading, setJobLoading] = useState(false);
-
-  const [resumeFilters, setResumeFilters] = useState(defaultResumeFilters);
-  const [resumeResults, setResumeResults] = useState([]);
-  const [resumeLoading, setResumeLoading] = useState(false);
-  const [resumeError, setResumeError] = useState(null);
-
-  const [savedCandidates, setSavedCandidates] = useState(initialSaved);
-  const [savedLoading, setSavedLoading] = useState(false);
-
-  const postJobRef = useRef(null);
-  const resumeRef = useRef(null);
-  const savedRef = useRef(null);
-
-  const fetchEmployerJobs = useCallback(async () => {
-    try {
-      const response = await fetch("/api/jobs/list?employer=mine");
-      if (!response.ok) throw new Error("Unable to fetch jobs");
-      const data = await response.json();
-      setJobs(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error(error);
-    }
-  }, []);
-
-  const refreshSavedCandidates = useCallback(async () => {
-    setSavedLoading(true);
-    try {
-      const response = await fetch("/api/candidates/save");
-      if (!response.ok) throw new Error("Unable to load saved candidates");
-      const payload = await response.json();
-      setSavedCandidates(Array.isArray(payload?.saved) ? payload.saved : []);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setSavedLoading(false);
-    }
-  }, []);
-
-  const handleJobChange = (event) => {
-    const { name, value } = event.target;
-    setJobForm((current) => ({ ...current, [name]: value }));
-  };
-
-  const handleCreateJob = async (event) => {
-    event.preventDefault();
-    setJobLoading(true);
-    setJobMessage(null);
-    try {
-      const response = await fetch("/api/jobs/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(jobForm),
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.error || "Unable to create job");
-      }
-      setJobMessage({ type: "success", text: "Job posted successfully." });
-      setJobForm(defaultJobForm);
-      await fetchEmployerJobs();
-    } catch (error) {
-      setJobMessage({ type: "error", text: error.message || "Unable to create job" });
-    } finally {
-      setJobLoading(false);
-    }
-  };
-
-  const handleResumeFilterChange = (event) => {
-    const { name, value } = event.target;
-    setResumeFilters((current) => ({ ...current, [name]: value }));
-  };
-
-  const handleResumeSearch = async (event) => {
-    event.preventDefault();
-    setResumeLoading(true);
-    setResumeError(null);
-    try {
-      const params = new URLSearchParams();
-      if (resumeFilters.trade) params.set("trade", resumeFilters.trade);
-      if (resumeFilters.zip) params.set("zip", resumeFilters.zip);
-      if (resumeFilters.radius) params.set("radius", resumeFilters.radius);
-      if (resumeFilters.keyword) params.set("keyword", resumeFilters.keyword);
-
-      const response = await fetch(`/api/resumes/search?${params.toString()}`);
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload?.error || "Resume search failed");
-      }
-      const data = await response.json();
-      setResumeResults(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setResumeError(error.message || "Resume search failed");
-      setResumeResults([]);
-    } finally {
-      setResumeLoading(false);
-    }
-  };
-
-  const handleSaveCandidate = async (jobseekerId) => {
-    if (!jobseekerId) return;
-    try {
-      const response = await fetch("/api/candidates/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobseekerId }),
-      });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload?.error || "Unable to save candidate");
-      }
-      await refreshSavedCandidates();
-    } catch (error) {
-      console.error(error);
-      alert(error.message || "Unable to save candidate");
-    }
-  };
-
-  const renderPostJobCard = () => {
-    return (
-      <section id="post-job" ref={postJobRef} className={cardContainer}>
-        <div className="flex h-full flex-col">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-3">Post a Job</h2>
-            <p className="mb-4 text-sm text-gray-600">
-              Share your next traveling overtime opportunity with our community.
-            </p>
-          </div>
-
-          {jobMessage ? (
-            <div
-              className={`mb-4 rounded-lg px-4 py-3 text-sm font-semibold ${
-                jobMessage.type === "success"
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-rose-50 text-rose-700"
-              }`}
-            >
-              {jobMessage.text}
-            </div>
-          ) : null}
-
-          <form onSubmit={handleCreateJob} className="mt-6 space-y-5">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-slate-700">Title</label>
-                <input
-                  name="title"
-                  value={jobForm.title}
-                  onChange={handleJobChange}
-                  required
-                  className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-slate-700">Trade</label>
-                <select
-                  name="trade"
-                  value={jobForm.trade}
-                  onChange={handleJobChange}
-                  required
-                  className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                >
-                  <option value="" disabled>
-                    Select a trade
-                  </option>
-                  {TRADES.map((trade) => (
-                    <option key={trade} value={trade}>
-                      {trade}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-slate-700">City</label>
-                <input
-                  name="city"
-                  value={jobForm.city}
-                  onChange={handleJobChange}
-                  className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-slate-700">State</label>
-                <input
-                  name="state"
-                  value={jobForm.state}
-                  onChange={handleJobChange}
-                  maxLength={2}
-                  className="mt-1 uppercase rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-slate-700">ZIP</label>
-                <input
-                  name="zip"
-                  value={jobForm.zip}
-                  onChange={handleJobChange}
-                  className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-slate-700">Hourly Pay</label>
-                <input
-                  name="hourlyPay"
-                  value={jobForm.hourlyPay}
-                  onChange={handleJobChange}
-                  className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-slate-700">Per Diem</label>
-                <input
-                  name="perDiem"
-                  value={jobForm.perDiem}
-                  onChange={handleJobChange}
-                  className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Description</label>
-                <textarea
-                  name="description"
-                  value={jobForm.description}
-                  onChange={handleJobChange}
-                  required
-                  rows={6}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Additional Requirements / Certifications
-                </label>
-                <textarea
-                  name="additionalRequirements"
-                  value={jobForm.additionalRequirements}
-                  onChange={handleJobChange}
-                  rows={4}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end">
-              <button
-                type="submit"
-                disabled={jobLoading}
-                className="rounded-lg bg-sky-600 px-6 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {jobLoading ? "Posting…" : "Post Job"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </section>
-    );
-  };
-
-  const renderPostedJobsCard = () => {
-    const previewJobs = jobs.slice(0, 4);
-    return (
-      <section className={cardContainer}>
-        <div className="flex h-full flex-col">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-3">Posted Jobs</h2>
-              <p className="mb-4 text-sm text-gray-600">Quick snapshot of your most recent listings.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() =>
-                postJobRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-              }
-              className="text-sm font-semibold text-sky-600 hover:text-sky-500"
-            >
-              See all
-            </button>
-          </div>
-
-          {jobs.length === 0 ? (
-            <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
-              You haven&apos;t posted any jobs yet.
-            </div>
-          ) : (
-            <div className="mt-6 flex flex-col items-center gap-4">
-              {previewJobs.map((job) => (
-                <article
-                  key={job.id}
-                  className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-5 shadow-md"
-                >
-                  <div className="flex flex-col gap-2">
-                    <h3 className="text-lg font-bold text-slate-900">{job.title}</h3>
-                    <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">
-                      {normalizeTrade(job.trade) || "General"}
-                    </p>
-                    <p className="text-sm text-slate-600">{formatJobLocation(job) || "Location TBD"}</p>
-                  </div>
-
-                  <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hourly Pay</dt>
-                      <dd className="mt-1 text-sm text-slate-700">{job.hourlyPay || "Not specified"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Per Diem</dt>
-                      <dd className="mt-1 text-sm text-slate-700">{job.perDiem || "Not specified"}</dd>
-                    </div>
-                  </dl>
-
-                  <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
-                    {job.posted_at ? <span>Posted {formatDate(job.posted_at)}</span> : <span />}
-                    <Link
-                      href={`/jobs/${job.id}`}
-                      className="text-sm font-semibold text-sky-600 transition hover:text-sky-500"
-                    >
-                      See Details
-                    </Link>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-    );
-  };
-
-  const renderResumeCard = () => {
-    const resumePreview = resumeResults.slice(0, 3);
-    return (
-      <section id="resume-search" ref={resumeRef} className={cardContainer}>
-        <div className="flex h-full flex-col">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-3">Resume Search</h2>
-              <p className="mb-4 text-sm text-gray-600">Filter by trade and distance to find your next hire.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() =>
-                resumeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-              }
-              className="text-sm font-semibold text-sky-600 hover:text-sky-500"
-            >
-              See all
-            </button>
-          </div>
-
-          <form onSubmit={handleResumeSearch} className="mt-4 grid gap-4 md:grid-cols-2">
-            <div className="flex flex-col">
-              <label className="text-sm font-medium text-slate-700">Trade</label>
-              <select
-                name="trade"
-                value={resumeFilters.trade}
-                onChange={handleResumeFilterChange}
-                className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-              >
-                <option value="">Any trade</option>
-                {TRADES.map((trade) => (
-                  <option key={trade} value={trade}>
-                    {trade}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col">
-              <label className="text-sm font-medium text-slate-700">ZIP</label>
-              <input
-                name="zip"
-                value={resumeFilters.zip}
-                onChange={handleResumeFilterChange}
-                placeholder="Search radius origin"
-                className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className="text-sm font-medium text-slate-700">Distance</label>
-              <select
-                name="radius"
-                value={resumeFilters.radius}
-                onChange={handleResumeFilterChange}
-                className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-              >
-                {[25, 50, 100, 250, 500].map((distance) => (
-                  <option key={distance} value={distance}>
-                    Within {distance} miles
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col">
-              <label className="text-sm font-medium text-slate-700">Keyword</label>
-              <input
-                name="keyword"
-                value={resumeFilters.keyword}
-                onChange={handleResumeFilterChange}
-                placeholder="Name, city, or trade"
-                className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-              />
-            </div>
-            <div className="md:col-span-2 flex justify-end">
-              <button
-                type="submit"
-                disabled={resumeLoading}
-                className="rounded-lg bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {resumeLoading ? "Searching…" : "Search"}
-              </button>
-            </div>
-          </form>
-
-          {resumeError ? (
-            <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{resumeError}</div>
-          ) : null}
-
-          <div className="mt-6 space-y-4">
-            {resumeResults.length === 0 && !resumeLoading ? (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
-                No resumes match your filters yet. Try broadening your search.
-              </div>
-            ) : (
-              resumePreview.map((resume) => {
-                const activity = formatLastActive(resume.lastActive);
-                const cityState = [resume.city, resume.state].filter(Boolean).join(", ");
-                const resumeUrl = resume.resumeUrl || resume.resumeurl;
-                return (
-                  <article
-                    key={resume.id}
-                    className="rounded-xl border border-slate-200 bg-white/90 p-4 shadow-sm shadow-slate-200/70"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <h3 className="text-base font-semibold text-slate-900">
-                          {[resume.firstName, resume.lastName].filter(Boolean).join(" ") || "Unnamed Candidate"}
-                        </h3>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-sky-600">
-                          {resume.trade || "Various trades"}
-                        </p>
-                        <p className="text-sm text-slate-600">{cityState || "Location not provided"}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-2 text-xs text-slate-500">
-                        <span className="font-medium text-slate-600">{activity.label}</span>
-                        {activity.isFresh ? (
-                          <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">
-                            Active within 7 days
-                          </span>
-                        ) : null}
-                        {resumeUrl ? (
-                          <a
-                            href={resumeUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs font-semibold text-sky-600 hover:text-sky-500"
-                          >
-                            View Resume
-                          </a>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <button
-                        type="button"
-                        onClick={() => handleSaveCandidate(resume.id)}
-                        className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
-                      >
-                        ⭐ Save Candidate
-                      </button>
-                    </div>
-                  </article>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </section>
-    );
-  };
-
-  const renderSavedCandidatesCard = () => {
-    const previewCandidates = savedCandidates.slice(0, 4);
-    return (
-      <section id="saved-candidates" ref={savedRef} className={cardContainer}>
-        <div className="flex h-full flex-col">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-3">Saved Candidates</h2>
-              <p className="mb-4 text-sm text-gray-600">Keep track of prospects you want to revisit.</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={refreshSavedCandidates}
-                className="text-sm font-semibold text-slate-500 hover:text-slate-700"
-              >
-                Refresh
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  savedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-                }
-                className="text-sm font-semibold text-sky-600 hover:text-sky-500"
-              >
-                See all
-              </button>
-            </div>
-          </div>
-
-          {savedLoading ? (
-            <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
-              Loading…
-            </div>
-          ) : previewCandidates.length === 0 ? (
-            <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
-              You haven&apos;t saved any candidates yet.
-            </div>
-          ) : (
-            <ul className="mt-4 space-y-4">
-              {previewCandidates.map((item) => {
-                const profile = item.jobseekerprofile || {};
-                const resumeUrl = profile.resumeUrl || profile.resumeurl;
-                return (
-                  <li
-                    key={item.id}
-                    className="rounded-xl border border-slate-200 bg-white/90 p-4 shadow-sm shadow-slate-200/70"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-base font-semibold text-slate-900">
-                          {[profile.firstName, profile.lastName].filter(Boolean).join(" ") || "Unnamed Candidate"}
-                        </p>
-                        <p className="text-sm text-slate-600">{profile.trade || "Various trades"}</p>
-                        <p className="text-xs text-slate-500">Saved {formatDate(item.saved_at)}</p>
-                      </div>
-                      <div>
-                        {resumeUrl ? (
-                          <a
-                            href={resumeUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
-                          >
-                            Quick View
-                          </a>
-                        ) : (
-                          <span className="text-xs text-slate-500">No resume uploaded</span>
-                        )}
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      </section>
-    );
-  };
-
-  const renderBillingCard = () => {
-    const tier = subscription?.tier || "basic";
-    const status = subscription?.status || "free";
-    const formatLabel = (value) => value.charAt(0).toUpperCase() + value.slice(1);
-
-    return (
-      <section className={cardContainer}>
-        <div className="flex h-full flex-col">
-          <h2 className="text-xl font-semibold text-gray-800 mb-3">Billing &amp; Tier Info</h2>
-          <p className="mb-4 text-sm text-gray-600">
-            Review your current plan and update payment details anytime.
-          </p>
-
-          <dl className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-xl bg-gray-50 px-4 py-3">
-              <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Current Tier</dt>
-              <dd className="text-lg font-semibold text-gray-800">{formatLabel(tier)}</dd>
-            </div>
-            <div className="rounded-xl bg-gray-50 px-4 py-3">
-              <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Status</dt>
-              <dd className="text-lg font-semibold text-gray-800">{formatLabel(status)}</dd>
-            </div>
-          </dl>
-
-          <Link
-            href="/dashboard/employer/billing"
-            className="inline-flex w-fit items-center justify-center rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
-          >
-            Manage Billing
-          </Link>
-        </div>
-      </section>
-    );
-  };
-
+function Card({ href, title, description, children }) {
   return (
-    <main className="min-h-screen bg-gray-100 py-12">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <header className="mx-auto max-w-3xl text-center">
-          <h1 className="text-3xl font-bold text-slate-900">Employer Dashboard</h1>
-          <p className="mt-3 text-base leading-relaxed text-slate-600">
-            Manage job postings, scout resumes, and keep tabs on billing in one streamlined workspace.
+    <Link
+      href={href}
+      className="group block rounded-2xl border border-slate-200 bg-white p-6 shadow-lg transition-all duration-300 ease-out hover:scale-105 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200"
+    >
+      <div className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
+          <p className="mt-1 text-sm text-slate-600">{description}</p>
+        </div>
+        {children}
+        <span className="mt-auto inline-flex items-center gap-2 text-sm font-semibold text-sky-600">
+          Manage
+          <svg
+            aria-hidden="true"
+            className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+export default function EmployerDashboard({ previewJobs, savedCount, subscription }) {
+  return (
+    <main className="bg-slate-50 py-12">
+      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 sm:px-6 lg:px-8">
+        <header className="space-y-3 text-center sm:text-left">
+          <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">Employer Dashboard</p>
+          <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Welcome back</h1>
+          <p className="max-w-3xl text-base text-slate-600">
+            Navigate between your hiring tools. Post new listings, review applicants, and manage your subscription in just a
+            couple of clicks.
           </p>
         </header>
 
-        <div className="mt-6 flex justify-center">
-          <Link
-            href="/dashboard/employer"
-            className="inline-flex items-center justify-center rounded-lg border border-sky-600 px-5 py-2 text-sm font-semibold text-sky-600 shadow-sm transition hover:bg-sky-50"
-          >
-            Dashboard
-          </Link>
-        </div>
+        <section>
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <Card href="/dashboard/employer/post-job" title="Post a Job" description="Share a new travel assignment in minutes.">
+              <ul className="space-y-2 text-sm text-slate-600">
+                <li>• Guided form with required fields</li>
+                <li>• Preview pay, per diem, and requirements</li>
+                <li>• Auto-redirect to manage applicants</li>
+              </ul>
+            </Card>
 
-        <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {renderPostJobCard()}
-          {renderPostedJobsCard()}
-          {renderResumeCard()}
-          {renderSavedCandidatesCard()}
-          {renderBillingCard()}
-        </div>
+            <Card href="/dashboard/employer/posted-jobs" title="Posted Jobs" description="See your latest listings and applicant activity.">
+              {previewJobs.length === 0 ? (
+                <p className="text-sm font-medium text-slate-500">No jobs posted yet. Create your first listing to see it here.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {previewJobs.map((job) => (
+                    <li key={job.id} className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-medium text-slate-700 line-clamp-1">{job.title}</span>
+                      {job.newApplicants > 0 ? (
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                          {job.newApplicants} new applicant{job.newApplicants === 1 ? "" : "s"}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+
+            <Card href="/dashboard/employer/resume-search" title="Resume Search" description="Filter the candidate pool by trade and location.">
+              <p className="text-sm text-slate-600">
+                Search by trade, radius, and keywords to find traveling professionals that match your open assignments.
+              </p>
+            </Card>
+
+            <Card href="/dashboard/employer/saved" title="Saved Candidates" description="Revisit the talent you bookmarked for later.">
+              <p className="text-sm text-slate-600">
+                You have <span className="font-semibold text-slate-900">{savedCount}</span> saved candidate{savedCount === 1 ? "" : "s"}
+                ready for follow-up.
+              </p>
+            </Card>
+
+            <Card href="/dashboard/employer/billing" title="Billing &amp; Tier Info" description="Review your subscription and plan details.">
+              <div className="rounded-xl bg-slate-100 p-4 text-sm text-slate-600">
+                <p className="font-semibold text-slate-900">Current tier: {subscription.tier || "Basic"}</p>
+                <p className="mt-1 capitalize">Status: {subscription.status || "active"}</p>
+                <p className="mt-2 text-xs text-slate-500">Manage invoices, upgrade tiers, and update payment methods.</p>
+              </div>
+            </Card>
+          </div>
+        </section>
       </div>
     </main>
   );
@@ -711,20 +133,30 @@ export async function getServerSideProps(context) {
       include: {
         jobs: {
           orderBy: { posted_at: "desc" },
+          take: 3,
+          include: {
+            applications: {
+              where: { status: "pending" },
+              select: { id: true },
+            },
+          },
         },
         savedCandidates: {
-          orderBy: { saved_at: "desc" },
-          include: {
-            jobseekerprofile: true,
-          },
+          select: { id: true },
         },
       },
     });
 
+    const previewJobs = (employerProfile?.jobs || []).map((job) => ({
+      id: job.id,
+      title: job.title,
+      newApplicants: job.applications?.length || 0,
+    }));
+
     return {
       props: {
-        initialJobs: JSON.parse(JSON.stringify(employerProfile?.jobs ?? [])),
-        initialSaved: JSON.parse(JSON.stringify(employerProfile?.savedCandidates ?? [])),
+        previewJobs,
+        savedCount: employerProfile?.savedCandidates?.length || 0,
         subscription: {
           status: employerProfile?.subscription_status || "free",
           tier: employerProfile?.subscription_tier || "basic",
@@ -735,8 +167,8 @@ export async function getServerSideProps(context) {
     console.error(error);
     return {
       props: {
-        initialJobs: [],
-        initialSaved: [],
+        previewJobs: [],
+        savedCount: 0,
         subscription: { status: "free", tier: "basic" },
       },
     };
