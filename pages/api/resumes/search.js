@@ -30,11 +30,36 @@ export default async function handler(req, res) {
               { trade: { contains: keyword, mode: "insensitive" } },
             ]
           : undefined,
+        resumeUrl: {
+          not: null,
+        },
       },
-      orderBy: { lastActive: "desc" },
     });
 
-    res.status(200).json(resumes);
+    const toTimestamp = (value) => {
+      if (!value) return 0;
+      const date = new Date(value);
+      const time = date.getTime();
+      return Number.isFinite(time) ? time : 0;
+    };
+
+    const normalized = resumes
+      .filter((candidate) => Boolean(candidate?.resumeUrl))
+      .sort((a, b) => toTimestamp(b?.updated_at ?? b?.updatedAt) - toTimestamp(a?.updated_at ?? a?.updatedAt))
+      .map((candidate) => ({
+        id: candidate.id,
+        firstName: candidate.firstName ?? null,
+        lastName: candidate.lastName ?? null,
+        trade: candidate.trade ?? null,
+        city: candidate.city ?? null,
+        state: candidate.state ?? null,
+        phone: candidate.phone ?? null,
+        lastActive: candidate.lastActive ?? null,
+        resumeUrl: candidate.resumeUrl,
+        updatedAt: candidate.updated_at ?? candidate.updatedAt ?? null,
+      }));
+
+    res.status(200).json(normalized);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Resume search failed" });
