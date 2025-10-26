@@ -312,6 +312,11 @@ export function buildJobseekerProfile(payload, email) {
     return new Error("Trade selection is required.");
   }
 
+  const mobilePhone = sanitize(payload.mobilePhone ?? payload.mobilephone ?? payload.phone);
+  if (!mobilePhone) {
+    return new Error("Mobile phone is required.");
+  }
+
   const firstName = sanitize(payload.firstName);
   const lastName = sanitize(payload.lastName);
   const address1 = sanitize(payload.address1);
@@ -323,6 +328,7 @@ export function buildJobseekerProfile(payload, email) {
 
   const profile = {
     email,
+    phone: mobilePhone,
     address1,
     address2,
     city,

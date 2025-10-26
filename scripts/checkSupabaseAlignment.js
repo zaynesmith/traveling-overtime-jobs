@@ -109,6 +109,7 @@ const expectedSchema = {
       firstName: { type: "text", nullable: true },
       lastName: { type: "text", nullable: true },
       email: { type: "text", nullable: true },
+      phone: { type: "text", nullable: true },
       address1: { type: "text", nullable: true },
       address2: { type: "text", nullable: true },
       city: { type: "text", nullable: true },

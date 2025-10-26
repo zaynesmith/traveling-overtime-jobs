@@ -85,6 +85,7 @@ describe("profile creation builders", () => {
     const payload = {
       firstName: "  John  ",
       lastName: "  Doe  ",
+      mobilePhone: " 555-0199 ",
       address1: " 456 Market St ",
       city: "  Austin ",
       state: " TX ",
@@ -102,6 +103,7 @@ describe("profile creation builders", () => {
       state: "TX",
       zip: "78701",
       trade: "Electrician",
+      phone: "555-0199",
     });
   });
 
@@ -110,6 +112,13 @@ describe("profile creation builders", () => {
     const invalid = buildJobseekerProfile({}, "someone@example.com");
     expect(invalid).toBeInstanceOf(Error);
     expect(invalid.message).toContain("Trade selection is required");
+  });
+
+  it("requires a mobile phone number for jobseeker profiles", async () => {
+    const { buildJobseekerProfile } = await import("../pages/api/auth/register.js");
+    const invalid = buildJobseekerProfile({ trade: "Electrician" }, "someone@example.com");
+    expect(invalid).toBeInstanceOf(Error);
+    expect(invalid.message).toContain("Mobile phone is required");
   });
 
   it("allows employer registration without an office phone number", async () => {
