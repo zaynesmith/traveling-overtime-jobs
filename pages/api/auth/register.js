@@ -317,6 +317,19 @@ export function buildJobseekerProfile(payload, email) {
     return new Error("Mobile phone is required.");
   }
 
+  const hasJourneymanLicense =
+    payload.hasJourneymanLicense === true ||
+    payload.hasJourneymanLicense === "yes" ||
+    payload.hasJourneymanLicense === 1;
+
+  const licensedStates = Array.isArray(payload.licensedStates)
+    ? payload.licensedStates.map((state) => sanitize(state)).filter(Boolean)
+    : [];
+
+  if (hasJourneymanLicense && licensedStates.length === 0) {
+    return new Error("At least one licensed state must be provided.");
+  }
+
   const firstName = sanitize(payload.firstName);
   const lastName = sanitize(payload.lastName);
   const address1 = sanitize(payload.address1);
@@ -335,6 +348,8 @@ export function buildJobseekerProfile(payload, email) {
     state,
     zip,
     trade,
+    hasJourneymanLicense,
+    licensedStates,
   };
 
   const optionalFields = {
