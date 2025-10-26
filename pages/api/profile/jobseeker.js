@@ -45,6 +45,7 @@ export default async function handler(req, res) {
       "firstName",
       "lastName",
       "email",
+      "phone",
       "trade",
       "address1",
       "address2",

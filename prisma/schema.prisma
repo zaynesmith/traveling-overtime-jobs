@@ -64,6 +64,7 @@ model JobseekerProfile {
   firstName    String?
   lastName     String?
   email        String?
+  phone        String?
   address1     String?
   address2     String?
   city         String?

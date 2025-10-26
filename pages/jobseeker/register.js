@@ -9,6 +9,7 @@ const initialForm = {
   lastName: "",
   email: "",
   password: "",
+  mobilePhone: "",
   address1: "",
   address2: "",
   city: "",
@@ -81,6 +82,7 @@ export default function JobseekerRegisterPage() {
           role: "jobseeker",
           email: form.email,
           password: form.password,
+          mobilePhone: form.mobilePhone,
           firstName: form.firstName,
           lastName: form.lastName,
           address1: form.address1,
@@ -160,6 +162,17 @@ export default function JobseekerRegisterPage() {
           />
         </label>
         <label className="form-label">
+          Mobile Phone
+          <input
+            type="tel"
+            required
+            autoComplete="tel"
+            className="form-input"
+            value={form.mobilePhone}
+            onChange={updateField("mobilePhone")}
+          />
+        </label>
+        <label className="form-label">
           Address Line 1
           <input
             className="form-input"
@@ -217,6 +230,10 @@ export default function JobseekerRegisterPage() {
             ))}
           </select>
         </label>
+        <p className="form-hint">
+          Note: Employers cannot contact you if you do not upload a resume. Please include your phone number and resume for best
+          results.
+        </p>
         <label className="form-label">
           Resume (optional)
           <input type="file" className="form-input" onChange={handleResumeChange} />
