@@ -4,6 +4,59 @@ import { useRouter } from "next/router";
 import { signIn, useSession } from "next-auth/react";
 import { TRADES } from "@/lib/trades";
 
+const US_STATES = [
+  "Alabama",
+  "Alaska",
+  "Arizona",
+  "Arkansas",
+  "California",
+  "Colorado",
+  "Connecticut",
+  "Delaware",
+  "Florida",
+  "Georgia",
+  "Hawaii",
+  "Idaho",
+  "Illinois",
+  "Indiana",
+  "Iowa",
+  "Kansas",
+  "Kentucky",
+  "Louisiana",
+  "Maine",
+  "Maryland",
+  "Massachusetts",
+  "Michigan",
+  "Minnesota",
+  "Mississippi",
+  "Missouri",
+  "Montana",
+  "Nebraska",
+  "Nevada",
+  "New Hampshire",
+  "New Jersey",
+  "New Mexico",
+  "New York",
+  "North Carolina",
+  "North Dakota",
+  "Ohio",
+  "Oklahoma",
+  "Oregon",
+  "Pennsylvania",
+  "Rhode Island",
+  "South Carolina",
+  "South Dakota",
+  "Tennessee",
+  "Texas",
+  "Utah",
+  "Vermont",
+  "Virginia",
+  "Washington",
+  "West Virginia",
+  "Wisconsin",
+  "Wyoming",
+];
+
 const initialForm = {
   firstName: "",
   lastName: "",
@@ -16,6 +69,8 @@ const initialForm = {
   state: "",
   zipCode: "",
   trade: "",
+  hasJourneymanLicense: "no",
+  licensedStates: [],
 };
 
 export default function JobseekerRegisterPage() {
@@ -38,6 +93,20 @@ export default function JobseekerRegisterPage() {
 
   const updateField = (field) => (event) => {
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
+  };
+
+  const updateJourneymanLicense = (event) => {
+    const value = event.target.value;
+    setForm((prev) => ({
+      ...prev,
+      hasJourneymanLicense: value,
+      licensedStates: value === "yes" ? prev.licensedStates : [],
+    }));
+  };
+
+  const updateLicensedStates = (event) => {
+    const selected = Array.from(event.target.selectedOptions || [], (option) => option.value);
+    setForm((prev) => ({ ...prev, licensedStates: selected }));
   };
 
   const handleResumeChange = (event) => {
@@ -75,6 +144,13 @@ export default function JobseekerRegisterPage() {
         }
       }
 
+      if (form.hasJourneymanLicense === "yes" && form.licensedStates.length === 0) {
+        throw new Error("Select at least one state for your journeyman license.");
+      }
+
+      const hasJourneymanLicense = form.hasJourneymanLicense === "yes";
+      const licensedStates = hasJourneymanLicense ? form.licensedStates : [];
+
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -91,6 +167,8 @@ export default function JobseekerRegisterPage() {
           state: form.state,
           zipCode: form.zipCode,
           trade: form.trade,
+          hasJourneymanLicense,
+          licensedStates,
           resume: resumePayload,
         }),
       });
@@ -230,6 +308,50 @@ export default function JobseekerRegisterPage() {
             ))}
           </select>
         </label>
+        <div className="form-label">
+          Journeyman License
+          <div>
+            <label>
+              <input
+                type="radio"
+                name="hasJourneymanLicense"
+                value="yes"
+                checked={form.hasJourneymanLicense === "yes"}
+                onChange={updateJourneymanLicense}
+              />
+              <span className="ml-2">Yes</span>
+            </label>
+          </div>
+          <div>
+            <label>
+              <input
+                type="radio"
+                name="hasJourneymanLicense"
+                value="no"
+                checked={form.hasJourneymanLicense === "no"}
+                onChange={updateJourneymanLicense}
+              />
+              <span className="ml-2">No</span>
+            </label>
+          </div>
+        </div>
+        {form.hasJourneymanLicense === "yes" ? (
+          <label className="form-label">
+            Licensed States
+            <select
+              multiple
+              className="form-input"
+              value={form.licensedStates}
+              onChange={updateLicensedStates}
+            >
+              {US_STATES.map((state) => (
+                <option key={state} value={state}>
+                  {state}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <p className="form-hint">
           Note: Employers cannot contact you if you do not upload a resume. Please include your phone number and resume for best
           results.

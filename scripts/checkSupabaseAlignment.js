@@ -117,6 +117,8 @@ const expectedSchema = {
       zip: { type: "text", nullable: true },
       trade: { type: "text", nullable: true },
       resumeUrl: { type: "text", nullable: true },
+      hasJourneymanLicense: { type: "boolean", nullable: false, defaultIncludes: "false" },
+      licensedStates: { type: "ARRAY", nullable: false, defaultIncludes: "{}" },
       userId: { type: "text", nullable: false, unique: true },
     },
     unique: ["userId"],

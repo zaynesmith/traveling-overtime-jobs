@@ -72,6 +72,8 @@ model JobseekerProfile {
   zip          String?
   trade        String?
   resumeUrl    String?
+  hasJourneymanLicense Boolean       @default(false)
+  licensedStates       String[]      @default([])
   userId       String?         @unique @db.Uuid
 
   lastActive   DateTime?       @default(now())

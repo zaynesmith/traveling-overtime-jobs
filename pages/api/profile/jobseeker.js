@@ -60,6 +60,21 @@ export default async function handler(req, res) {
       }
     }
 
+    if (Object.prototype.hasOwnProperty.call(profile, "hasJourneymanLicense")) {
+      updateData.hasJourneymanLicense =
+        profile.hasJourneymanLicense === true ||
+        profile.hasJourneymanLicense === "yes" ||
+        profile.hasJourneymanLicense === 1;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(profile, "licensedStates")) {
+      updateData.licensedStates = Array.isArray(profile.licensedStates)
+        ? profile.licensedStates
+            .map((state) => normalizeString(state))
+            .filter((state) => state !== null)
+        : [];
+    }
+
     if (resume?.base64 && resume?.fileName) {
       const supabase = getSupabaseServiceClient();
       const base64Data = resume.base64.split(",").pop();
