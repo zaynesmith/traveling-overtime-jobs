@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
-import TRADES from "@/lib/trades";
+import { TRADES } from "@/lib/trades";
 
 export default function ResumeSearchPage() {
   const [filters, setFilters] = useState({ trade: "", zip: "", radius: "50", keyword: "" });
@@ -62,8 +62,8 @@ export default function ResumeSearchPage() {
               >
                 <option value="">Any trade</option>
                 {TRADES.map((trade) => (
-                  <option key={trade.value} value={trade.value}>
-                    {trade.label}
+                  <option key={trade} value={trade}>
+                    {trade}
                   </option>
                 ))}
               </select>
