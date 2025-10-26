@@ -9,6 +9,17 @@ export default function ResumeSearchPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const formatDate = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(date);
+  };
+
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFilters((current) => ({ ...current, [name]: value }));
@@ -116,25 +127,51 @@ export default function ResumeSearchPage() {
           <section className="space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">{results.length} candidate{results.length === 1 ? "" : "s"} found</h2>
             <ul className="space-y-4">
-              {results.map((candidate) => (
-                <li key={candidate.id} className="rounded-2xl bg-white p-5 shadow-lg">
-                  <p className="text-base font-semibold text-slate-900">{candidate.firstName} {candidate.lastName}</p>
-                  <p className="text-sm text-slate-600">{candidate.trade || "General"} • {candidate.city}, {candidate.state}</p>
-                  {candidate.resumeUrl ? (
-                    <a
-                      href={candidate.resumeUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-sky-600"
-                    >
-                      View resume
-                      <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
-                        <path d="M5 12h14M12 5l7 7-7 7" />
-                      </svg>
-                    </a>
-                  ) : null}
-                </li>
-              ))}
+              {results.map((candidate) => {
+                const fullName = [candidate.firstName, candidate.lastName].filter(Boolean).join(" ") || "Unnamed candidate";
+                const trade = candidate.trade || "Not provided";
+                const locationParts = [candidate.city, candidate.state].filter(Boolean);
+                const location = locationParts.length ? locationParts.join(", ") : "Not provided";
+                const phone = candidate.phone || "Not provided";
+
+                const lastActive = formatDate(candidate.lastActive) || "No recent activity";
+                const resumeUpdatedRaw = formatDate(candidate.updatedAt);
+                const resumeUpdated = resumeUpdatedRaw ? `Updated ${resumeUpdatedRaw}` : "Updated date: Not provided";
+
+                return (
+                  <li key={candidate.id} className="rounded-2xl bg-white p-5 shadow-lg">
+                    <p className="text-base font-semibold text-slate-900">{fullName}</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      <span className="font-semibold text-slate-700">Trade:</span> {trade}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      <span className="font-semibold text-slate-700">Location:</span> {location}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      <span className="font-semibold text-slate-700">Contact:</span> {phone}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      <span className="font-semibold text-slate-700">Last active:</span> {lastActive}
+                    </p>
+                    {candidate.resumeUrl ? (
+                      <div className="mt-3 flex flex-wrap items-center gap-3">
+                        <a
+                          href={candidate.resumeUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 text-sm font-semibold text-sky-600"
+                        >
+                          View resume
+                          <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                          </svg>
+                        </a>
+                        <span className="text-xs text-slate-500">{resumeUpdated}</span>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
           </section>
         ) : null}
