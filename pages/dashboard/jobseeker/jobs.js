@@ -39,9 +39,29 @@ function JobCard({ job }) {
 }
 
 export default function JobseekerJobsPage({ jobs: initialJobs }) {
-  const { formFilters, handleChange, handleReset, handleSubmit, jobs, loading, error } = useJobSearch({
+  const {
+    formFilters,
+    activeFilters,
+    handleChange,
+    handleReset,
+    handleSubmit,
+    jobs,
+    loading,
+    error,
+  } = useJobSearch({
     initialJobs,
   });
+
+  const hasDistanceData = jobs.some((job) => typeof job?.distance === "number");
+  const parsedRadius = Number.parseFloat(activeFilters?.radius ?? "");
+  const targetZip = activeFilters?.zip ? activeFilters.zip.toString().trim() : "";
+  const radiusMessage =
+    hasDistanceData &&
+    Number.isFinite(parsedRadius) &&
+    parsedRadius > 0 &&
+    targetZip
+      ? `Results within ${parsedRadius} miles of ${targetZip}`
+      : null;
 
   return (
     <main className="bg-slate-50 py-12">
@@ -74,11 +94,16 @@ export default function JobseekerJobsPage({ jobs: initialJobs }) {
               <p className="mt-2 text-sm text-slate-600">Check back soon for fresh travel assignments.</p>
             </div>
           ) : (
-            <ul className="grid gap-6 md:grid-cols-2">
-              {jobs.map((job) => (
-                <JobCard key={job.id} job={job} />
-              ))}
-            </ul>
+            <>
+              {radiusMessage ? (
+                <p className="text-sm text-slate-500">{radiusMessage}</p>
+              ) : null}
+              <ul className="grid gap-6 md:grid-cols-2">
+                {jobs.map((job) => (
+                  <JobCard key={job.id} job={job} />
+                ))}
+              </ul>
+            </>
           )}
         </section>
       </div>

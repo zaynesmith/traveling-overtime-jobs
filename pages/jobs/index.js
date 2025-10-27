@@ -13,7 +13,27 @@ function formatCityState(job) {
 }
 
 export default function Jobs() {
-  const { formFilters, handleChange, handleReset, handleSubmit, jobs, loading, error } = useJobSearch();
+  const {
+    formFilters,
+    activeFilters,
+    handleChange,
+    handleReset,
+    handleSubmit,
+    jobs,
+    loading,
+    error,
+  } = useJobSearch();
+
+  const hasDistanceData = jobs.some((job) => typeof job?.distance === "number");
+  const parsedRadius = Number.parseFloat(activeFilters?.radius ?? "");
+  const targetZip = activeFilters?.zip ? activeFilters.zip.toString().trim() : "";
+  const radiusMessage =
+    hasDistanceData &&
+    Number.isFinite(parsedRadius) &&
+    parsedRadius > 0 &&
+    targetZip
+      ? `Results within ${parsedRadius} miles of ${targetZip}`
+      : null;
 
   return (
     <main className="min-h-screen bg-gray-100 py-12">
@@ -46,10 +66,14 @@ export default function Jobs() {
               No jobs found. Try adjusting your filters.
             </div>
           ) : (
-            jobs.map((job) => {
-              const cityState = formatCityState(job) || job.location || job.zip || "Location TBD";
-              return (
-                <article key={job.id} className={listingCardClasses}>
+            <>
+              {radiusMessage ? (
+                <p className="text-sm text-slate-500">{radiusMessage}</p>
+              ) : null}
+              {jobs.map((job) => {
+                const cityState = formatCityState(job) || job.location || job.zip || "Location TBD";
+                return (
+                  <article key={job.id} className={listingCardClasses}>
                   <header className="flex flex-col gap-2">
                     <h2 className="text-2xl font-bold text-slate-900">{job.title}</h2>
                     <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">
@@ -83,7 +107,8 @@ export default function Jobs() {
                   </div>
                 </article>
               );
-            })
+              })
+            </>
           )}
         </section>
       </section>
