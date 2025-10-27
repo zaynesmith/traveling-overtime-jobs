@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
+import JobSearchFilters, { filterPanelClasses } from "@/components/jobs/JobSearchFilters";
+import { useJobSearch } from "@/lib/hooks/useJobSearch";
 import authOptions from "@/lib/authOptions";
 import { normalizeTrade } from "@/lib/trades";
 
@@ -36,7 +38,11 @@ function JobCard({ job }) {
   );
 }
 
-export default function JobseekerJobsPage({ jobs }) {
+export default function JobseekerJobsPage({ jobs: initialJobs }) {
+  const { formFilters, handleChange, handleReset, handleSubmit, jobs, loading, error } = useJobSearch({
+    initialJobs,
+  });
+
   return (
     <main className="bg-slate-50 py-12">
       <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 sm:px-6 lg:px-8">
@@ -48,18 +54,33 @@ export default function JobseekerJobsPage({ jobs }) {
           </p>
         </header>
 
-        {jobs.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-lg">
-            <p className="text-lg font-semibold text-slate-900">No jobs posted yet.</p>
-            <p className="mt-2 text-sm text-slate-600">Check back soon for fresh travel assignments.</p>
-          </div>
-        ) : (
-          <ul className="grid gap-6 md:grid-cols-2">
-            {jobs.map((job) => (
-              <JobCard key={job.id} job={job} />
-            ))}
-          </ul>
-        )}
+        <JobSearchFilters
+          filters={formFilters}
+          onChange={handleChange}
+          onSubmit={handleSubmit}
+          onReset={handleReset}
+        />
+
+        <section className="flex flex-col gap-6">
+          {loading ? (
+            <div className={`${filterPanelClasses} text-center text-slate-600`}>Loading jobs…</div>
+          ) : error ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center text-sm font-semibold text-rose-600 shadow-sm">
+              {error}
+            </div>
+          ) : jobs.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-lg">
+              <p className="text-lg font-semibold text-slate-900">No jobs posted yet.</p>
+              <p className="mt-2 text-sm text-slate-600">Check back soon for fresh travel assignments.</p>
+            </div>
+          ) : (
+            <ul className="grid gap-6 md:grid-cols-2">
+              {jobs.map((job) => (
+                <JobCard key={job.id} job={job} />
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
     </main>
   );
