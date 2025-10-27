@@ -193,6 +193,7 @@ export async function getServerSideProps(context) {
         return {
           applicationId: application.id,
           jobseekerId: profile?.id || application.jobseeker_id,
+          profileId: profile?.id || application.jobseeker_id,
           fullName,
           trade: profile?.trade || null,
           location: locationParts.length ? locationParts.join(", ") : null,

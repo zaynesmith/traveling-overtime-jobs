@@ -53,7 +53,7 @@ export default function JobseekerProfilePage({ profile }) {
             href="/dashboard/jobseeker/settings"
             className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
           >
-            Edit profile settings
+            Edit Profile / Settings
           </Link>
         </div>
       </div>

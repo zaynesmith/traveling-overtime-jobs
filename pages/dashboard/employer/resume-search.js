@@ -103,6 +103,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
 
         return {
           id: candidate.id,
+          profileId: candidate.id,
           fullName,
           trade: candidate.trade,
           location: locationParts.length ? locationParts.join(", ") : null,

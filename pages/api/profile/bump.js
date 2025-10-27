@@ -18,27 +18,30 @@ export default async function handler(req, res) {
 
     const profile = await prisma.jobseekerProfile.findUnique({
       where: { userId: session.user.id },
-      select: { id: true, lastActive: true },
+      select: { id: true, lastBump: true },
     });
 
     if (!profile) {
       return res.status(404).json({ error: "Jobseeker profile not found" });
     }
 
-    const lastActive = profile.lastActive ? new Date(profile.lastActive).getTime() : 0;
+    const lastBump = profile.lastBump ? new Date(profile.lastBump).getTime() : 0;
     const now = Date.now();
 
-    if (lastActive && now - lastActive < SEVEN_DAYS_MS) {
-      const remaining = SEVEN_DAYS_MS - (now - lastActive);
+    if (lastBump && now - lastBump < SEVEN_DAYS_MS) {
+      const remaining = SEVEN_DAYS_MS - (now - lastBump);
+      const nextEligibleDate = new Date(lastBump + SEVEN_DAYS_MS);
       return res.status(429).json({
         error: "Resume bump is limited to once every 7 days.",
         retryAfter: Math.ceil(remaining / (24 * 60 * 60 * 1000)),
+        nextEligibleDate: nextEligibleDate.toISOString(),
       });
     }
 
+    const nowDate = new Date();
     const updated = await prisma.jobseekerProfile.update({
       where: { id: profile.id },
-      data: { lastActive: new Date() },
+      data: { lastBump: nowDate, lastActive: nowDate },
     });
 
     res.status(200).json(updated);
