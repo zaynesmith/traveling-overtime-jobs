@@ -12,6 +12,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
   const [savedIds, setSavedIds] = useState(() => new Set(initialSavedIds || []));
   const [pendingIds, setPendingIds] = useState(() => new Set());
   const [saveError, setSaveError] = useState(null);
+  const [appliedFilters, setAppliedFilters] = useState(null);
 
   const employerIdentifier = employerId || null;
 
@@ -27,6 +28,14 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
     setResults([]);
 
     try {
+      const currentFilters = {
+        trade: filters.trade,
+        zip: filters.zip,
+        radius: filters.radius,
+        keyword: filters.keyword,
+      };
+      setAppliedFilters(currentFilters);
+
       const params = new URLSearchParams();
       if (filters.trade) params.set("trade", filters.trade);
       if (filters.zip) params.set("zip", filters.zip);
@@ -111,10 +120,22 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
           lastActive: candidate.lastActive,
           resumeUpdated: candidate.updatedAt,
           resumeUrl: candidate.resumeUrl,
+          distance: typeof candidate.distance === "number" ? candidate.distance : null,
         };
       }),
     [results]
   );
+
+  const hasDistanceData = resultsWithDetails.some((candidate) => typeof candidate.distance === "number");
+  const parsedRadius = Number.parseFloat(appliedFilters?.radius ?? "");
+  const targetZip = appliedFilters?.zip ? appliedFilters.zip.toString().trim() : "";
+  const radiusMessage =
+    hasDistanceData &&
+    Number.isFinite(parsedRadius) &&
+    parsedRadius > 0 &&
+    targetZip
+      ? `Results within ${parsedRadius} miles of ${targetZip}`
+      : null;
 
   return (
     <main className="bg-slate-50 py-12">
@@ -196,6 +217,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
             <h2 className="text-lg font-semibold text-slate-900">
               {resultsWithDetails.length} candidate{resultsWithDetails.length === 1 ? "" : "s"} found
             </h2>
+            {radiusMessage ? <p className="text-sm text-slate-500">{radiusMessage}</p> : null}
             <ul className="space-y-4">
               {resultsWithDetails.map((candidate) => (
                 <CandidateCard

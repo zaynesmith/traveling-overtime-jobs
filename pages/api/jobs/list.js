@@ -1,8 +1,39 @@
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
-import { getZipsWithinRadius } from "@/lib/zipDistance";
 import { getTradeSynonyms, normalizeTrade } from "@/lib/trades";
+
+async function fetchZipCoordinates(zip) {
+  if (!zip) return null;
+
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(zip)}&country=United States&format=json&limit=1`,
+      {
+        headers: { "User-Agent": "TravelingOvertimeJobs/1.0" },
+      },
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const results = await response.json();
+    const [match] = Array.isArray(results) ? results : [];
+
+    const lat = match?.lat ? Number.parseFloat(match.lat) : null;
+    const lon = match?.lon ? Number.parseFloat(match.lon) : null;
+
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      return { lat, lon };
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Failed to geocode ZIP", zip, error);
+    return null;
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -16,21 +47,16 @@ export default async function handler(req, res) {
 
     const searchTerm = (keyword || q || "").toString().trim();
     const zipCode = (zip || location || "").toString().trim();
-    const distance = radius ? parseInt(radius, 10) : undefined;
+    const parsedRadius = radius !== undefined ? Number.parseFloat(radius) : undefined;
+    const distance = Number.isFinite(parsedRadius) ? Math.min(Math.max(parsedRadius, 0), 500) : undefined;
     const normalizedTradeFilter = trade
       ? normalizeTrade(trade.toString())
       : undefined;
-
-    let nearbyZips = [];
-    if (zipCode && distance) {
-      nearbyZips = getZipsWithinRadius(zipCode, distance);
-    }
 
     const filters = {
       trade: normalizedTradeFilter
         ? { in: getTradeSynonyms(normalizedTradeFilter) }
         : undefined,
-      zip: nearbyZips.length ? { in: nearbyZips } : zipCode ? zipCode : undefined,
       OR: searchTerm
         ? [
             { title: { contains: searchTerm, mode: "insensitive" } },
@@ -65,15 +91,82 @@ export default async function handler(req, res) {
       filters.employer_id = employerProfile.id;
     }
 
-    const jobs = await prisma.jobs.findMany({
-      where: filters,
-      orderBy: { posted_at: "desc" },
-      include: {
-        employerprofile: {
-          select: { companyName: true, city: true, state: true },
+    let jobs = [];
+    let radiusFilterApplied = false;
+    const shouldApplyRadiusFilter = Boolean(
+      zipCode && distance && Number.isFinite(distance) && distance > 0,
+    );
+
+    if (shouldApplyRadiusFilter) {
+      const coordinates = await fetchZipCoordinates(zipCode);
+
+      if (coordinates?.lat !== undefined && coordinates?.lon !== undefined) {
+        radiusFilterApplied = true;
+        const radiusMeters = distance * 1609.34;
+        const jobsWithinRadius = await prisma.$queryRaw`
+          SELECT j.id,
+            earth_distance(ll_to_earth(j.lat, j.lon), ll_to_earth(${coordinates.lat}, ${coordinates.lon})) AS distance
+          FROM jobs j
+          WHERE j.lat IS NOT NULL
+            AND j.lon IS NOT NULL
+            AND earth_distance(ll_to_earth(j.lat, j.lon), ll_to_earth(${coordinates.lat}, ${coordinates.lon})) <= ${radiusMeters}
+          ORDER BY distance ASC
+        `;
+
+        const jobIds = jobsWithinRadius.map((record) => record?.id).filter(Boolean);
+
+        if (jobIds.length) {
+          const distanceById = new Map(
+            jobsWithinRadius
+              .filter((record) => record?.id)
+              .map((record) => {
+                const numericDistance = Number(record.distance);
+                const miles = Number.isFinite(numericDistance)
+                  ? numericDistance / 1609.34
+                  : null;
+                return [record.id, miles];
+              }),
+          );
+
+          const filteredJobs = await prisma.jobs.findMany({
+            where: {
+              ...filters,
+              zip: undefined,
+              id: { in: jobIds },
+            },
+            include: {
+              employerprofile: {
+                select: { companyName: true, city: true, state: true },
+              },
+            },
+          });
+
+          const jobsById = new Map(filteredJobs.map((job) => [job.id, job]));
+          jobs = jobIds
+            .map((id) => {
+              const job = jobsById.get(id);
+              if (!job) return null;
+              return { ...job, distance: distanceById.get(id) ?? null };
+            })
+            .filter(Boolean);
+        }
+      }
+    }
+
+    if (!jobs.length && !radiusFilterApplied) {
+      jobs = await prisma.jobs.findMany({
+        where: {
+          ...filters,
+          zip: zipCode || undefined,
         },
-      },
-    });
+        orderBy: { posted_at: "desc" },
+        include: {
+          employerprofile: {
+            select: { companyName: true, city: true, state: true },
+          },
+        },
+      });
+    }
 
     const normalizedJobs = jobs.map((job) => ({
       ...job,
