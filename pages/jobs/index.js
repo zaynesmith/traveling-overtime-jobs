@@ -1,16 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import JobSearchFilters, { filterPanelClasses } from "@/components/jobs/JobSearchFilters";
+import { useJobSearch } from "@/lib/hooks/useJobSearch";
 import { normalizeTrade } from "@/lib/trades";
-
-const defaultFilters = {
-  keyword: "",
-  trade: "",
-  zip: "",
-  radius: "50",
-};
-
-const filterPanelClasses =
-  "bg-white border border-gray-200 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.08)] p-6";
 
 const listingCardClasses =
   "w-full max-w-2xl bg-white border border-gray-200 rounded-2xl shadow-md p-6";
@@ -22,63 +13,7 @@ function formatCityState(job) {
 }
 
 export default function Jobs() {
-  const [formFilters, setFormFilters] = useState(defaultFilters);
-  const [activeFilters, setActiveFilters] = useState(defaultFilters);
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams();
-    if (activeFilters.keyword) params.set("keyword", activeFilters.keyword);
-    if (activeFilters.trade) params.set("trade", activeFilters.trade);
-    if (activeFilters.zip) {
-      params.set("zip", activeFilters.zip);
-      if (activeFilters.radius) params.set("radius", activeFilters.radius);
-    }
-    return params.toString();
-  }, [activeFilters]);
-
-  useEffect(() => {
-    async function loadJobs() {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(`/api/jobs/list${queryString ? `?${queryString}` : ""}`);
-        if (!response.ok) {
-          throw new Error("Unable to load jobs");
-        }
-        const data = await response.json();
-        setJobs(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error(err);
-        setError(err.message || "Unable to load jobs");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadJobs();
-  }, [queryString]);
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setFormFilters((current) => ({ ...current, [name]: value }));
-  };
-
-  const handleReset = () => {
-    setFormFilters(defaultFilters);
-    setActiveFilters(defaultFilters);
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    const normalizedFilters = {
-      ...formFilters,
-      trade: normalizeTrade(formFilters.trade),
-    };
-    setActiveFilters(normalizedFilters);
-  };
+  const { formFilters, handleChange, handleReset, handleSubmit, jobs, loading, error } = useJobSearch();
 
   return (
     <main className="min-h-screen bg-gray-100 py-12">
@@ -92,72 +27,12 @@ export default function Jobs() {
           </p>
         </header>
 
-        <form
+        <JobSearchFilters
+          filters={formFilters}
+          onChange={handleChange}
           onSubmit={handleSubmit}
-          className={`${filterPanelClasses} grid gap-4 md:grid-cols-4 md:gap-6`}
-        >
-          <div className="md:col-span-2">
-            <label className="block text-sm font-semibold text-slate-700">Keyword</label>
-            <input
-              type="text"
-              name="keyword"
-              value={formFilters.keyword}
-              onChange={handleChange}
-              placeholder="Job title, contractor, or keyword"
-              className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700">Trade</label>
-            <input
-              type="text"
-              name="trade"
-              value={formFilters.trade}
-              onChange={handleChange}
-              placeholder="e.g. Electrician"
-              className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700">ZIP</label>
-            <input
-              type="text"
-              name="zip"
-              value={formFilters.zip}
-              onChange={handleChange}
-              placeholder="Near ZIP"
-              className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700">Radius (miles)</label>
-            <input
-              type="number"
-              min="10"
-              max="500"
-              step="10"
-              name="radius"
-              value={formFilters.radius}
-              onChange={handleChange}
-              className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            />
-          </div>
-          <div className="md:col-span-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-            <button
-              type="submit"
-              className="flex-1 rounded-lg bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
-            >
-              Search
-            </button>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
-            >
-              Reset
-            </button>
-          </div>
-        </form>
+          onReset={handleReset}
+        />
 
         <section className="mt-12 flex flex-col items-center gap-6">
           {loading ? (
