@@ -188,30 +188,17 @@ export default async function handler(req, res) {
       updateData.lastBump = normalizeDate(profile.lastBump);
     }
 
-    const updated = await prisma.jobseekerProfile.update({
+    let updated = await prisma.jobseekerProfile.update({
       where: { id: jobseekerProfile.id },
       data: updateData,
     });
 
-    const trimmedZip = updated?.zip ? `${updated.zip}`.trim() : "";
-    if (supabase && trimmedZip) {
-      const coordinates = await geocodeZip(trimmedZip);
-
-      if (coordinates?.lat !== undefined && coordinates?.lon !== undefined) {
-        const { error: updateError } = await supabase
-          .from("jobseekerprofile")
-          .update({ lat: coordinates.lat, lon: coordinates.lon })
-          .eq("id", jobseekerProfile.id)
-          .limit(1);
-
-        if (updateError) {
-          console.error(
-            "Failed to update jobseeker profile coordinates",
-            jobseekerProfile.id,
-            updateError,
-          );
-        }
-      }
+    const geo = await geocodeZip(updated?.zip);
+    if (geo) {
+      updated = await prisma.jobseekerProfile.update({
+        where: { id: jobseekerProfile.id },
+        data: { lat: geo.lat, lon: geo.lon },
+      });
     }
 
     res.status(200).json(updated);
