@@ -15,12 +15,33 @@ export default function EmployerPostedJobs() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [actionError, setActionError] = useState(null);
+  const [modalJobId, setModalJobId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const router = useRouter();
 
   const selectedJobId = useMemo(() => {
     const { job } = router.query || {};
     return typeof job === "string" ? job : null;
   }, [router.query]);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const { success, ...rest } = router.query || {};
+    if (success === "updated") {
+      setSuccessMessage("Job updated successfully");
+      setActionError(null);
+      router.replace(
+        {
+          pathname: router.pathname,
+          query: Object.keys(rest).length ? rest : undefined,
+        },
+        undefined,
+        { shallow: true }
+      );
+    }
+  }, [router, router.isReady, router.query]);
 
   useEffect(() => {
     let isMounted = true;
@@ -59,6 +80,38 @@ export default function EmployerPostedJobs() {
     if (!selectedJobId) return null;
     return jobs.find((job) => job.id === selectedJobId) || null;
   }, [jobs, selectedJobId]);
+
+  const openDeleteModal = (jobId) => {
+    setModalJobId(jobId);
+    setActionError(null);
+  };
+
+  const closeDeleteModal = () => {
+    if (deleting) return;
+    setModalJobId(null);
+  };
+
+  const handleDelete = async () => {
+    if (!modalJobId) return;
+    setDeleting(true);
+    setActionError(null);
+    try {
+      const response = await fetch(`/api/jobs/${modalJobId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error || "Unable to delete job");
+      }
+      setJobs((current) => current.filter((job) => job.id !== modalJobId));
+      setSuccessMessage("Job deleted successfully");
+      setModalJobId(null);
+    } catch (err) {
+      setActionError(err.message || "Unable to delete job");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const renderApplicants = () => {
     if (!selectedJob) return null;
@@ -138,6 +191,17 @@ export default function EmployerPostedJobs() {
         </p>
       </header>
 
+      {successMessage ? (
+        <p className="mb-4 rounded-xl bg-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-700">
+          {successMessage}
+        </p>
+      ) : null}
+      {actionError ? (
+        <p className="mb-4 rounded-xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-700">
+          {actionError}
+        </p>
+      ) : null}
+
       {loading ? (
         <p className="text-sm text-gray-600">Loading posted jobs…</p>
       ) : error ? (
@@ -182,6 +246,21 @@ export default function EmployerPostedJobs() {
                     </Link>
                   </div>
                 </div>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Link
+                    href={`/dashboard/employer/edit-job/${job.id}`}
+                    className="inline-flex items-center rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200"
+                  >
+                    Edit
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => openDeleteModal(job.id)}
+                    className="inline-flex items-center rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-600 shadow-sm transition hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-200"
+                  >
+                    Delete
+                  </button>
+                </div>
               </article>
             );
           })}
@@ -189,6 +268,34 @@ export default function EmployerPostedJobs() {
       )}
 
       {renderApplicants()}
+
+      {modalJobId ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <h2 className="text-lg font-semibold text-slate-900">
+              Are you sure you want to delete this job?
+            </h2>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200"
+                disabled={deleting}
+              >
+                No
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="inline-flex items-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-200 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {deleting ? "Deleting…" : "Yes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
