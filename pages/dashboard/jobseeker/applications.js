@@ -76,7 +76,7 @@ function formatDate(value) {
 }
 
 const statusLabels = {
-  pending: "Pending",
+  pending: "Submitted",
   accepted: "Accepted",
   rejected: "Not selected",
 };
@@ -124,7 +124,7 @@ export async function getServerSideProps(context) {
       jobTitle: application.jobs?.title || "Untitled job",
       appliedAt: formatDate(application.applied_at),
       status: application.status || "pending",
-      statusLabel: statusLabels[application.status] || "Pending",
+      statusLabel: statusLabels[application.status] || "Submitted",
     }));
 
     return {

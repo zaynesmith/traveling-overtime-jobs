@@ -96,6 +96,7 @@ export default async function handler(req, res) {
 
   if (req.method === "DELETE") {
     try {
+      await prisma.applications.deleteMany({ where: { job_id: jobId } });
       await prisma.jobs.delete({ where: { id: jobId } });
       res.status(204).end();
     } catch (error) {
