@@ -117,9 +117,12 @@ const expectedSchema = {
       zip: { type: "text", nullable: true },
       trade: { type: "text", nullable: true },
       resumeUrl: { type: "text", nullable: true },
+      certifications: { type: "text", nullable: true },
+      certFiles: { type: "ARRAY", nullable: false, defaultIncludes: "{}" },
       hasJourneymanLicense: { type: "boolean", nullable: false, defaultIncludes: "false" },
       licensedStates: { type: "ARRAY", nullable: false, defaultIncludes: "{}" },
       userId: { type: "text", nullable: false, unique: true },
+      last_bump: { type: "timestamp without time zone", nullable: true },
     },
     unique: ["userId"],
     foreignKeys: [

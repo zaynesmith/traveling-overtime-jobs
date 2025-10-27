@@ -72,11 +72,14 @@ model JobseekerProfile {
   zip          String?
   trade        String?
   resumeUrl    String?
+  certifications String?
+  certFiles    String[]       @default([])
   hasJourneymanLicense Boolean       @default(false)
   licensedStates       String[]      @default([])
   userId       String?         @unique @db.Uuid
 
   lastActive   DateTime?       @default(now())
+  lastBump     DateTime?       @map("last_bump") @db.Timestamp(6)
   updatedAt    DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
 
   // relation back to user
