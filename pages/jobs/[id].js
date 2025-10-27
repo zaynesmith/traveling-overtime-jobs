@@ -77,7 +77,8 @@ export default function JobDetails({ job }) {
     }
   };
 
-  const canApply = session?.user?.role === "jobseeker";
+  const isJobseeker = session?.user?.role === "jobseeker";
+  const canApply = isJobseeker;
   const disableApplyButton = submitting || hasApplied;
   const listingLocation = formatJobLocation(job) || job.employerLocation || "Location TBD";
   const requirementsText =
@@ -86,6 +87,27 @@ export default function JobDetails({ job }) {
     job.qualifications ||
     "Requirements not provided.";
   const jobHighlights = formatJobHighlights(job);
+  const contactItems = [
+    {
+      key: "firstName",
+      label: "First Name",
+      value: job.contactFirstName,
+      isVisible: Boolean(job.showFirstName && job.contactFirstName),
+    },
+    {
+      key: "email",
+      label: "Email",
+      value: job.contactEmail,
+      isVisible: Boolean(job.showEmail && job.contactEmail),
+    },
+    {
+      key: "phone",
+      label: "Mobile Phone",
+      value: job.contactPhone,
+      isVisible: Boolean(job.showPhone && job.contactPhone),
+    },
+  ];
+  const visibleContactItems = contactItems.filter((item) => item.isVisible);
   const alertStyles = {
     success: "bg-emerald-100 text-emerald-700",
     info: "bg-sky-100 text-sky-700",
@@ -120,6 +142,28 @@ export default function JobDetails({ job }) {
               <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-700">
                 {requirementsText}
               </p>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-left">
+              <h2 className="text-xl font-semibold text-slate-900">Contact Details</h2>
+              {!isJobseeker ? (
+                <p className="mt-3 text-sm text-slate-500">
+                  Sign in as a jobseeker to view employer contact information.
+                </p>
+              ) : visibleContactItems.length ? (
+                <dl className="mt-3 space-y-3 text-sm text-slate-700">
+                  {visibleContactItems.map((item) => (
+                    <div key={item.key}>
+                      <dt className="font-semibold text-slate-700">{item.label}</dt>
+                      <dd className="mt-1 text-slate-700">{item.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : (
+                <p className="mt-3 text-sm text-slate-500">
+                  The employer has not shared contact information for this listing.
+                </p>
+              )}
             </section>
           </div>
 
@@ -168,6 +212,11 @@ export async function getServerSideProps({ params }) {
             companyName: true,
             city: true,
             state: true,
+            firstName: true,
+            mobilePhone: true,
+            phone: true,
+            officePhone: true,
+            user: { select: { email: true } },
           },
         },
       },
@@ -188,6 +237,16 @@ export async function getServerSideProps({ params }) {
           trade: normalizeTrade(job.trade),
           employerName: job.employerprofile?.companyName || null,
           employerLocation: employerLocation || null,
+          showFirstName: job.showFirstName || false,
+          showEmail: job.showEmail || false,
+          showPhone: job.showPhone || false,
+          contactFirstName: job.employerprofile?.firstName || null,
+          contactEmail: job.employerprofile?.user?.email || null,
+          contactPhone:
+            job.employerprofile?.mobilePhone ||
+            job.employerprofile?.phone ||
+            job.employerprofile?.officePhone ||
+            null,
         },
       },
     };

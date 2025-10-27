@@ -14,6 +14,9 @@ const blankJob = {
   hourly_pay: "",
   per_diem: "",
   additional_requirements: "",
+  showFirstName: false,
+  showEmail: false,
+  showPhone: false,
 };
 
 function Field({ label, htmlFor, children }) {
@@ -25,11 +28,38 @@ function Field({ label, htmlFor, children }) {
   );
 }
 
-export default function PostJobPage({ jobId }) {
+export default function PostJobPage({ jobId, contactDetails }) {
   const router = useRouter();
   const [form, setForm] = useState(blankJob);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+
+  const safeContactDetails = {
+    firstName: contactDetails?.firstName || "",
+    email: contactDetails?.email || "",
+    phone: contactDetails?.phone || "",
+  };
+
+  const contactPreviewItems = [
+    {
+      key: "firstName",
+      label: "First Name",
+      value: safeContactDetails.firstName,
+      shareToggle: Boolean(form.showFirstName),
+    },
+    {
+      key: "email",
+      label: "Email",
+      value: safeContactDetails.email,
+      shareToggle: Boolean(form.showEmail),
+    },
+    {
+      key: "phone",
+      label: "Mobile Phone",
+      value: safeContactDetails.phone,
+      shareToggle: Boolean(form.showPhone),
+    },
+  ];
 
   useEffect(() => {
     let ignore = false;
@@ -41,6 +71,7 @@ export default function PostJobPage({ jobId }) {
         const data = await response.json();
         if (!ignore && data) {
           setForm({
+            ...blankJob,
             title: data.title || "",
             trade: data.trade || "",
             description: data.description || "",
@@ -50,6 +81,9 @@ export default function PostJobPage({ jobId }) {
             hourly_pay: data.hourly_pay || "",
             per_diem: data.per_diem || "",
             additional_requirements: data.additional_requirements || "",
+            showFirstName: Boolean(data.showFirstName),
+            showEmail: Boolean(data.showEmail),
+            showPhone: Boolean(data.showPhone),
           });
         }
       } catch (error) {
@@ -65,8 +99,11 @@ export default function PostJobPage({ jobId }) {
   }, [jobId]);
 
   const handleChange = (event) => {
-    const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
+    const { name, value, type, checked } = event.target;
+    setForm((current) => ({
+      ...current,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   const handleSubmit = async (event) => {
@@ -85,6 +122,9 @@ export default function PostJobPage({ jobId }) {
         hourly_pay: form.hourly_pay,
         per_diem: form.per_diem,
         additional_requirements: form.additional_requirements,
+        showFirstName: form.showFirstName,
+        showEmail: form.showEmail,
+        showPhone: form.showPhone,
       };
 
       const endpoint = jobId ? `/api/jobs/${jobId}` : "/api/jobs/create";
@@ -233,6 +273,71 @@ export default function PostJobPage({ jobId }) {
               />
             </Field>
 
+            <div>
+              <p className="text-sm font-semibold text-slate-700">
+                Share your contact info with jobseekers?
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm">
+                  <input
+                    type="checkbox"
+                    name="showFirstName"
+                    checked={form.showFirstName}
+                    onChange={handleChange}
+                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                  />
+                  <span>First Name</span>
+                </label>
+                <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm">
+                  <input
+                    type="checkbox"
+                    name="showEmail"
+                    checked={form.showEmail}
+                    onChange={handleChange}
+                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                  />
+                  <span>Email</span>
+                </label>
+                <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm">
+                  <input
+                    type="checkbox"
+                    name="showPhone"
+                    checked={form.showPhone}
+                    onChange={handleChange}
+                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                  />
+                  <span>Mobile Phone</span>
+                </label>
+              </div>
+            </div>
+
+            <section className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+              <h3 className="text-lg font-semibold text-slate-900">Contact Details</h3>
+              <dl className="mt-4 space-y-4 text-sm">
+                {contactPreviewItems.map((item) => (
+                  <div key={item.key}>
+                    <dt className="font-semibold text-slate-700">{item.label}</dt>
+                    <dd className="mt-1 text-slate-600">{item.value || "Not provided"}</dd>
+                    <p
+                      className={`mt-1 text-xs ${
+                        item.shareToggle
+                          ? item.value
+                            ? "text-emerald-600"
+                            : "text-amber-600"
+                          : "text-slate-400"
+                      }`}
+                    >
+                      {item.shareToggle
+                        ? item.value
+                          ? "Visible to jobseekers"
+                          : "Visible once added to your profile"
+                        : "Hidden from jobseekers"}
+                    </p>
+                  </div>
+                ))}
+              </dl>
+            </section>
+
             {message ? (
               <p
                 className={
@@ -290,7 +395,32 @@ export async function getServerSideProps(context) {
     };
   }
 
+  const { default: prisma } = await import("@/lib/prisma");
+  const employerProfile = await prisma.employerProfile.findUnique({
+    where: { userId: session.user.id },
+    select: {
+      firstName: true,
+      mobilePhone: true,
+      phone: true,
+      officePhone: true,
+      user: { select: { email: true } },
+    },
+  });
+
+  const contactDetails = {
+    firstName: employerProfile?.firstName || "",
+    email: employerProfile?.user?.email || "",
+    phone:
+      employerProfile?.mobilePhone ||
+      employerProfile?.phone ||
+      employerProfile?.officePhone ||
+      "",
+  };
+
   return {
-    props: { jobId: context.query?.id || null },
+    props: {
+      jobId: context.query?.id || null,
+      contactDetails,
+    },
   };
 }
