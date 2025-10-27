@@ -1,8 +1,54 @@
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
+import CandidateCard from "@/components/employer/CandidateCard";
 
-export default function SavedCandidatesPage({ saved }) {
+export default function SavedCandidatesPage({ saved, employerId }) {
+  const [savedCandidates, setSavedCandidates] = useState(saved || []);
+  const [pendingIds, setPendingIds] = useState(() => new Set());
+  const [error, setError] = useState(null);
+
+  const employerIdentifier = employerId || null;
+
+  const savedIds = useMemo(() => new Set(savedCandidates.map((candidate) => candidate.jobseekerId)), [savedCandidates]);
+
+  const handleRemove = async (jobseekerId) => {
+    if (!jobseekerId || pendingIds.has(jobseekerId)) return;
+
+    const candidateToRestore = savedCandidates.find((candidate) => candidate.jobseekerId === jobseekerId) || null;
+
+    setPendingIds((prev) => {
+      const updated = new Set(prev);
+      updated.add(jobseekerId);
+      return updated;
+    });
+    setError(null);
+    setSavedCandidates((prev) => prev.filter((candidate) => candidate.jobseekerId !== jobseekerId));
+
+    try {
+      const response = await fetch("/api/employer/save-candidate", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employer_id: employerIdentifier, jobseeker_id: jobseekerId }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error || "Unable to remove saved candidate");
+      }
+    } catch (err) {
+      setSavedCandidates((prev) => (candidateToRestore ? [candidateToRestore, ...prev] : prev));
+      setError(err.message || "Unable to remove saved candidate");
+    } finally {
+      setPendingIds((prev) => {
+        const updated = new Set(prev);
+        updated.delete(jobseekerId);
+        return updated;
+      });
+    }
+  };
+
   return (
     <main className="bg-slate-50 py-12">
       <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 sm:px-6 lg:px-8">
@@ -14,7 +60,9 @@ export default function SavedCandidatesPage({ saved }) {
           </p>
         </header>
 
-        {saved.length === 0 ? (
+        {error ? <p className="text-sm font-medium text-rose-600">{error}</p> : null}
+
+        {savedCandidates.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-lg">
             <p className="text-lg font-semibold text-slate-900">You haven&apos;t saved any candidates yet.</p>
             <p className="mt-2 text-sm text-slate-600">Search the resume database and bookmark promising talent.</p>
@@ -30,28 +78,15 @@ export default function SavedCandidatesPage({ saved }) {
           </div>
         ) : (
           <ul className="space-y-4">
-            {saved.map((candidate) => (
-              <li key={candidate.id} className="rounded-2xl bg-white p-5 shadow-lg">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-base font-semibold text-slate-900">{candidate.name}</p>
-                    <p className="text-sm text-slate-600">{candidate.trade || "General"} • {candidate.location}</p>
-                  </div>
-                  {candidate.resumeUrl ? (
-                    <a
-                      href={candidate.resumeUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-sky-600"
-                    >
-                      View resume
-                      <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
-                        <path d="M5 12h14M12 5l7 7-7 7" />
-                      </svg>
-                    </a>
-                  ) : null}
-                </div>
-              </li>
+            {savedCandidates.map((candidate) => (
+              <CandidateCard
+                key={candidate.jobseekerId}
+                candidate={candidate}
+                isSaved={savedIds.has(candidate.jobseekerId)}
+                isPending={pendingIds.has(candidate.jobseekerId)}
+                onToggleSave={() => handleRemove(candidate.jobseekerId)}
+                buttonLabels={{ saved: "Remove", unsaved: "Save Candidate", saving: "Saving...", removing: "Removing..." }}
+              />
             ))}
           </ul>
         )}
@@ -85,29 +120,55 @@ export async function getServerSideProps(context) {
   try {
     const { default: prisma } = await import("@/lib/prisma");
 
+    const employerProfile = await prisma.employerProfile.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true },
+    });
+
+    if (!employerProfile) {
+      return {
+        redirect: {
+          destination: "/dashboard/employer",
+          permanent: false,
+        },
+      };
+    }
+
     const saved = await prisma.saved_candidates.findMany({
-      where: { employerprofile: { userId: session.user.id } },
+      where: { employer_id: employerProfile.id },
       include: {
         jobseekerprofile: true,
       },
       orderBy: { saved_at: "desc" },
     });
 
-    const formatted = saved.map((entry) => ({
-      id: entry.id,
-      name: [entry.jobseekerprofile?.firstName, entry.jobseekerprofile?.lastName].filter(Boolean).join(" ") || "Unnamed candidate",
-      trade: entry.jobseekerprofile?.trade,
-      location: [entry.jobseekerprofile?.city, entry.jobseekerprofile?.state].filter(Boolean).join(", "),
-      resumeUrl: entry.jobseekerprofile?.resumeUrl || null,
-    }));
+    const formatted = saved
+      .filter((entry) => Boolean(entry.jobseekerprofile))
+      .map((entry) => {
+        const profile = entry.jobseekerprofile;
+        const fullName = [profile?.firstName, profile?.lastName].filter(Boolean).join(" ") || "Unnamed candidate";
+        const locationParts = [profile?.city, profile?.state].filter(Boolean);
+
+        return {
+          jobseekerId: profile?.id || entry.jobseeker_id,
+          fullName,
+          trade: profile?.trade || null,
+          location: locationParts.length ? locationParts.join(", ") : null,
+          phone: profile?.phone || null,
+          lastActive: profile?.lastActive || null,
+          resumeUpdated: profile?.updatedAt || null,
+          resumeUrl: profile?.resumeUrl || null,
+          savedAt: entry.saved_at || null,
+        };
+      });
 
     return {
-      props: { saved: formatted },
+      props: { saved: formatted, employerId: employerProfile.id },
     };
   } catch (error) {
     console.error(error);
     return {
-      props: { saved: [] },
+      props: { saved: [], employerId: null },
     };
   }
 }
