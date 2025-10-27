@@ -76,15 +76,22 @@ export default function ApplicantsPage({ jobTitle, applicants, employerId, initi
         <header className="rounded-2xl bg-white p-6 shadow-lg">
           <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">Applicants</p>
           <h1 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">{jobTitle}</h1>
-          <p className="mt-2 text-sm text-slate-600">Review candidates who&apos;ve applied to this job.</p>
+          <p className="mt-2 text-sm text-slate-600">
+            Review candidates who&apos;ve applied to this job.
+          </p>
         </header>
 
         {saveError ? <p className="text-sm font-medium text-rose-600">{saveError}</p> : null}
 
         {applicantsWithDetails.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-lg">
-            <p className="text-lg font-semibold text-slate-900">No applicants have applied to this job yet.</p>
-            <Link href="/dashboard/employer/posted-jobs" className="mt-2 inline-block text-sm font-semibold text-sky-600">
+            <p className="text-lg font-semibold text-slate-900">
+              No applicants have applied to this job yet.
+            </p>
+            <Link
+              href="/dashboard/employer/posted-jobs"
+              className="mt-2 inline-block text-sm font-semibold text-sky-600"
+            >
               Back to posted jobs
             </Link>
           </div>
@@ -97,7 +104,12 @@ export default function ApplicantsPage({ jobTitle, applicants, employerId, initi
                 isSaved={savedIds.has(applicant.jobseekerId)}
                 isPending={pendingIds.has(applicant.jobseekerId)}
                 onToggleSave={() => toggleSave(applicant.jobseekerId)}
-                buttonLabels={{ saved: "Saved", unsaved: "Save Candidate", saving: "Saving...", removing: "Removing..." }}
+                buttonLabels={{
+                  saved: "Saved",
+                  unsaved: "Save Candidate",
+                  saving: "Saving...",
+                  removing: "Removing...",
+                }}
               />
             ))}
           </ul>
@@ -120,7 +132,8 @@ export async function getServerSideProps(context) {
   }
 
   if (session.user?.role !== "employer") {
-    const destination = session.user?.role === "jobseeker" ? "/dashboard/jobseeker" : "/";
+    const destination =
+      session.user?.role === "jobseeker" ? "/dashboard/jobseeker" : "/";
     return {
       redirect: {
         destination,
@@ -187,7 +200,9 @@ export async function getServerSideProps(context) {
       .filter((application) => Boolean(application.jobseekerprofile))
       .map((application) => {
         const profile = application.jobseekerprofile;
-        const fullName = [profile?.firstName, profile?.lastName].filter(Boolean).join(" ") || "Unnamed candidate";
+        const fullName =
+          [profile?.firstName, profile?.lastName].filter(Boolean).join(" ") ||
+          "Unnamed candidate";
         const locationParts = [profile?.city, profile?.state].filter(Boolean);
 
         return {
@@ -198,8 +213,12 @@ export async function getServerSideProps(context) {
           trade: profile?.trade || null,
           location: locationParts.length ? locationParts.join(", ") : null,
           phone: profile?.phone || null,
-          lastActive: profile?.lastActive || null,
-          resumeUpdated: profile?.updatedAt || null,
+          lastActive: profile?.lastActive
+            ? profile.lastActive.toISOString()
+            : null,
+          resumeUpdated: profile?.updatedAt
+            ? profile.updatedAt.toISOString()
+            : null,
           resumeUrl: profile?.resumeUrl || null,
         };
       });
