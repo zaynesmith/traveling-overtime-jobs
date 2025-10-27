@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { getServerSession } from "next-auth/next";
@@ -20,11 +20,6 @@ export default function EmployerPostedJobs() {
   const [modalJobId, setModalJobId] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
-
-  const selectedJobId = useMemo(() => {
-    const { job } = router.query || {};
-    return typeof job === "string" ? job : null;
-  }, [router.query]);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -76,11 +71,6 @@ export default function EmployerPostedJobs() {
     };
   }, []);
 
-  const selectedJob = useMemo(() => {
-    if (!selectedJobId) return null;
-    return jobs.find((job) => job.id === selectedJobId) || null;
-  }, [jobs, selectedJobId]);
-
   const openDeleteModal = (jobId) => {
     setModalJobId(jobId);
     setActionError(null);
@@ -111,75 +101,6 @@ export default function EmployerPostedJobs() {
     } finally {
       setDeleting(false);
     }
-  };
-
-  const renderApplicants = () => {
-    if (!selectedJob) return null;
-    const applicants = Array.isArray(selectedJob.applications)
-      ? selectedJob.applications.filter((application) => application.jobseeker)
-      : [];
-
-    return (
-      <section className="mt-10 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-800">
-              Applicants for {selectedJob.title}
-            </h2>
-            <p className="text-sm text-gray-500">Review each applicant&apos;s details below.</p>
-          </div>
-          <Link
-            href="/dashboard/employer/posted-jobs"
-            className="text-sm font-medium text-blue-600 hover:text-blue-500"
-          >
-            Close
-          </Link>
-        </div>
-
-        {applicants.length === 0 ? (
-          <p className="text-sm text-gray-600">No applicants have applied to this job yet.</p>
-        ) : (
-          <ul className="space-y-4">
-            {applicants.map((application) => {
-              const jobseeker = application.jobseeker;
-              const name = [jobseeker.firstName, jobseeker.lastName].filter(Boolean).join(" ");
-              return (
-                <li
-                  key={application.id}
-                  className="rounded-xl border border-gray-200 p-4 hover:border-gray-300"
-                >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-800">
-                        {name || "Unnamed Applicant"}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        {[jobseeker.trade, jobseeker.city, jobseeker.state]
-                          .filter(Boolean)
-                          .join(" · ") || "Details not available"}
-                      </p>
-                    </div>
-                    {jobseeker.resumeUrl ? (
-                      <a
-                        href={jobseeker.resumeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm font-semibold text-blue-600 hover:text-blue-500"
-                      >
-                        View Resume
-                      </a>
-                    ) : null}
-                  </div>
-                  <p className="mt-2 text-xs uppercase tracking-wide text-gray-500">
-                    Status: {application.status || "Pending"}
-                  </p>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-    );
   };
 
   return (
@@ -236,10 +157,7 @@ export default function EmployerPostedJobs() {
                       {applicantCount} applicant{applicantCount === 1 ? "" : "s"}
                     </span>
                     <Link
-                      href={{
-                        pathname: "/dashboard/employer/posted-jobs",
-                        query: { job: job.id },
-                      }}
+                      href={`/dashboard/employer/applicants/${job.id}`}
                       className="text-sm font-semibold text-blue-600 hover:text-blue-500"
                     >
                       View applicants
@@ -266,8 +184,6 @@ export default function EmployerPostedJobs() {
           })}
         </div>
       )}
-
-      {renderApplicants()}
 
       {modalJobId ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">

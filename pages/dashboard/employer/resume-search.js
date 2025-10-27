@@ -1,24 +1,19 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import { TRADES } from "@/lib/trades";
+import CandidateCard from "@/components/employer/CandidateCard";
 
-export default function ResumeSearchPage() {
+export default function ResumeSearchPage({ employerId, initialSavedIds }) {
   const [filters, setFilters] = useState({ trade: "", zip: "", radius: "50", keyword: "" });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [savedIds, setSavedIds] = useState(() => new Set(initialSavedIds || []));
+  const [pendingIds, setPendingIds] = useState(() => new Set());
+  const [saveError, setSaveError] = useState(null);
 
-  const formatDate = (value) => {
-    if (!value) return null;
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return null;
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }).format(date);
-  };
+  const employerIdentifier = employerId || null;
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -49,6 +44,76 @@ export default function ResumeSearchPage() {
       setLoading(false);
     }
   };
+
+  const toggleSave = async (jobseekerId) => {
+    if (!jobseekerId || pendingIds.has(jobseekerId)) return;
+
+    const currentlySaved = savedIds.has(jobseekerId);
+    const nextSaved = new Set(savedIds);
+    if (currentlySaved) {
+      nextSaved.delete(jobseekerId);
+    } else {
+      nextSaved.add(jobseekerId);
+    }
+
+    setSavedIds(nextSaved);
+    setPendingIds((prev) => {
+      const updated = new Set(prev);
+      updated.add(jobseekerId);
+      return updated;
+    });
+    setSaveError(null);
+
+    try {
+      const response = await fetch("/api/employer/save-candidate", {
+        method: currentlySaved ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employer_id: employerIdentifier, jobseeker_id: jobseekerId }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error || "Unable to update saved candidate");
+      }
+    } catch (err) {
+      setSavedIds((prev) => {
+        const revert = new Set(prev);
+        if (currentlySaved) {
+          revert.add(jobseekerId);
+        } else {
+          revert.delete(jobseekerId);
+        }
+        return revert;
+      });
+      setSaveError(err.message || "Unable to update saved candidate");
+    } finally {
+      setPendingIds((prev) => {
+        const updated = new Set(prev);
+        updated.delete(jobseekerId);
+        return updated;
+      });
+    }
+  };
+
+  const resultsWithDetails = useMemo(
+    () =>
+      results.map((candidate) => {
+        const fullName = [candidate.firstName, candidate.lastName].filter(Boolean).join(" ") || "Unnamed candidate";
+        const locationParts = [candidate.city, candidate.state].filter(Boolean);
+
+        return {
+          id: candidate.id,
+          fullName,
+          trade: candidate.trade,
+          location: locationParts.length ? locationParts.join(", ") : null,
+          phone: candidate.phone,
+          lastActive: candidate.lastActive,
+          resumeUpdated: candidate.updatedAt,
+          resumeUrl: candidate.resumeUrl,
+        };
+      }),
+    [results]
+  );
 
   return (
     <main className="bg-slate-50 py-12">
@@ -123,55 +188,24 @@ export default function ResumeSearchPage() {
           </form>
         </section>
 
-        {results.length > 0 ? (
+        {saveError ? <p className="text-sm font-medium text-rose-600">{saveError}</p> : null}
+
+        {resultsWithDetails.length > 0 ? (
           <section className="space-y-4">
-            <h2 className="text-lg font-semibold text-slate-900">{results.length} candidate{results.length === 1 ? "" : "s"} found</h2>
+            <h2 className="text-lg font-semibold text-slate-900">
+              {resultsWithDetails.length} candidate{resultsWithDetails.length === 1 ? "" : "s"} found
+            </h2>
             <ul className="space-y-4">
-              {results.map((candidate) => {
-                const fullName = [candidate.firstName, candidate.lastName].filter(Boolean).join(" ") || "Unnamed candidate";
-                const trade = candidate.trade || "Not provided";
-                const locationParts = [candidate.city, candidate.state].filter(Boolean);
-                const location = locationParts.length ? locationParts.join(", ") : "Not provided";
-                const phone = candidate.phone || "Not provided";
-
-                const lastActive = formatDate(candidate.lastActive) || "No recent activity";
-                const resumeUpdatedRaw = formatDate(candidate.updatedAt);
-                const resumeUpdated = resumeUpdatedRaw ? `Updated ${resumeUpdatedRaw}` : "Updated date: Not provided";
-
-                return (
-                  <li key={candidate.id} className="rounded-2xl bg-white p-5 shadow-lg">
-                    <p className="text-base font-semibold text-slate-900">{fullName}</p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      <span className="font-semibold text-slate-700">Trade:</span> {trade}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      <span className="font-semibold text-slate-700">Location:</span> {location}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      <span className="font-semibold text-slate-700">Contact:</span> {phone}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      <span className="font-semibold text-slate-700">Last active:</span> {lastActive}
-                    </p>
-                    {candidate.resumeUrl ? (
-                      <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <a
-                          href={candidate.resumeUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 text-sm font-semibold text-sky-600"
-                        >
-                          View resume
-                          <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
-                            <path d="M5 12h14M12 5l7 7-7 7" />
-                          </svg>
-                        </a>
-                        <span className="text-xs text-slate-500">{resumeUpdated}</span>
-                      </div>
-                    ) : null}
-                  </li>
-                );
-              })}
+              {resultsWithDetails.map((candidate) => (
+                <CandidateCard
+                  key={candidate.id}
+                  candidate={candidate}
+                  isSaved={savedIds.has(candidate.id)}
+                  isPending={pendingIds.has(candidate.id)}
+                  onToggleSave={() => toggleSave(candidate.id)}
+                  buttonLabels={{ saved: "Saved", unsaved: "Save Candidate", saving: "Saving...", removing: "Removing..." }}
+                />
+              ))}
             </ul>
           </section>
         ) : null}
@@ -202,5 +236,45 @@ export async function getServerSideProps(context) {
     };
   }
 
-  return { props: {} };
+  try {
+    const { default: prisma } = await import("@/lib/prisma");
+
+    const employerProfile = await prisma.employerProfile.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true },
+    });
+
+    if (!employerProfile) {
+      return {
+        redirect: {
+          destination: "/dashboard/employer", // fallback dashboard
+          permanent: false,
+        },
+      };
+    }
+
+    const saved = await prisma.saved_candidates.findMany({
+      where: { employer_id: employerProfile.id },
+      select: { jobseeker_id: true },
+    });
+
+    const initialSavedIds = saved
+      .map((entry) => entry.jobseeker_id)
+      .filter((value) => typeof value === "string");
+
+    return {
+      props: {
+        employerId: employerProfile.id,
+        initialSavedIds,
+      },
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      props: {
+        employerId: null,
+        initialSavedIds: [],
+      },
+    };
+  }
 }
