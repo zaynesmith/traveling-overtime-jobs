@@ -73,14 +73,44 @@ const initialForm = {
   licensedStates: [],
 };
 
+function normalizeLicensedStates(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map((state) => (typeof state === "string" ? state.trim() : ""))
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((state) => state.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
 export default function JobseekerRegisterPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  const [form, setForm] = useState(initialForm);
+  const [form, setFormState] = useState(() => ({
+    ...initialForm,
+    licensedStates: normalizeLicensedStates(initialForm.licensedStates),
+  }));
   const [resumeName, setResumeName] = useState("");
   const [resumeFile, setResumeFile] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const updateForm = (updater) => {
+    setFormState((previous) => {
+      const nextState = typeof updater === "function" ? updater(previous) : updater;
+      return {
+        ...nextState,
+        licensedStates: normalizeLicensedStates(nextState.licensedStates),
+      };
+    });
+  };
 
   useEffect(() => {
     if (!session?.user?.role) return;
@@ -92,12 +122,13 @@ export default function JobseekerRegisterPage() {
   }, [router, session]);
 
   const updateField = (field) => (event) => {
-    setForm((prev) => ({ ...prev, [field]: event.target.value }));
+    const { value } = event.target;
+    updateForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const updateJourneymanLicense = (event) => {
     const value = event.target.value;
-    setForm((prev) => ({
+    updateForm((prev) => ({
       ...prev,
       hasJourneymanLicense: value,
       licensedStates: value === "yes" ? prev.licensedStates : [],
@@ -106,7 +137,7 @@ export default function JobseekerRegisterPage() {
 
   const updateLicensedStates = (event) => {
     const selected = Array.from(event.target.selectedOptions || [], (option) => option.value);
-    setForm((prev) => ({ ...prev, licensedStates: selected }));
+    updateForm((prev) => ({ ...prev, licensedStates: selected }));
   };
 
   const handleResumeChange = (event) => {
@@ -144,12 +175,12 @@ export default function JobseekerRegisterPage() {
         }
       }
 
-      if (form.hasJourneymanLicense === "yes" && form.licensedStates.length === 0) {
+      const hasJourneymanLicense = form.hasJourneymanLicense === "yes";
+      const licensedStates = hasJourneymanLicense ? normalizeLicensedStates(form.licensedStates) : [];
+
+      if (hasJourneymanLicense && licensedStates.length === 0) {
         throw new Error("Select at least one state for your journeyman license.");
       }
-
-      const hasJourneymanLicense = form.hasJourneymanLicense === "yes";
-      const licensedStates = hasJourneymanLicense ? form.licensedStates : [];
 
       const response = await fetch("/api/auth/register", {
         method: "POST",

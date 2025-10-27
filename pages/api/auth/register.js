@@ -23,6 +23,16 @@ function sanitize(value) {
   return trimmed.length ? trimmed : null;
 }
 
+function sanitizeLicensedStates(input) {
+  const rawStates = Array.isArray(input)
+    ? input
+    : typeof input === "string"
+    ? input.split(",")
+    : [];
+
+  return rawStates.map((state) => sanitize(state)).filter(Boolean);
+}
+
 function sanitizeFileName(fileName) {
   if (typeof fileName !== "string") {
     return `resume-${Date.now()}`;
@@ -322,9 +332,7 @@ export function buildJobseekerProfile(payload, email) {
     payload.hasJourneymanLicense === "yes" ||
     payload.hasJourneymanLicense === 1;
 
-  const licensedStates = Array.isArray(payload.licensedStates)
-    ? payload.licensedStates.map((state) => sanitize(state)).filter(Boolean)
-    : [];
+  const licensedStates = sanitizeLicensedStates(payload.licensedStates);
 
   if (hasJourneymanLicense && licensedStates.length === 0) {
     return new Error("At least one licensed state must be provided.");

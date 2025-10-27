@@ -17,6 +17,18 @@ function normalizeString(value) {
   return trimmed.length ? trimmed : null;
 }
 
+function normalizeLicensedStatesInput(value) {
+  const rawStates = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+    ? value.split(",")
+    : [];
+
+  return rawStates
+    .map((state) => normalizeString(state))
+    .filter((state) => state !== null);
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
@@ -68,11 +80,7 @@ export default async function handler(req, res) {
     }
 
     if (Object.prototype.hasOwnProperty.call(profile, "licensedStates")) {
-      updateData.licensedStates = Array.isArray(profile.licensedStates)
-        ? profile.licensedStates
-            .map((state) => normalizeString(state))
-            .filter((state) => state !== null)
-        : [];
+      updateData.licensedStates = normalizeLicensedStatesInput(profile.licensedStates);
     }
 
     if (resume?.base64 && resume?.fileName) {
