@@ -33,19 +33,17 @@ export default async function handler(req, res) {
         resumeUrl: {
           not: null,
         },
+        NOT: {
+          resumeUrl: { equals: "" },
+        },
+      },
+      orderBy: {
+        updatedAt: "desc",
       },
     });
 
-    const toTimestamp = (value) => {
-      if (!value) return 0;
-      const date = new Date(value);
-      const time = date.getTime();
-      return Number.isFinite(time) ? time : 0;
-    };
-
     const normalized = resumes
       .filter((candidate) => Boolean(candidate?.resumeUrl))
-      .sort((a, b) => toTimestamp(b?.updated_at ?? b?.updatedAt) - toTimestamp(a?.updated_at ?? a?.updatedAt))
       .map((candidate) => ({
         id: candidate.id,
         firstName: candidate.firstName ?? null,
