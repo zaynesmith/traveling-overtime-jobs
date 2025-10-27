@@ -48,6 +48,9 @@ export default async function handler(req, res) {
       per_diem: job.per_diem,
       additional_requirements: job.additional_requirements,
       posted_at: job.posted_at,
+      showFirstName: job.showFirstName,
+      showEmail: job.showEmail,
+      showPhone: job.showPhone,
     });
     return;
   }
@@ -68,6 +71,18 @@ export default async function handler(req, res) {
           per_diem: payload.per_diem ?? job.per_diem,
           additional_requirements:
             payload.additional_requirements ?? job.additional_requirements,
+          showFirstName:
+            typeof payload.showFirstName === "boolean"
+              ? payload.showFirstName
+              : job.showFirstName,
+          showEmail:
+            typeof payload.showEmail === "boolean"
+              ? payload.showEmail
+              : job.showEmail,
+          showPhone:
+            typeof payload.showPhone === "boolean"
+              ? payload.showPhone
+              : job.showPhone,
         },
       });
 

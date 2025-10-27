@@ -34,6 +34,9 @@ export default async function handler(req, res) {
       hourly_pay,
       per_diem,
       additional_requirements,
+      showFirstName,
+      showEmail,
+      showPhone,
     } = req.body || {};
 
     if (!title || !trade || !description) {
@@ -56,6 +59,9 @@ export default async function handler(req, res) {
         per_diem: per_diem || null,
         additional_requirements: additional_requirements || null,
         employer_id: employerProfile.id,
+        showFirstName: Boolean(showFirstName),
+        showEmail: Boolean(showEmail),
+        showPhone: Boolean(showPhone),
       },
     });
 
