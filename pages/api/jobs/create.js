@@ -2,6 +2,8 @@ import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
 import { normalizeTrade } from "@/lib/trades";
+import { getSupabaseServiceClient } from "@/lib/supabaseServer";
+import { geocodeZip } from "@/lib/utils/geocode";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -64,6 +66,25 @@ export default async function handler(req, res) {
         showPhone: Boolean(showPhone),
       },
     });
+
+    const supabase = getSupabaseServiceClient();
+    const trimmedZip = zip ? `${zip}`.trim() : "";
+
+    if (supabase && trimmedZip) {
+      const coordinates = await geocodeZip(trimmedZip);
+
+      if (coordinates?.lat !== undefined && coordinates?.lon !== undefined) {
+        const { error: updateError } = await supabase
+          .from("jobs")
+          .update({ lat: coordinates.lat, lon: coordinates.lon })
+          .eq("id", job.id)
+          .limit(1);
+
+        if (updateError) {
+          console.error("Failed to update job coordinates", job.id, updateError);
+        }
+      }
+    }
 
     res.status(200).json(job);
   } catch (error) {

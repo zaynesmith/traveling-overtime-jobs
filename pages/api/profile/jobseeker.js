@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
 import { getSupabaseServiceClient } from "@/lib/supabaseServer";
+import { geocodeZip } from "@/lib/utils/geocode";
 
 export const config = {
   api: {
@@ -191,6 +192,27 @@ export default async function handler(req, res) {
       where: { id: jobseekerProfile.id },
       data: updateData,
     });
+
+    const trimmedZip = updated?.zip ? `${updated.zip}`.trim() : "";
+    if (supabase && trimmedZip) {
+      const coordinates = await geocodeZip(trimmedZip);
+
+      if (coordinates?.lat !== undefined && coordinates?.lon !== undefined) {
+        const { error: updateError } = await supabase
+          .from("jobseekerprofile")
+          .update({ lat: coordinates.lat, lon: coordinates.lon })
+          .eq("id", jobseekerProfile.id)
+          .limit(1);
+
+        if (updateError) {
+          console.error(
+            "Failed to update jobseeker profile coordinates",
+            jobseekerProfile.id,
+            updateError,
+          );
+        }
+      }
+    }
 
     res.status(200).json(updated);
   } catch (error) {
