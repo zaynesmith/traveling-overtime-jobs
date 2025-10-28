@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
 import { getSupabaseServiceClient } from "@/lib/supabaseServer";
-import { geocodeZip } from "@/lib/utils/geocode";
+import { geocodeZip, validateZip } from "@/lib/utils/geocode";
 
 export const config = {
   api: {
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
 
     const jobseekerProfile = await prisma.jobseekerProfile.findUnique({
       where: { userId: session.user.id },
-      select: { id: true, certFiles: true },
+      select: { id: true, certFiles: true, city: true, state: true, zip: true },
     });
 
     if (!jobseekerProfile) {
@@ -186,6 +186,39 @@ export default async function handler(req, res) {
 
     if (Object.prototype.hasOwnProperty.call(profile, "lastBump")) {
       updateData.lastBump = normalizeDate(profile.lastBump);
+    }
+
+    const hasCityUpdate = Object.prototype.hasOwnProperty.call(updateData, "city");
+    const hasStateUpdate = Object.prototype.hasOwnProperty.call(updateData, "state");
+    const hasZipUpdate = Object.prototype.hasOwnProperty.call(updateData, "zip");
+
+    const finalCity = hasCityUpdate ? updateData.city : jobseekerProfile.city;
+    const finalState = hasStateUpdate ? updateData.state : jobseekerProfile.state;
+    const finalZip = hasZipUpdate ? updateData.zip : jobseekerProfile.zip;
+
+    const zipValidation = await validateZip(finalZip, finalCity, finalState);
+    if (!zipValidation.valid) {
+      const suggestionMessage = zipValidation.suggestion
+        ? `That ZIP was unrecognized. Try using ${zipValidation.suggestion.zip} from ${
+            [zipValidation.suggestion.city, zipValidation.suggestion.state].filter(Boolean).join(", ")
+          } instead.`
+        : "We couldn’t find that ZIP. Please double-check or enter one from your area.";
+      return res.status(400).json({
+        error: suggestionMessage,
+        message: suggestionMessage,
+        code: zipValidation.suggestion ? "ZIP_SUGGESTION" : "ZIP_INVALID",
+        suggestion: zipValidation.suggestion,
+      });
+    }
+
+    if (hasCityUpdate) {
+      updateData.city = finalCity;
+    }
+    if (hasStateUpdate) {
+      updateData.state = finalState;
+    }
+    if (hasZipUpdate) {
+      updateData.zip = finalZip;
     }
 
     let updated = await prisma.jobseekerProfile.update({

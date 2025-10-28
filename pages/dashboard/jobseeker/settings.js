@@ -22,6 +22,11 @@ function readFileAsDataUrl(file) {
   });
 }
 
+function formatSuggestionLocation(suggestion) {
+  if (!suggestion) return "";
+  return [suggestion.city, suggestion.state].filter(Boolean).join(", ");
+}
+
 export default function JobseekerSettingsPage({ preferences, profile }) {
   const [form, setForm] = useState(preferences);
   const [profileForm, setProfileForm] = useState(profile);
@@ -32,6 +37,7 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
   const [pendingUploads, setPendingUploads] = useState([]);
   const [bumpState, setBumpState] = useState({ status: null, message: null });
   const [bumping, setBumping] = useState(false);
+  const [zipFeedback, setZipFeedback] = useState(null);
 
   const handleChange = (event) => {
     const { name, checked } = event.target;
@@ -45,7 +51,16 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
 
   const handleProfileInputChange = (event) => {
     const { name, value } = event.target;
+    if (name === "zip" || name === "city" || name === "state") {
+      setZipFeedback(null);
+    }
     setProfileForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const applyZipSuggestion = (suggestion) => {
+    if (!suggestion?.zip) return;
+    setProfileForm((current) => ({ ...current, zip: suggestion.zip }));
+    setZipFeedback(null);
   };
 
   const handleCertFileRemove = (path) => {
@@ -94,6 +109,7 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
     event.preventDefault();
     setProfileMessage(null);
     setProfileError(null);
+    setZipFeedback(null);
     setSavingProfile(true);
 
     try {
@@ -121,12 +137,41 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
         }),
       });
 
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (parseError) {
+        payload = null;
+      }
+
       if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
+        const code = payload?.code;
+        if (code === "ZIP_SUGGESTION" || code === "ZIP_INVALID") {
+          const suggestion = payload?.suggestion || null;
+          const messageText =
+            payload?.message ||
+            (code === "ZIP_SUGGESTION"
+              ? suggestion
+                ? `That ZIP was unrecognized. Try using ${suggestion.zip} from ${
+                    [suggestion.city, suggestion.state].filter(Boolean).join(", ")
+                  } instead.`
+                : "That ZIP was unrecognized."
+              : "We couldn’t find that ZIP. Please double-check or enter one from your area.");
+          setZipFeedback({
+            type: code === "ZIP_SUGGESTION" ? "suggestion" : "error",
+            message: messageText,
+            suggestion,
+          });
+          if (code === "ZIP_INVALID") {
+            setProfileError(messageText);
+          }
+          return;
+        }
+
         throw new Error(payload?.error || "Unable to update profile information");
       }
 
-      const data = await response.json();
+      const data = payload || {};
 
       setProfileForm((current) => ({
         ...current,
@@ -178,6 +223,8 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
       setBumping(false);
     }
   };
+
+  const zipSuggestionLocation = formatSuggestionLocation(zipFeedback?.suggestion);
 
   return (
     <main className="bg-slate-50 py-12">
@@ -235,6 +282,25 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
                   onChange={handleProfileInputChange}
                   className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
                 />
+                {zipFeedback?.type === "suggestion" ? (
+                  <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                    That ZIP was unrecognized. Try using{' '}
+                    <button
+                      type="button"
+                      onClick={() => applyZipSuggestion(zipFeedback.suggestion)}
+                      className="font-semibold text-sky-700 underline"
+                    >
+                      {zipFeedback.suggestion?.zip}
+                    </button>
+                    {zipSuggestionLocation ? ` from ${zipSuggestionLocation}` : ''}
+                    {' '}instead.
+                  </p>
+                ) : null}
+                {zipFeedback?.type === "error" ? (
+                  <p className="mt-2 rounded-lg bg-rose-100 px-3 py-2 text-xs font-medium text-rose-700">
+                    {zipFeedback.message}
+                  </p>
+                ) : null}
               </label>
             </div>
 

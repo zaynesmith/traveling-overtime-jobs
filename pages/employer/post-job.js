@@ -33,6 +33,7 @@ export default function PostJobPage({ jobId, contactDetails }) {
   const [form, setForm] = useState(blankJob);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [zipFeedback, setZipFeedback] = useState(null);
 
   const safeContactDetails = {
     firstName: contactDetails?.firstName || "",
@@ -85,6 +86,7 @@ export default function PostJobPage({ jobId, contactDetails }) {
             showEmail: Boolean(data.showEmail),
             showPhone: Boolean(data.showPhone),
           });
+          setZipFeedback(null);
         }
       } catch (error) {
         console.error(error);
@@ -100,16 +102,31 @@ export default function PostJobPage({ jobId, contactDetails }) {
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
+    if (name === "zip" || name === "city" || name === "state") {
+      setZipFeedback(null);
+    }
     setForm((current) => ({
       ...current,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
 
+  const applyZipSuggestion = (suggestion) => {
+    if (!suggestion?.zip) return;
+    setForm((current) => ({ ...current, zip: suggestion.zip }));
+    setZipFeedback(null);
+  };
+
+  const formatSuggestionLocation = (suggestion) => {
+    if (!suggestion) return "";
+    return [suggestion.city, suggestion.state].filter(Boolean).join(", ");
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
     setMessage(null);
+    setZipFeedback(null);
 
     try {
       const payload = {
@@ -136,11 +153,42 @@ export default function PostJobPage({ jobId, contactDetails }) {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || "Unable to save job");
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        data = null;
+      }
+
+      if (!response.ok) {
+        const code = data?.code;
+        if (code === "ZIP_SUGGESTION" || code === "ZIP_INVALID") {
+          const suggestion = data?.suggestion || null;
+          const messageText =
+            data?.message ||
+            (code === "ZIP_SUGGESTION"
+              ? suggestion
+                ? `That ZIP was unrecognized. Try using ${suggestion.zip} from ${
+                    [suggestion.city, suggestion.state].filter(Boolean).join(", ")
+                  } instead.`
+                : "That ZIP was unrecognized."
+              : "We couldn’t find that ZIP. Please double-check or enter one from your area.");
+          setZipFeedback({
+            type: code === "ZIP_SUGGESTION" ? "suggestion" : "error",
+            message: messageText,
+            suggestion,
+          });
+          return;
+        }
+
+        const errorMessage = data?.error || "Unable to save job";
+        throw new Error(errorMessage);
+      }
+
+      const responseData = data || {};
 
       setMessage({ type: "success", text: jobId ? "Job updated." : "Job posted." });
-      const redirectId = jobId || data.id;
+      const redirectId = jobId || responseData.id;
       setTimeout(() => {
         router.push({
           pathname: "/dashboard/employer/posted-jobs",
@@ -153,6 +201,8 @@ export default function PostJobPage({ jobId, contactDetails }) {
       setLoading(false);
     }
   };
+
+  const zipSuggestionLocation = formatSuggestionLocation(zipFeedback?.suggestion);
 
   return (
     <main className="bg-slate-50 py-12">
@@ -337,6 +387,29 @@ export default function PostJobPage({ jobId, contactDetails }) {
                 ))}
               </dl>
             </section>
+
+            {zipFeedback?.type === "suggestion" ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                <p>
+                  That ZIP was unrecognized. Try using{' '}
+                  <button
+                    type="button"
+                    onClick={() => applyZipSuggestion(zipFeedback.suggestion)}
+                    className="font-semibold text-sky-700 underline"
+                  >
+                    {zipFeedback.suggestion?.zip}
+                  </button>{' '}
+                  {zipSuggestionLocation ? `from ${zipSuggestionLocation} ` : ""}
+                  instead.
+                </p>
+              </div>
+            ) : null}
+
+            {zipFeedback?.type === "error" ? (
+              <div className="rounded-xl bg-rose-100 px-4 py-3 text-sm font-medium text-rose-700">
+                {zipFeedback.message}
+              </div>
+            ) : null}
 
             {message ? (
               <p
