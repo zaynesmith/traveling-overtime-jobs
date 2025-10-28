@@ -1,6 +1,7 @@
 import { hash } from "bcryptjs";
 import prisma from "../../../lib/prisma";
 import { getSupabaseServiceClient } from "../../../lib/supabaseServer";
+import { validateZip } from "@/lib/utils/geocode";
 
 export const config = {
   api: {
@@ -137,6 +138,27 @@ export default async function handler(req, res) {
           console.warn(`Missing required field during employer registration: ${field}`);
           throw new HttpError(400, `Missing required field: ${field}`);
         }
+      }
+    }
+
+    if (role === "jobseeker") {
+      const sanitizedCity = sanitize(payload.city);
+      const sanitizedState = sanitize(payload.state);
+      const sanitizedZip = sanitize(payload.zip ?? payload.zipCode);
+      const zipValidation = await validateZip(sanitizedZip, sanitizedCity, sanitizedState);
+      if (!zipValidation.valid) {
+        const suggestionMessage = zipValidation.suggestion
+          ? `That ZIP was unrecognized. Try using ${zipValidation.suggestion.zip} from ${
+              [zipValidation.suggestion.city, zipValidation.suggestion.state].filter(Boolean).join(", ")
+            } instead.`
+          : "We couldn’t find that ZIP. Please double-check or enter one from your area.";
+        res.status(400).json({
+          error: suggestionMessage,
+          message: suggestionMessage,
+          code: zipValidation.suggestion ? "ZIP_SUGGESTION" : "ZIP_INVALID",
+          suggestion: zipValidation.suggestion,
+        });
+        return;
       }
     }
 

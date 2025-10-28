@@ -101,6 +101,7 @@ export default function JobseekerRegisterPage() {
   const [resumeFile, setResumeFile] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [zipFeedback, setZipFeedback] = useState(null);
 
   const updateForm = (updater) => {
     setFormState((previous) => {
@@ -110,6 +111,17 @@ export default function JobseekerRegisterPage() {
         licensedStates: normalizeLicensedStates(nextState.licensedStates),
       };
     });
+  };
+
+  const applyZipSuggestion = (suggestion) => {
+    if (!suggestion?.zip) return;
+    updateForm((prev) => ({ ...prev, zipCode: suggestion.zip }));
+    setZipFeedback(null);
+  };
+
+  const formatSuggestionLocation = (suggestion) => {
+    if (!suggestion) return "";
+    return [suggestion.city, suggestion.state].filter(Boolean).join(", ");
   };
 
   useEffect(() => {
@@ -123,6 +135,9 @@ export default function JobseekerRegisterPage() {
 
   const updateField = (field) => (event) => {
     const { value } = event.target;
+    if (field === "zipCode" || field === "city" || field === "state") {
+      setZipFeedback(null);
+    }
     updateForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -158,6 +173,7 @@ export default function JobseekerRegisterPage() {
     event.preventDefault();
     setLoading(true);
     setError(null);
+    setZipFeedback(null);
 
     try {
       let resumePayload = null;
@@ -204,9 +220,39 @@ export default function JobseekerRegisterPage() {
         }),
       });
 
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        data = null;
+      }
+
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || "Unable to create jobseeker profile.");
+        const code = data?.code;
+        if (code === "ZIP_SUGGESTION" || code === "ZIP_INVALID") {
+          const suggestion = data?.suggestion || null;
+          const messageText =
+            data?.message ||
+            (code === "ZIP_SUGGESTION"
+              ? suggestion
+                ? `That ZIP was unrecognized. Try using ${suggestion.zip} from ${
+                    [suggestion.city, suggestion.state].filter(Boolean).join(", ")
+                  } instead.`
+                : "That ZIP was unrecognized."
+              : "We couldn’t find that ZIP. Please double-check or enter one from your area.");
+          setZipFeedback({
+            type: code === "ZIP_SUGGESTION" ? "suggestion" : "error",
+            message: messageText,
+            suggestion,
+          });
+          if (code === "ZIP_INVALID") {
+            setError(messageText);
+          }
+          return;
+        }
+
+        const errorMessage = data?.error || "Unable to create jobseeker profile.";
+        throw new Error(errorMessage);
       }
 
       const loginResult = await signIn("credentials", {
@@ -226,6 +272,8 @@ export default function JobseekerRegisterPage() {
       setLoading(false);
     }
   }
+
+  const zipSuggestionLocation = formatSuggestionLocation(zipFeedback?.suggestion);
 
   return (
     <main className="form-page">
@@ -320,6 +368,23 @@ export default function JobseekerRegisterPage() {
             value={form.zipCode}
             onChange={updateField("zipCode")}
           />
+          {zipFeedback?.type === "suggestion" ? (
+            <span className="form-hint">
+              That ZIP was unrecognized. Try using{' '}
+              <button
+                type="button"
+                onClick={() => applyZipSuggestion(zipFeedback.suggestion)}
+                className="font-semibold text-sky-600 underline"
+              >
+                {zipFeedback.suggestion?.zip}
+              </button>
+              {zipSuggestionLocation ? ` from ${zipSuggestionLocation}` : ''}
+              {' '}instead.
+            </span>
+          ) : null}
+          {zipFeedback?.type === "error" ? (
+            <span className="form-error">{zipFeedback.message}</span>
+          ) : null}
         </label>
         <label className="form-label">
           Trade/Craft
