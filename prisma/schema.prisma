@@ -75,6 +75,8 @@ model JobseekerProfile {
   applications         applications[]
   user                 User?              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "jobseekerprofile_userid_fkey")
   savedBy              saved_candidates[]
+  lat                  Float?
+  lon                  Float?
 
   @@map("jobseekerprofile")
 }
@@ -110,6 +112,8 @@ model jobs {
   showPhone               Boolean?         @default(false)
   applications            applications[]
   employerprofile         EmployerProfile? @relation(fields: [employer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  lat                     Float?
+  lon                     Float?
 }
 
 model saved_candidates {
