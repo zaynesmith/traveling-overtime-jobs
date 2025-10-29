@@ -3,23 +3,68 @@ import authOptions from "@/lib/authOptions";
 
 const plans = [
   {
+    name: "Promo",
+    key: "promo",
+    price: "$99/mo unlimited",
+    buttonClass: "bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded w-full mt-4",
+    buttonLabel: "Subscribe $99/mo",
+    features: [
+      "Unlimited job posts",
+      "Highlighted listings",
+      "Email support",
+    ],
+  },
+  {
     name: "Basic",
-    price: "$299/mo",
-    features: ["Up to 5 active job posts", "Resume search with limited filters", "Email support"],
+    key: "basic",
+    price: "$99/mo limited",
+    buttonClass: "bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded w-full mt-4",
+    buttonLabel: "Subscribe $99/mo",
+    features: [
+      "Up to 5 active job posts",
+      "Resume search with limited filters",
+      "Email support",
+    ],
   },
   {
-    name: "Growth",
-    price: "$499/mo",
-    features: ["Unlimited job posts", "Full resume search", "Saved candidate sync", "Priority support"],
+    name: "Pro",
+    key: "pro",
+    price: "$199/mo unlimited",
+    buttonClass: "bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded w-full mt-4",
+    buttonLabel: "Subscribe $199/mo",
+    features: [
+      "Unlimited job posts",
+      "Full resume search",
+      "Saved candidate sync",
+      "Priority support",
+    ],
   },
   {
-    name: "Enterprise",
+    name: "Custom",
+    key: "custom",
     price: "Custom",
-    features: ["Dedicated success manager", "ATS integrations", "Custom billing", "Onsite hiring events"],
+    features: [
+      "Dedicated success manager",
+      "ATS integrations",
+      "Custom billing",
+      "Onsite hiring events",
+    ],
   },
 ];
 
 export default function BillingPage({ subscription }) {
+  async function startCheckout(plan) {
+    const res = await fetch("/api/stripe/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan }),
+    });
+    const data = await res.json();
+    if (data.url) window.location.href = data.url;
+  }
+
+  const normalizedTier = subscription.tier?.toLowerCase();
+
   return (
     <main className="bg-slate-50 py-12">
       <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 sm:px-6 lg:px-8">
@@ -56,9 +101,22 @@ export default function BillingPage({ subscription }) {
                     <li key={feature}>• {feature}</li>
                   ))}
                 </ul>
-                <button className="mt-6 w-full rounded-xl border border-sky-200 px-4 py-2 text-sm font-semibold text-sky-600 transition hover:bg-sky-50">
-                  {plan.name === subscription.tier ? "Current plan" : "Talk to sales"}
-                </button>
+                {plan.key === "custom" ? (
+                  <button className="mt-6 w-full rounded-xl border border-sky-200 px-4 py-2 text-sm font-semibold text-sky-600 transition hover:bg-sky-50">
+                    {plan.name === subscription.tier ? "Current plan" : "Talk to sales"}
+                  </button>
+                ) : normalizedTier === plan.name.toLowerCase() ? (
+                  <button className="mt-6 w-full rounded-xl border border-sky-200 px-4 py-2 text-sm font-semibold text-sky-600 transition hover:bg-sky-50" disabled>
+                    Current plan
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => startCheckout(plan.key)}
+                    className={plan.buttonClass}
+                  >
+                    {plan.buttonLabel}
+                  </button>
+                )}
               </div>
             ))}
           </div>
