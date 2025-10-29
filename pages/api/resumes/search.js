@@ -1,37 +1,29 @@
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
+import { normalizeStateCode } from "@/lib/constants/states";
+import { geocodeZip } from "@/lib/utils/geocode";
 
-async function fetchZipCoordinates(zip) {
-  if (!zip) return null;
+function parsePagination(query = {}) {
+  const rawPage = Number.parseInt(query.page, 10);
+  const rawPageSize = Number.parseInt(query.pageSize ?? query.perPage, 10);
+  const shouldPaginate = Number.isFinite(rawPage) || Number.isFinite(rawPageSize);
 
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(zip)}&country=United States&format=json&limit=1`,
-      {
-        headers: { "User-Agent": "TravelingOvertimeJobs/1.0" },
-      },
-    );
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const results = await response.json();
-    const [match] = Array.isArray(results) ? results : [];
-
-    const lat = match?.lat ? Number.parseFloat(match.lat) : null;
-    const lon = match?.lon ? Number.parseFloat(match.lon) : null;
-
-    if (Number.isFinite(lat) && Number.isFinite(lon)) {
-      return { lat, lon };
-    }
-
-    return null;
-  } catch (error) {
-    console.error("Failed to geocode ZIP", zip, error);
-    return null;
+  if (!shouldPaginate) {
+    return { shouldPaginate: false, page: 1, pageSize: null, skip: 0, take: undefined };
   }
+
+  const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+  const pageSizeCandidate = Number.isFinite(rawPageSize) && rawPageSize > 0 ? rawPageSize : 25;
+  const pageSize = Math.min(Math.max(pageSizeCandidate, 1), 100);
+
+  return {
+    shouldPaginate: true,
+    page,
+    pageSize,
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+  };
 }
 
 export default async function handler(req, res) {
@@ -46,15 +38,17 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: "Employer authentication required" });
     }
 
-    const { trade, zip, radius, keyword } = req.query;
+    const { trade, zip, radius, keyword, state } = req.query;
     const parsedRadius = radius !== undefined ? Number.parseFloat(radius) : undefined;
     const distance = Number.isFinite(parsedRadius) ? Math.min(Math.max(parsedRadius, 0), 500) : undefined;
+    const stateFilter = normalizeStateCode(state) || undefined;
+    const pagination = parsePagination(req.query);
 
     let resumes = [];
     let radiusFilterApplied = false;
 
     if (zip && distance && Number.isFinite(distance) && distance > 0) {
-      const coordinates = await fetchZipCoordinates(zip);
+      const coordinates = await geocodeZip(zip);
 
       if (coordinates?.lat !== undefined && coordinates?.lon !== undefined) {
         radiusFilterApplied = true;
@@ -87,6 +81,7 @@ export default async function handler(req, res) {
           const filteredCandidates = await prisma.jobseekerProfile.findMany({
             where: {
               trade: trade ? trade.toString() : undefined,
+              state: stateFilter,
               OR: keyword
                 ? [
                     { firstName: { contains: keyword, mode: "insensitive" } },
@@ -106,41 +101,57 @@ export default async function handler(req, res) {
           });
 
           const candidatesById = new Map(filteredCandidates.map((candidate) => [candidate.id, candidate]));
-          resumes = candidateIds
+          const orderedResumes = candidateIds
             .map((id) => {
               const candidate = candidatesById.get(id);
               if (!candidate) return null;
               return { ...candidate, distance: distanceById.get(id) ?? null };
             })
             .filter(Boolean);
+
+          if (pagination.shouldPaginate) {
+            resumes = orderedResumes.slice(pagination.skip, pagination.skip + pagination.take);
+          } else {
+            resumes = orderedResumes;
+          }
         }
       }
     }
 
     if (!resumes.length && !radiusFilterApplied) {
-      resumes = await prisma.jobseekerProfile.findMany({
-        where: {
-          trade: trade ? trade.toString() : undefined,
-          zip: zip ? zip.toString() : undefined,
-          OR: keyword
-            ? [
-                { firstName: { contains: keyword, mode: "insensitive" } },
-                { lastName: { contains: keyword, mode: "insensitive" } },
-                { city: { contains: keyword, mode: "insensitive" } },
-                { trade: { contains: keyword, mode: "insensitive" } },
-              ]
-            : undefined,
-          resumeUrl: {
-            not: null,
-          },
-          NOT: {
-            resumeUrl: { equals: "" },
-          },
+      const fallbackWhere = {
+        trade: trade ? trade.toString() : undefined,
+        state: stateFilter,
+        ...(zip ? { zip: zip.toString() } : {}),
+        OR: keyword
+          ? [
+              { firstName: { contains: keyword, mode: "insensitive" } },
+              { lastName: { contains: keyword, mode: "insensitive" } },
+              { city: { contains: keyword, mode: "insensitive" } },
+              { trade: { contains: keyword, mode: "insensitive" } },
+            ]
+          : undefined,
+        resumeUrl: {
+          not: null,
         },
+        NOT: {
+          resumeUrl: { equals: "" },
+        },
+      };
+
+      const queryOptions = {
+        where: fallbackWhere,
         orderBy: {
           updatedAt: "desc",
         },
-      });
+      };
+
+      if (pagination.shouldPaginate) {
+        queryOptions.skip = pagination.skip;
+        queryOptions.take = pagination.take;
+      }
+
+      resumes = await prisma.jobseekerProfile.findMany(queryOptions);
     }
 
     const normalized = resumes

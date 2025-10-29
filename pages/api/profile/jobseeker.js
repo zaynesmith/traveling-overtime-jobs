@@ -2,7 +2,9 @@ import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
 import { getSupabaseServiceClient } from "@/lib/supabaseServer";
-import { geocodeZip, validateZip } from "@/lib/utils/geocode";
+import { normalizeStateCode } from "@/lib/constants/states";
+import { geocodeZip } from "@/lib/utils/geocode";
+import { validateZip } from "@/lib/utils/validateZip";
 
 export const config = {
   api: {
@@ -192,32 +194,51 @@ export default async function handler(req, res) {
     const hasStateUpdate = Object.prototype.hasOwnProperty.call(updateData, "state");
     const hasZipUpdate = Object.prototype.hasOwnProperty.call(updateData, "zip");
 
-    const finalCity = hasCityUpdate ? updateData.city : jobseekerProfile.city;
-    const finalState = hasStateUpdate ? updateData.state : jobseekerProfile.state;
-    const finalZip = hasZipUpdate ? updateData.zip : jobseekerProfile.zip;
+    const requestedCity = hasCityUpdate ? updateData.city : jobseekerProfile.city;
+    const requestedState = hasStateUpdate ? updateData.state : jobseekerProfile.state;
+    const requestedZip = hasZipUpdate ? updateData.zip : jobseekerProfile.zip;
 
-    const zipValidation = await validateZip(finalZip, finalCity, finalState);
+    const normalizedState = normalizeStateCode(requestedState) || null;
+    const zipValidation = await validateZip(requestedZip, requestedCity, normalizedState);
     if (!zipValidation.valid) {
-      const suggestionMessage = zipValidation.suggestion
-        ? `That ZIP was unrecognized. Try using ${zipValidation.suggestion.zip} from ${
-            [zipValidation.suggestion.city, zipValidation.suggestion.state].filter(Boolean).join(", ")
-          } instead.`
-        : "We couldn’t find that ZIP. Please double-check or enter one from your area.";
+      const suggestion = zipValidation.suggestedZip
+        ? {
+            zip: zipValidation.suggestedZip,
+            city: zipValidation.suggestedCity || null,
+            state: zipValidation.suggestedState || null,
+          }
+        : null;
       return res.status(400).json({
-        error: suggestionMessage,
-        message: suggestionMessage,
-        code: zipValidation.suggestion ? "ZIP_SUGGESTION" : "ZIP_INVALID",
-        suggestion: zipValidation.suggestion,
+        error: "Invalid ZIP",
+        suggestion,
       });
     }
 
-    if (hasCityUpdate) {
+    const normalizedZipValue = zipValidation.normalizedZip ?? (requestedZip || null);
+    const resolvedCity = zipValidation.resolvedCity || null;
+    const resolvedState = normalizeStateCode(zipValidation.resolvedState) || null;
+    const currentCity = jobseekerProfile.city ?? null;
+    const currentStateNormalized = normalizeStateCode(jobseekerProfile.state) || null;
+    const currentState = currentStateNormalized || jobseekerProfile.state || null;
+    const currentZip = jobseekerProfile.zip ?? null;
+
+    const finalCity = hasCityUpdate
+      ? requestedCity || resolvedCity || null
+      : currentCity || resolvedCity || null;
+    const finalState = hasStateUpdate
+      ? normalizedState || resolvedState || null
+      : currentState || resolvedState || null;
+    const finalZip = hasZipUpdate
+      ? normalizedZipValue
+      : currentZip || normalizedZipValue;
+
+    if (hasCityUpdate || finalCity !== currentCity) {
       updateData.city = finalCity;
     }
-    if (hasStateUpdate) {
+    if (hasStateUpdate || finalState !== jobseekerProfile.state) {
       updateData.state = finalState;
     }
-    if (hasZipUpdate) {
+    if (hasZipUpdate || finalZip !== currentZip) {
       updateData.zip = finalZip;
     }
 

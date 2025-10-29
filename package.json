@@ -12,7 +12,8 @@
     "test:e2e": "playwright test",
     "postinstall": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name json_to_text",
-    "prisma:migrate:deploy": "prisma migrate deploy"
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "normalize:states": "node scripts/normalizeStates.js"
   },
   "dependencies": {
     "@prisma/client": "^5.16.1",

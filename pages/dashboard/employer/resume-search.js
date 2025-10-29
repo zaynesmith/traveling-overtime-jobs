@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
-import { TRADES } from "@/lib/trades";
 import CandidateCard from "@/components/employer/CandidateCard";
+import StateSelect from "@/components/forms/StateSelect";
+import { getStateNameFromCode } from "@/lib/constants/states";
+import { TRADES } from "@/lib/trades";
 
 export default function ResumeSearchPage({ employerId, initialSavedIds }) {
-  const [filters, setFilters] = useState({ trade: "", zip: "", radius: "50", keyword: "" });
+  const [filters, setFilters] = useState({ trade: "", state: "", zip: "", radius: "50", keyword: "" });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -30,6 +32,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
     try {
       const currentFilters = {
         trade: filters.trade,
+        state: filters.state,
         zip: filters.zip,
         radius: filters.radius,
         keyword: filters.keyword,
@@ -38,6 +41,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
 
       const params = new URLSearchParams();
       if (filters.trade) params.set("trade", filters.trade);
+      if (filters.state) params.set("state", filters.state);
       if (filters.zip) params.set("zip", filters.zip);
       if (filters.radius) params.set("radius", filters.radius);
       if (filters.keyword) params.set("keyword", filters.keyword);
@@ -129,6 +133,8 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
   const hasDistanceData = resultsWithDetails.some((candidate) => typeof candidate.distance === "number");
   const parsedRadius = Number.parseFloat(appliedFilters?.radius ?? "");
   const targetZip = appliedFilters?.zip ? appliedFilters.zip.toString().trim() : "";
+  const selectedState = appliedFilters?.state ? appliedFilters.state.toString().trim() : "";
+  const stateLabel = selectedState ? getStateNameFromCode(selectedState) || selectedState : "";
   const radiusMessage =
     hasDistanceData &&
     Number.isFinite(parsedRadius) &&
@@ -136,6 +142,8 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
     targetZip
       ? `Results within ${parsedRadius} miles of ${targetZip}`
       : null;
+  const stateMessage =
+    !targetZip && stateLabel ? `Showing candidates in ${stateLabel}` : null;
 
   return (
     <main className="bg-slate-50 py-12">
@@ -165,6 +173,17 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
                   </option>
                 ))}
               </select>
+            </label>
+
+            <label className="text-sm font-semibold text-slate-700">
+              State
+              <StateSelect
+                name="state"
+                value={filters.state}
+                onChange={handleChange}
+                includePlaceholder
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+              />
             </label>
 
             <label className="text-sm font-semibold text-slate-700">
@@ -217,7 +236,11 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
             <h2 className="text-lg font-semibold text-slate-900">
               {resultsWithDetails.length} candidate{resultsWithDetails.length === 1 ? "" : "s"} found
             </h2>
-            {radiusMessage ? <p className="text-sm text-slate-500">{radiusMessage}</p> : null}
+            {radiusMessage ? (
+              <p className="text-sm text-slate-500">{radiusMessage}</p>
+            ) : stateMessage ? (
+              <p className="text-sm text-slate-500">{stateMessage}</p>
+            ) : null}
             <ul className="space-y-4">
               {resultsWithDetails.map((candidate) => (
                 <CandidateCard

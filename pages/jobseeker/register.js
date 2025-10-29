@@ -2,60 +2,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { signIn, useSession } from "next-auth/react";
+import StateSelect from "@/components/forms/StateSelect";
+import { US_STATES, normalizeStateCode } from "@/lib/constants/states";
+import { formatZipSuggestionLocation, formatZipSuggestionMessage } from "@/lib/utils/zipMessages";
 import { TRADES } from "@/lib/trades";
-
-const US_STATES = [
-  "Alabama",
-  "Alaska",
-  "Arizona",
-  "Arkansas",
-  "California",
-  "Colorado",
-  "Connecticut",
-  "Delaware",
-  "Florida",
-  "Georgia",
-  "Hawaii",
-  "Idaho",
-  "Illinois",
-  "Indiana",
-  "Iowa",
-  "Kansas",
-  "Kentucky",
-  "Louisiana",
-  "Maine",
-  "Maryland",
-  "Massachusetts",
-  "Michigan",
-  "Minnesota",
-  "Mississippi",
-  "Missouri",
-  "Montana",
-  "Nebraska",
-  "Nevada",
-  "New Hampshire",
-  "New Jersey",
-  "New Mexico",
-  "New York",
-  "North Carolina",
-  "North Dakota",
-  "Ohio",
-  "Oklahoma",
-  "Oregon",
-  "Pennsylvania",
-  "Rhode Island",
-  "South Carolina",
-  "South Dakota",
-  "Tennessee",
-  "Texas",
-  "Utah",
-  "Vermont",
-  "Virginia",
-  "Washington",
-  "West Virginia",
-  "Wisconsin",
-  "Wyoming",
-];
 
 const initialForm = {
   firstName: "",
@@ -77,6 +27,7 @@ function normalizeLicensedStates(value) {
   if (Array.isArray(value)) {
     return value
       .map((state) => (typeof state === "string" ? state.trim() : ""))
+      .map((state) => (state ? normalizeStateCode(state) || state : ""))
       .filter(Boolean);
   }
 
@@ -84,6 +35,7 @@ function normalizeLicensedStates(value) {
     return value
       .split(",")
       .map((state) => state.trim())
+      .map((state) => (state ? normalizeStateCode(state) || state : ""))
       .filter(Boolean);
   }
 
@@ -117,11 +69,6 @@ export default function JobseekerRegisterPage() {
     if (!suggestion?.zip) return;
     updateForm((prev) => ({ ...prev, zipCode: suggestion.zip }));
     setZipFeedback(null);
-  };
-
-  const formatSuggestionLocation = (suggestion) => {
-    if (!suggestion) return "";
-    return [suggestion.city, suggestion.state].filter(Boolean).join(", ");
   };
 
   useEffect(() => {
@@ -228,24 +175,16 @@ export default function JobseekerRegisterPage() {
       }
 
       if (!response.ok) {
-        const code = data?.code;
-        if (code === "ZIP_SUGGESTION" || code === "ZIP_INVALID") {
+        if (data?.error === "Invalid ZIP") {
           const suggestion = data?.suggestion || null;
           const messageText =
-            data?.message ||
-            (code === "ZIP_SUGGESTION"
-              ? suggestion
-                ? `That ZIP was unrecognized. Try using ${suggestion.zip} from ${
-                    [suggestion.city, suggestion.state].filter(Boolean).join(", ")
-                  } instead.`
-                : "That ZIP was unrecognized."
-              : "We couldn’t find that ZIP. Please double-check or enter one from your area.");
+            data?.message || formatZipSuggestionMessage(suggestion);
           setZipFeedback({
-            type: code === "ZIP_SUGGESTION" ? "suggestion" : "error",
+            type: suggestion ? "suggestion" : "error",
             message: messageText,
             suggestion,
           });
-          if (code === "ZIP_INVALID") {
+          if (!suggestion) {
             setError(messageText);
           }
           return;
@@ -273,7 +212,7 @@ export default function JobseekerRegisterPage() {
     }
   }
 
-  const zipSuggestionLocation = formatSuggestionLocation(zipFeedback?.suggestion);
+  const zipSuggestionLocation = formatZipSuggestionLocation(zipFeedback?.suggestion);
 
   return (
     <main className="form-page">
@@ -355,8 +294,7 @@ export default function JobseekerRegisterPage() {
         </label>
         <label className="form-label">
           State
-          <input
-            className="form-input"
+          <StateSelect
             value={form.state}
             onChange={updateField("state")}
           />
@@ -441,8 +379,8 @@ export default function JobseekerRegisterPage() {
               onChange={updateLicensedStates}
             >
               {US_STATES.map((state) => (
-                <option key={state} value={state}>
-                  {state}
+                <option key={state.value} value={state.value}>
+                  {state.label}
                 </option>
               ))}
             </select>

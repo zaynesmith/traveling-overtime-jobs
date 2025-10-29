@@ -1,6 +1,8 @@
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
-import { geocodeZip, validateZip } from "@/lib/utils/geocode";
+import { normalizeStateCode } from "@/lib/constants/states";
+import { geocodeZip } from "@/lib/utils/geocode";
+import { validateZip } from "@/lib/utils/validateZip";
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
@@ -70,28 +72,34 @@ export default async function handler(req, res) {
       const nextCity = typeof rawCity === "string" ? rawCity.trim() : rawCity;
       const nextState = typeof rawState === "string" ? rawState.trim() : rawState;
       const nextZip = typeof rawZip === "string" ? rawZip.trim() : rawZip;
+      const normalizedStateInput = normalizeStateCode(nextState) || null;
 
-      const zipValidation = await validateZip(nextZip, nextCity, nextState);
+      const zipValidation = await validateZip(nextZip, nextCity, normalizedStateInput);
       if (!zipValidation.valid) {
-        const suggestionMessage = zipValidation.suggestion
-          ? `That ZIP was unrecognized. Try using ${zipValidation.suggestion.zip} from ${
-              [zipValidation.suggestion.city, zipValidation.suggestion.state].filter(Boolean).join(", ")
-            } instead.`
-          : "We couldn’t find that ZIP. Please double-check or enter one from your area.";
+        const suggestion = zipValidation.suggestedZip
+          ? {
+              zip: zipValidation.suggestedZip,
+              city: zipValidation.suggestedCity || null,
+              state: zipValidation.suggestedState || null,
+            }
+          : null;
         res.status(400).json({
-          error: suggestionMessage,
-          message: suggestionMessage,
-          code: zipValidation.suggestion ? "ZIP_SUGGESTION" : "ZIP_INVALID",
-          suggestion: zipValidation.suggestion,
+          error: "Invalid ZIP",
+          suggestion,
         });
         return;
       }
 
-      const geo = nextZip ? await geocodeZip(nextZip) : null;
+      const finalZip = hasZip ? zipValidation.normalizedZip ?? (nextZip || null) : job.zip;
+      const resolvedState = normalizeStateCode(zipValidation.resolvedState) || null;
+      const finalState = hasState
+        ? normalizedStateInput || resolvedState || null
+        : job.state || resolvedState;
+      const finalCity = hasCity
+        ? nextCity || zipValidation.resolvedCity || null
+        : job.city || zipValidation.resolvedCity || null;
 
-      const finalCity = hasCity ? (nextCity || null) : job.city;
-      const finalState = hasState ? (nextState || null) : job.state;
-      const finalZip = hasZip ? (nextZip || null) : job.zip;
+      const geo = finalZip ? await geocodeZip(finalZip) : null;
 
       const updated = await prisma.jobs.update({
         where: { id: jobId },
