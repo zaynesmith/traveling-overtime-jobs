@@ -41,6 +41,8 @@ model EmployerProfile {
   completedAt            DateTime?          @db.Timestamp(6)
   subscription_status    String?            @default("free")
   subscription_tier      String?            @default("basic")
+  plan                   String?
+  isSubscribed           Boolean?           @default(false)
   stripe_customer_id     String?
   stripe_subscription_id String?
   email                  String?

@@ -52,7 +52,7 @@ const plans = [
   },
 ];
 
-export default function BillingPage({ subscription }) {
+export default function BillingPage({ employerProfile }) {
   async function startCheckout(plan) {
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
@@ -63,7 +63,15 @@ export default function BillingPage({ subscription }) {
     if (data.url) window.location.href = data.url;
   }
 
-  const normalizedTier = subscription.tier?.toLowerCase();
+  const { plan, isSubscribed } = employerProfile || {};
+  const normalizedPlan = typeof plan === "string" ? plan.toLowerCase() : "";
+  const hasActiveSubscription = Boolean(plan) && isSubscribed === true;
+
+  const highlightClasses = {
+    promo: "ring-2 ring-green-400",
+    basic: "ring-2 ring-blue-400",
+    pro: "ring-2 ring-purple-400",
+  };
 
   return (
     <main className="bg-slate-50 py-12">
@@ -79,9 +87,9 @@ export default function BillingPage({ subscription }) {
         <section className="rounded-2xl bg-white p-6 shadow-lg">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-slate-700">Current tier</p>
-              <p className="text-2xl font-bold text-slate-900">{subscription.tier}</p>
-              <p className="text-sm text-slate-600 capitalize">Status: {subscription.status}</p>
+              <p className="text-sm font-semibold text-slate-700">Current plan</p>
+              <p className="text-2xl font-bold text-slate-900 capitalize">{plan || "None"}</p>
+              <p className="text-sm text-slate-600 capitalize">Status: {isSubscribed ? "Active" : "Inactive"}</p>
             </div>
             <button className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500">
               Update payment method
@@ -91,30 +99,44 @@ export default function BillingPage({ subscription }) {
 
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-slate-900">Compare plans</h2>
+          {!hasActiveSubscription ? (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-2 rounded mb-4">
+              No active subscription. Subscribe below to unlock job posting and resume search features.
+            </div>
+          ) : (
+            <p className="text-gray-600 capitalize mb-4">
+              Current plan: {plan} ({isSubscribed ? "Active" : "Inactive"})
+            </p>
+          )}
           <div className="grid gap-6 md:grid-cols-3">
-            {plans.map((plan) => (
-              <div key={plan.name} className="rounded-2xl bg-white p-6 shadow-lg">
-                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">{plan.name}</p>
-                <p className="mt-2 text-2xl font-bold text-slate-900">{plan.price}</p>
+            {plans.map((planOption) => (
+              <div
+                key={planOption.name}
+                className={`${
+                  normalizedPlan === planOption.key && isSubscribed ? highlightClasses[planOption.key] || "" : ""
+                } rounded-2xl bg-white p-6 shadow-lg`}
+              >
+                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">{planOption.name}</p>
+                <p className="mt-2 text-2xl font-bold text-slate-900">{planOption.price}</p>
                 <ul className="mt-4 space-y-2 text-sm text-slate-600">
-                  {plan.features.map((feature) => (
+                  {planOption.features.map((feature) => (
                     <li key={feature}>• {feature}</li>
                   ))}
                 </ul>
-                {plan.key === "custom" ? (
+                {planOption.key === "custom" ? (
                   <button className="mt-6 w-full rounded-xl border border-sky-200 px-4 py-2 text-sm font-semibold text-sky-600 transition hover:bg-sky-50">
-                    {plan.name === subscription.tier ? "Current plan" : "Talk to sales"}
+                    {normalizedPlan === planOption.key && isSubscribed ? "Current plan" : "Talk to sales"}
                   </button>
-                ) : normalizedTier === plan.name.toLowerCase() ? (
+                ) : normalizedPlan === planOption.key && isSubscribed ? (
                   <button className="mt-6 w-full rounded-xl border border-sky-200 px-4 py-2 text-sm font-semibold text-sky-600 transition hover:bg-sky-50" disabled>
                     Current plan
                   </button>
                 ) : (
                   <button
-                    onClick={() => startCheckout(plan.key)}
-                    className={plan.buttonClass}
+                    onClick={() => startCheckout(planOption.key)}
+                    className={planOption.buttonClass}
                   >
-                    {plan.buttonLabel}
+                    {planOption.buttonLabel}
                   </button>
                 )}
               </div>
@@ -156,9 +178,12 @@ export async function getServerSideProps(context) {
 
     return {
       props: {
-        subscription: {
-          tier: profile?.subscription_tier || "Basic",
-          status: profile?.subscription_status || "active",
+        employerProfile: {
+          plan: profile?.plan ?? profile?.subscription_tier ?? null,
+          isSubscribed:
+            typeof profile?.isSubscribed === "boolean"
+              ? profile.isSubscribed
+              : profile?.subscription_status === "active",
         },
       },
     };
@@ -166,7 +191,7 @@ export async function getServerSideProps(context) {
     console.error(error);
     return {
       props: {
-        subscription: { tier: "Basic", status: "active" },
+        employerProfile: { plan: null, isSubscribed: false },
       },
     };
   }
