@@ -4,7 +4,9 @@ Minimal Next.js starter to verify GitHub → Vercel deployment.
 
 ## Database migrations
 
-- Run `npm run prisma:migrate` during local development when you need to create a new migration.
+- Run `npm run prisma:migrate` during local development when you need to create a new migration. This command now also mirrors the
+  generated Prisma SQL into `supabase/supabase/migrations/<timestamp>_<name>.sql` so that Supabase's GitHub integration detects the
+  schema changes automatically.
 - Run `npm run prisma:migrate:deploy` in production environments (for example, via CI/CD) to apply pending migrations. This replaces the previous `prisma db push` workflow.
 
 ## Environment variables

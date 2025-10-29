@@ -12,6 +12,7 @@
     "test:e2e": "playwright test",
     "postinstall": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name json_to_text",
+    "postprisma:migrate": "node scripts/syncSupabaseMigrations.js",
     "prisma:migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
