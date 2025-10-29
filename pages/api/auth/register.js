@@ -254,6 +254,8 @@ export default async function handler(req, res) {
           create: {
             ...employerProfile,
             userId,
+            subscription_tier: null,
+            subscription_status: "inactive",
           },
         });
       }
