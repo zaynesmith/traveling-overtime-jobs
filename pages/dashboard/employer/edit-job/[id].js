@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
+import StateSelect from "@/components/forms/StateSelect";
 import { TRADES } from "@/lib/trades";
 
 const blankJob = {
@@ -238,11 +239,12 @@ export default function EmployerEditJobPage({ jobId }) {
               </Field>
 
               <Field label="State" htmlFor="state">
-                <input
+                <StateSelect
                   id="state"
                   name="state"
                   value={form.state}
                   onChange={handleChange}
+                  includePlaceholder
                   disabled={fetching || loading}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
                 />

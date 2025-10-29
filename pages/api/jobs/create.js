@@ -1,8 +1,10 @@
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
+import { normalizeStateCode } from "@/lib/constants/states";
 import { normalizeTrade } from "@/lib/trades";
-import { geocodeZip, validateZip } from "@/lib/utils/geocode";
+import { geocodeZip } from "@/lib/utils/geocode";
+import { validateZip } from "@/lib/utils/validateZip";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -43,27 +45,35 @@ export default async function handler(req, res) {
     const trimmedCity = typeof city === "string" ? city.trim() : city;
     const trimmedState = typeof state === "string" ? state.trim() : state;
     const trimmedZip = typeof zip === "string" ? zip.trim() : zip;
+    const normalizedState = normalizeStateCode(trimmedState) || null;
 
     if (!title || !trade || !description) {
       return res.status(400).json({ error: "Title, trade, and description are required." });
     }
 
-    const zipValidation = await validateZip(trimmedZip, trimmedCity, trimmedState);
+    const zipValidation = await validateZip(trimmedZip, trimmedCity, normalizedState);
     if (!zipValidation.valid) {
-      const suggestionMessage = zipValidation.suggestion
-        ? `That ZIP was unrecognized. Try using ${zipValidation.suggestion.zip} from ${
-            [zipValidation.suggestion.city, zipValidation.suggestion.state].filter(Boolean).join(", ")
-          } instead.`
-        : "We couldn’t find that ZIP. Please double-check or enter one from your area.";
+      const suggestion = zipValidation.suggestedZip
+        ? {
+            zip: zipValidation.suggestedZip,
+            city: zipValidation.suggestedCity || null,
+            state: zipValidation.suggestedState || null,
+          }
+        : null;
+
       return res.status(400).json({
-        error: suggestionMessage,
-        message: suggestionMessage,
-        code: zipValidation.suggestion ? "ZIP_SUGGESTION" : "ZIP_INVALID",
-        suggestion: zipValidation.suggestion,
+        error: "Invalid ZIP",
+        suggestion,
       });
     }
 
-    const combinedLocation = [trimmedCity, trimmedState].filter(Boolean).join(", ");
+    const finalZip = zipValidation.normalizedZip ?? (trimmedZip || null);
+    const resolvedCity = zipValidation.resolvedCity || null;
+    const resolvedState = normalizeStateCode(zipValidation.resolvedState) || null;
+    const finalCity = trimmedCity || resolvedCity || null;
+    const finalState = normalizedState || resolvedState || null;
+
+    const combinedLocation = [finalCity, finalState].filter(Boolean).join(", ");
     const normalizedTrade = normalizeTrade(trade);
 
     const job = await prisma.jobs.create({
@@ -72,9 +82,9 @@ export default async function handler(req, res) {
         trade: normalizedTrade,
         description,
         location: combinedLocation || null,
-        city: trimmedCity || null,
-        state: trimmedState || null,
-        zip: trimmedZip || null,
+        city: finalCity,
+        state: finalState,
+        zip: finalZip,
         hourly_pay: hourly_pay || null,
         per_diem: per_diem || null,
         additional_requirements: additional_requirements || null,
@@ -85,7 +95,7 @@ export default async function handler(req, res) {
       },
     });
 
-    const geo = await geocodeZip(trimmedZip);
+    const geo = await geocodeZip(finalZip);
     if (geo) {
       await prisma.jobs.update({
         where: { id: job.id },

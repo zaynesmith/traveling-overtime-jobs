@@ -1,5 +1,6 @@
 import Link from "next/link";
 import JobSearchFilters, { filterPanelClasses } from "@/components/jobs/JobSearchFilters";
+import { getStateNameFromCode } from "@/lib/constants/states";
 import { useJobSearch } from "@/lib/hooks/useJobSearch";
 import { normalizeTrade } from "@/lib/trades";
 
@@ -27,6 +28,8 @@ export default function Jobs() {
   const hasDistanceData = jobs.some((job) => typeof job?.distance === "number");
   const parsedRadius = Number.parseFloat(activeFilters?.radius ?? "");
   const targetZip = activeFilters?.zip ? activeFilters.zip.toString().trim() : "";
+  const selectedState = activeFilters?.state ? activeFilters.state.toString().trim() : "";
+  const stateLabel = selectedState ? getStateNameFromCode(selectedState) || selectedState : "";
   const radiusMessage =
     hasDistanceData &&
     Number.isFinite(parsedRadius) &&
@@ -34,6 +37,8 @@ export default function Jobs() {
     targetZip
       ? `Results within ${parsedRadius} miles of ${targetZip}`
       : null;
+  const stateMessage =
+    !targetZip && stateLabel ? `Showing jobs in ${stateLabel}` : null;
 
   return (
     <main className="min-h-screen bg-gray-100 py-12">
@@ -71,6 +76,8 @@ export default function Jobs() {
             <>
               {radiusMessage ? (
                 <p className="text-sm text-slate-500">{radiusMessage}</p>
+              ) : stateMessage ? (
+                <p className="text-sm text-slate-500">{stateMessage}</p>
               ) : null}
 
               {jobs.map((job) => {

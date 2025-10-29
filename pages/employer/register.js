@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { signIn, useSession } from "next-auth/react";
+import StateSelect from "@/components/forms/StateSelect";
 
 const initialForm = {
   firstName: "",
@@ -192,9 +193,8 @@ export default function EmployerRegisterPage() {
         </label>
         <label className="form-label">
           State
-          <input
+          <StateSelect
             required
-            className="form-input"
             value={form.state}
             onChange={updateField("state")}
           />

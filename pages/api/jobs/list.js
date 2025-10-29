@@ -1,38 +1,30 @@
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
+import { normalizeStateCode } from "@/lib/constants/states";
 import { getTradeSynonyms, normalizeTrade } from "@/lib/trades";
+import { geocodeZip } from "@/lib/utils/geocode";
 
-async function fetchZipCoordinates(zip) {
-  if (!zip) return null;
+function parsePagination(query = {}) {
+  const rawPage = Number.parseInt(query.page, 10);
+  const rawPageSize = Number.parseInt(query.pageSize ?? query.perPage, 10);
+  const shouldPaginate = Number.isFinite(rawPage) || Number.isFinite(rawPageSize);
 
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(zip)}&country=United States&format=json&limit=1`,
-      {
-        headers: { "User-Agent": "TravelingOvertimeJobs/1.0" },
-      },
-    );
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const results = await response.json();
-    const [match] = Array.isArray(results) ? results : [];
-
-    const lat = match?.lat ? Number.parseFloat(match.lat) : null;
-    const lon = match?.lon ? Number.parseFloat(match.lon) : null;
-
-    if (Number.isFinite(lat) && Number.isFinite(lon)) {
-      return { lat, lon };
-    }
-
-    return null;
-  } catch (error) {
-    console.error("Failed to geocode ZIP", zip, error);
-    return null;
+  if (!shouldPaginate) {
+    return { shouldPaginate: false, page: 1, pageSize: null, skip: 0, take: undefined };
   }
+
+  const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+  const pageSizeCandidate = Number.isFinite(rawPageSize) && rawPageSize > 0 ? rawPageSize : 25;
+  const pageSize = Math.min(Math.max(pageSizeCandidate, 1), 100);
+
+  return {
+    shouldPaginate: true,
+    page,
+    pageSize,
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+  };
 }
 
 export default async function handler(req, res) {
@@ -43,7 +35,7 @@ export default async function handler(req, res) {
 
   try {
     const session = await getServerSession(req, res, authOptions);
-    const { trade, zip, radius, keyword, q, location, employer } = req.query;
+    const { trade, zip, radius, keyword, q, location, employer, state } = req.query;
 
     const searchTerm = (keyword || q || "").toString().trim();
     const zipCode = (zip || location || "").toString().trim();
@@ -52,6 +44,8 @@ export default async function handler(req, res) {
     const normalizedTradeFilter = trade
       ? normalizeTrade(trade.toString())
       : undefined;
+    const stateFilter = normalizeStateCode(state) || undefined;
+    const pagination = parsePagination(req.query);
 
     const filters = {
       trade: normalizedTradeFilter
@@ -74,6 +68,10 @@ export default async function handler(req, res) {
           ]
         : undefined,
     };
+
+    if (stateFilter) {
+      filters.state = stateFilter;
+    }
 
     if (employer === "mine") {
       if (!session?.user?.id) {
@@ -98,7 +96,7 @@ export default async function handler(req, res) {
     );
 
     if (shouldApplyRadiusFilter) {
-      const coordinates = await fetchZipCoordinates(zipCode);
+      const coordinates = await geocodeZip(zipCode);
 
       if (coordinates?.lat !== undefined && coordinates?.lon !== undefined) {
         radiusFilterApplied = true;
@@ -131,7 +129,6 @@ export default async function handler(req, res) {
           const filteredJobs = await prisma.jobs.findMany({
             where: {
               ...filters,
-              zip: undefined,
               id: { in: jobIds },
             },
             include: {
@@ -142,30 +139,45 @@ export default async function handler(req, res) {
           });
 
           const jobsById = new Map(filteredJobs.map((job) => [job.id, job]));
-          jobs = jobIds
+          const orderedJobs = jobIds
             .map((id) => {
               const job = jobsById.get(id);
               if (!job) return null;
               return { ...job, distance: distanceById.get(id) ?? null };
             })
             .filter(Boolean);
+
+          if (pagination.shouldPaginate) {
+            jobs = orderedJobs.slice(pagination.skip, pagination.skip + pagination.take);
+          } else {
+            jobs = orderedJobs;
+          }
         }
       }
     }
 
     if (!jobs.length && !radiusFilterApplied) {
-      jobs = await prisma.jobs.findMany({
-        where: {
-          ...filters,
-          zip: zipCode || undefined,
-        },
+      const fallbackWhere = {
+        ...filters,
+        ...(zipCode ? { zip: zipCode } : {}),
+      };
+
+      const queryOptions = {
+        where: fallbackWhere,
         orderBy: { posted_at: "desc" },
         include: {
           employerprofile: {
             select: { companyName: true, city: true, state: true },
           },
         },
-      });
+      };
+
+      if (pagination.shouldPaginate) {
+        queryOptions.skip = pagination.skip;
+        queryOptions.take = pagination.take;
+      }
+
+      jobs = await prisma.jobs.findMany(queryOptions);
     }
 
     const normalizedJobs = jobs.map((job) => ({

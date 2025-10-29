@@ -1,7 +1,8 @@
 import { hash } from "bcryptjs";
 import prisma from "../../../lib/prisma";
 import { getSupabaseServiceClient } from "../../../lib/supabaseServer";
-import { validateZip } from "@/lib/utils/geocode";
+import { normalizeStateCode } from "@/lib/constants/states";
+import { validateZip } from "@/lib/utils/validateZip";
 
 export const config = {
   api: {
@@ -31,7 +32,13 @@ function sanitizeLicensedStates(input) {
     ? input.split(",")
     : [];
 
-  return rawStates.map((state) => sanitize(state)).filter(Boolean);
+  return rawStates
+    .map((state) => sanitize(state))
+    .map((state) => {
+      if (!state) return null;
+      return normalizeStateCode(state) || state;
+    })
+    .filter(Boolean);
 }
 
 function sanitizeFileName(fileName) {
@@ -145,21 +152,31 @@ export default async function handler(req, res) {
       const sanitizedCity = sanitize(payload.city);
       const sanitizedState = sanitize(payload.state);
       const sanitizedZip = sanitize(payload.zip ?? payload.zipCode);
-      const zipValidation = await validateZip(sanitizedZip, sanitizedCity, sanitizedState);
+      const normalizedState = normalizeStateCode(sanitizedState) || null;
+      const zipValidation = await validateZip(sanitizedZip, sanitizedCity, normalizedState);
       if (!zipValidation.valid) {
-        const suggestionMessage = zipValidation.suggestion
-          ? `That ZIP was unrecognized. Try using ${zipValidation.suggestion.zip} from ${
-              [zipValidation.suggestion.city, zipValidation.suggestion.state].filter(Boolean).join(", ")
-            } instead.`
-          : "We couldn’t find that ZIP. Please double-check or enter one from your area.";
+        const suggestion = zipValidation.suggestedZip
+          ? {
+              zip: zipValidation.suggestedZip,
+              city: zipValidation.suggestedCity || null,
+              state: zipValidation.suggestedState || null,
+            }
+          : null;
         res.status(400).json({
-          error: suggestionMessage,
-          message: suggestionMessage,
-          code: zipValidation.suggestion ? "ZIP_SUGGESTION" : "ZIP_INVALID",
-          suggestion: zipValidation.suggestion,
+          error: "Invalid ZIP",
+          suggestion,
         });
         return;
       }
+
+      const validatedZip = zipValidation.normalizedZip ?? sanitizedZip;
+      const resolvedCity = zipValidation.resolvedCity || null;
+      const resolvedState = normalizeStateCode(zipValidation.resolvedState) || null;
+
+      payload.city = sanitizedCity || resolvedCity || null;
+      payload.state = normalizedState || resolvedState || sanitizedState || null;
+      payload.zip = validatedZip;
+      payload.zipCode = validatedZip;
     }
 
     const employerProfile = role === "employer" ? buildEmployerProfile(payload) : null;
@@ -365,7 +382,8 @@ export function buildJobseekerProfile(payload, email) {
   const address1 = sanitize(payload.address1);
   const address2 = sanitize(payload.address2);
   const city = sanitize(payload.city);
-  const state = sanitize(payload.state);
+  const stateInput = sanitize(payload.state);
+  const state = stateInput ? normalizeStateCode(stateInput) || stateInput : null;
   const zip = sanitize(payload.zip ?? payload.zipCode);
   const resumeUrl = sanitize(payload.resumeUrl ?? payload.resumeURL);
 

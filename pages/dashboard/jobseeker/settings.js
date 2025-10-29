@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
+import StateSelect from "@/components/forms/StateSelect";
+import { formatZipSuggestionLocation, formatZipSuggestionMessage } from "@/lib/utils/zipMessages";
 
 function formatDateDisplay(value) {
   if (!value) return null;
@@ -20,11 +22,6 @@ function readFileAsDataUrl(file) {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
-}
-
-function formatSuggestionLocation(suggestion) {
-  if (!suggestion) return "";
-  return [suggestion.city, suggestion.state].filter(Boolean).join(", ");
 }
 
 export default function JobseekerSettingsPage({ preferences, profile }) {
@@ -145,24 +142,16 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
       }
 
       if (!response.ok) {
-        const code = payload?.code;
-        if (code === "ZIP_SUGGESTION" || code === "ZIP_INVALID") {
+        if (payload?.error === "Invalid ZIP") {
           const suggestion = payload?.suggestion || null;
           const messageText =
-            payload?.message ||
-            (code === "ZIP_SUGGESTION"
-              ? suggestion
-                ? `That ZIP was unrecognized. Try using ${suggestion.zip} from ${
-                    [suggestion.city, suggestion.state].filter(Boolean).join(", ")
-                  } instead.`
-                : "That ZIP was unrecognized."
-              : "We couldn’t find that ZIP. Please double-check or enter one from your area.");
+            payload?.message || formatZipSuggestionMessage(suggestion);
           setZipFeedback({
-            type: code === "ZIP_SUGGESTION" ? "suggestion" : "error",
+            type: suggestion ? "suggestion" : "error",
             message: messageText,
             suggestion,
           });
-          if (code === "ZIP_INVALID") {
+          if (!suggestion) {
             setProfileError(messageText);
           }
           return;
@@ -224,7 +213,7 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
     }
   };
 
-  const zipSuggestionLocation = formatSuggestionLocation(zipFeedback?.suggestion);
+  const zipSuggestionLocation = formatZipSuggestionLocation(zipFeedback?.suggestion);
 
   return (
     <main className="bg-slate-50 py-12">
@@ -267,10 +256,11 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
               </label>
               <label className="text-sm font-semibold text-slate-700">
                 State
-                <input
+                <StateSelect
                   name="state"
                   value={profileForm.state}
                   onChange={handleProfileInputChange}
+                  includePlaceholder
                   className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
                 />
               </label>
