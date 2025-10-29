@@ -195,24 +195,62 @@ export default async function handler(req, res) {
       throw new HttpError(409, "An account already exists for that email.");
     }
 
+    const supabase = getSupabaseServiceClient();
+    let supabaseUserId = null;
+    let supabaseProfileTable = null;
+
+    if (supabase) {
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+      });
+
+      if (signUpError) {
+        const conflictMessage = typeof signUpError.message === "string" ? signUpError.message.toLowerCase() : "";
+        if (conflictMessage.includes("registered")) {
+          throw new HttpError(409, "An account already exists for that email.");
+        }
+
+        const statusCode = typeof signUpError.status === "number" ? signUpError.status : 500;
+        throw new HttpError(statusCode, signUpError.message || "Failed to create authentication user.");
+      }
+
+      const authUser = signUpData?.user || null;
+      supabaseUserId = authUser?.id || null;
+
+      if (supabaseUserId) {
+        if (role === "employer") {
+          const { error: employerInsertError } = await supabase
+            .from("employerprofile")
+            .insert([{ userId: supabaseUserId }]);
+          if (employerInsertError && employerInsertError.code !== "23505") {
+            throw new HttpError(500, employerInsertError.message || "Failed to initialize employer profile.");
+          }
+          supabaseProfileTable = "employerprofile";
+        } else if (role === "jobseeker") {
+          const { error: jobseekerInsertError } = await supabase
+            .from("jobseekerprofile")
+            .insert([{ userId: supabaseUserId }]);
+          if (jobseekerInsertError && jobseekerInsertError.code !== "23505") {
+            throw new HttpError(500, jobseekerInsertError.message || "Failed to initialize jobseeker profile.");
+          }
+          supabaseProfileTable = "jobseekerprofile";
+        }
+      }
+    }
+
     const passwordHash = await hash(password, 12);
 
     const createdUser = await prisma.$transaction(async (tx) => {
-      const userCreateData =
-        role === "jobseeker"
-          ? {
-              email: normalizedEmail,
-              passwordHash,
-              role: "jobseeker",
-              jobseekerprofile: {
-                create: jobseekerProfileData,
-              },
-            }
-          : {
-              email: normalizedEmail,
-              passwordHash,
-              role,
-            };
+      const userCreateData = {
+        email: normalizedEmail,
+        passwordHash,
+        role: role === "jobseeker" ? "jobseeker" : role,
+      };
+
+      if (supabaseUserId) {
+        userCreateData.id = supabaseUserId;
+      }
 
       const createdUser = await tx.user.create({
         data: userCreateData,
@@ -230,12 +268,36 @@ export default async function handler(req, res) {
 
         console.log("Creating employer profile for user", userId);
 
-        await tx.employerProfile.create({
-          data: {
-            ...employerProfile,
-            userId,
-          },
-        });
+        if (supabaseProfileTable === "employerprofile") {
+          await tx.employerProfile.update({
+            where: { userId },
+            data: employerProfile,
+          });
+        } else {
+          await tx.employerProfile.create({
+            data: {
+              ...employerProfile,
+              userId,
+            },
+          });
+        }
+      }
+
+      if (role === "jobseeker" && jobseekerProfileData) {
+        const userId = createdUser.id;
+        if (supabaseProfileTable === "jobseekerprofile") {
+          await tx.jobseekerProfile.update({
+            where: { userId },
+            data: jobseekerProfileData,
+          });
+        } else {
+          await tx.jobseekerProfile.create({
+            data: {
+              ...jobseekerProfileData,
+              userId,
+            },
+          });
+        }
       }
 
       return createdUser;
