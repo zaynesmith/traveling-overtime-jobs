@@ -19,11 +19,10 @@ export default async function handler(req, res) {
   try {
     const buf = await buffer(req);
     const sig = req.headers["stripe-signature"];
-    const event = stripe.webhooks.constructEvent(
-      buf,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET_TEST
-    );
+    const webhookSecret =
+      process.env.STRIPE_WEBHOOK_SECRET_TEST ||
+      process.env.STRIPE_WEBHOOK_SECRET;
+    const event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
 
     console.log("✅ Stripe event received:", event.type);
     res.status(200).send("success");
