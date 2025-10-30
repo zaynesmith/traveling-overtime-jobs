@@ -7,7 +7,7 @@ export const config = {
   },
 };
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY_TEST, {
   apiVersion: "2022-11-15",
 });
 
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     const event = stripe.webhooks.constructEvent(
       buf,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.STRIPE_WEBHOOK_SECRET_TEST
     );
 
     console.log("✅ Stripe event received:", event.type);
