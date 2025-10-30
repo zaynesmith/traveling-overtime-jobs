@@ -1,3 +1,4 @@
+// Force redeploy trigger ${Date.now()}
 import { buffer } from "micro";
 import Stripe from "stripe";
 
@@ -11,15 +12,22 @@ export const config = {
 const isTest = process.env.NODE_ENV !== "production";
 
 const stripe = new Stripe(
-  isTest ? process.env.STRIPE_SECRET_KEY_TEST : process.env.STRIPE_SECRET_KEY_LIVE,
+  isTest
+    ? process.env.STRIPE_SECRET_KEY_TEST
+    : process.env.STRIPE_SECRET_KEY_LIVE,
   { apiVersion: "2022-11-15" }
 );
 
-const webhookSecret = isTest
-  ? process.env.STRIPE_WEBHOOK_SECRET_TEST
-  : process.env.STRIPE_WEBHOOK_SECRET_LIVE;
+const webhookSecret =
+  (isTest
+    ? process.env.STRIPE_WEBHOOK_SECRET_TEST
+    : process.env.STRIPE_WEBHOOK_SECRET_LIVE) ||
+  process.env.STRIPE_WEBHOOK_SECRET; // fallback for older setups
 
-// Redeploy trigger 1700000000000
+if (!webhookSecret) {
+  console.error("❌ Missing STRIPE_WEBHOOK_SECRET environment variable!");
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).send("Method Not Allowed");
