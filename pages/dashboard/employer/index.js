@@ -167,28 +167,31 @@ export async function getServerSideProps(context) {
     };
   }
 
-  const baseGreeting = session.user?.companyName?.trim?.() || session.user?.name?.split?.(" ")[0] || "";
-
   try {
     const { default: prisma } = await import("@/lib/prisma");
 
-    const employerProfile = await prisma.employerProfile.findUnique({
-      where: { userId: session.user.id },
+    const userRecord = await prisma.user.findUnique({
+      where: { id: session.user.id },
       include: {
-        jobs: {
-          orderBy: { posted_at: "desc" },
-          take: 3,
+        employerProfile: {
           include: {
-            applications: {
-              where: { status: "pending" },
-              select: { id: true },
+            jobs: {
+              orderBy: { posted_at: "desc" },
+              take: 3,
+              include: {
+                applications: {
+                  where: { status: "pending" },
+                  select: { id: true },
+                },
+              },
             },
+            savedCandidates: { select: { id: true } },
           },
         },
-        savedCandidates: { select: { id: true } },
       },
     });
 
+    const employerProfile = userRecord?.employerProfile;
     const previewJobs = (employerProfile?.jobs || []).map((job) => ({
       id: job.id,
       title: job.title,
@@ -208,7 +211,11 @@ export async function getServerSideProps(context) {
           status: employerProfile?.subscription_status || "free",
           tier: employerProfile?.subscription_tier || "basic",
         },
-        greetingName: employerProfile?.companyName?.trim() || baseGreeting,
+        greetingName:
+          employerProfile?.companyName?.trim() ||
+          session.user?.companyName?.trim?.() ||
+          session.user?.name?.split?.(" ")?.[0] ||
+          "",
       },
     };
   } catch (error) {
@@ -218,7 +225,10 @@ export async function getServerSideProps(context) {
         previewJobs: [],
         savedCount: 0,
         subscription: { status: "free", tier: "basic" },
-        greetingName: baseGreeting,
+        greetingName:
+          session.user?.companyName?.trim?.() ||
+          session.user?.name?.split?.(" ")?.[0] ||
+          "",
       },
     };
   }
