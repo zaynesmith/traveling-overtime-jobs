@@ -93,6 +93,44 @@ async function uploadJobseekerResume(userId, resume) {
   return publicUrl;
 }
 
+function pruneUndefined(input) {
+  return Object.fromEntries(
+    Object.entries(input || {}).filter(([, value]) => value !== undefined)
+  );
+}
+
+async function syncSupabaseProfile(supabase, table, payload) {
+  if (!supabase) return;
+  const cleanPayload = pruneUndefined(payload);
+  if (!cleanPayload.userId) {
+    throw new Error(`Supabase ${table} payload missing userId`);
+  }
+
+  const { error } = await supabase.from(table).upsert(cleanPayload, {
+    onConflict: "userId",
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
+async function cleanupUserRecords(userId, supabase) {
+  if (!userId) return;
+
+  await prisma.user.delete({ where: { id: userId } }).catch((error) => {
+    if (error?.code !== "P2025") {
+      console.error("Failed to remove Prisma user during cleanup", error);
+    }
+  });
+
+  if (supabase?.auth?.admin) {
+    await supabase.auth.admin.deleteUser(userId).catch((error) => {
+      console.error("Failed to remove Supabase auth user during cleanup", error);
+    });
+  }
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method !== "POST") {
@@ -221,61 +259,146 @@ export default async function handler(req, res) {
 
     const passwordHash = await hash(password, 12);
 
-    const createdUser = await prisma.$transaction(async (tx) => {
-      const userCreateData = {
-        email: normalizedEmail,
-        passwordHash,
-        role: role === "jobseeker" ? "jobseeker" : role,
-      };
+    const { user: createdUser, employerProfile: createdEmployerProfile, jobseekerProfile: createdJobseekerProfile } =
+      await prisma.$transaction(async (tx) => {
+        const userCreateData = {
+          email: normalizedEmail,
+          passwordHash,
+          role: role === "jobseeker" ? "jobseeker" : role,
+        };
 
-      if (supabaseUserId) {
-        userCreateData.id = supabaseUserId;
-      }
-
-      const createdUser = await tx.user.create({
-        data: userCreateData,
-      });
-
-      if (role === "employer" && employerProfile && !(employerProfile instanceof Error)) {
-        const rawId = createdUser.id;
-        const userId = typeof rawId === "string" ? rawId.trim() : "";
-        if (!userId) {
-          console.error("User ID missing during employer registration", {
-            createdUser,
-          });
-          throw new HttpError(400, "User ID missing during registration.");
+        if (supabaseUserId) {
+          userCreateData.id = supabaseUserId;
         }
 
-        console.log("Creating employer profile for user", userId);
+        const newUser = await tx.user.create({
+          data: userCreateData,
+        });
 
-        await tx.employerProfile.upsert({
-          where: { userId },
-          update: employerProfile,
-          create: {
+        let employerProfileRecord = null;
+        let jobseekerProfileRecord = null;
+
+        if (role === "employer" && employerProfile && !(employerProfile instanceof Error)) {
+          const rawId = newUser.id;
+          const userId = typeof rawId === "string" ? rawId.trim() : "";
+          if (!userId) {
+            console.error("User ID missing during employer registration", {
+              newUser,
+            });
+            throw new HttpError(400, "User ID missing during registration.");
+          }
+
+          console.log("Creating employer profile for user", userId);
+
+          const createData = pruneUndefined({
             ...employerProfile,
             userId,
             plan: null,
             isSubscribed: false,
             subscription_tier: null,
             subscription_status: "inactive",
-          },
-        });
-      }
+            email: employerProfile.email ?? normalizedEmail,
+          });
 
-      if (role === "jobseeker" && jobseekerProfileData) {
-        const userId = createdUser.id;
-        await tx.jobseekerProfile.upsert({
-          where: { userId },
-          update: jobseekerProfileData,
-          create: {
+          const updateData = pruneUndefined({
+            ...employerProfile,
+            email: employerProfile.email ?? normalizedEmail,
+          });
+
+          employerProfileRecord = await tx.employerProfile.upsert({
+            where: { userId },
+            update: updateData,
+            create: createData,
+          });
+        }
+
+        if (role === "jobseeker" && jobseekerProfileData) {
+          const userId = newUser.id;
+          const createData = pruneUndefined({
             ...jobseekerProfileData,
             userId,
-          },
-        });
-      }
+            email: jobseekerProfileData.email ?? normalizedEmail,
+            licensedStates: jobseekerProfileData.licensedStates ?? [],
+            certFiles: jobseekerProfileData.certFiles ?? [],
+            hasJourneymanLicense: Boolean(jobseekerProfileData.hasJourneymanLicense),
+            isSubscribed: false,
+          });
 
-      return createdUser;
-    });
+          const updateData = pruneUndefined({
+            ...jobseekerProfileData,
+            email: jobseekerProfileData.email ?? normalizedEmail,
+          });
+
+          jobseekerProfileRecord = await tx.jobseekerProfile.upsert({
+            where: { userId },
+            update: updateData,
+            create: createData,
+          });
+        }
+
+        return {
+          user: newUser,
+          employerProfile: employerProfileRecord,
+          jobseekerProfile: jobseekerProfileRecord,
+        };
+      });
+
+    if (supabase && createdUser?.id) {
+      try {
+        if (role === "employer" && createdEmployerProfile) {
+          await syncSupabaseProfile(supabase, "employerprofile", {
+            id: createdEmployerProfile.id,
+            userId: createdEmployerProfile.userId,
+            companyName: createdEmployerProfile.companyName,
+            firstName: createdEmployerProfile.firstName,
+            lastName: createdEmployerProfile.lastName,
+            phone: createdEmployerProfile.phone,
+            mobilePhone: createdEmployerProfile.mobilePhone,
+            officePhone: createdEmployerProfile.officePhone,
+            address1: createdEmployerProfile.address1,
+            address2: createdEmployerProfile.address2,
+            city: createdEmployerProfile.city,
+            state: createdEmployerProfile.state,
+            zip: createdEmployerProfile.zip,
+            website: createdEmployerProfile.website,
+            timezone: createdEmployerProfile.timezone,
+            location: createdEmployerProfile.location,
+            notes: createdEmployerProfile.notes,
+            email: createdEmployerProfile.email,
+            subscription_status: createdEmployerProfile.subscription_status,
+            subscription_tier: createdEmployerProfile.subscription_tier,
+            plan: createdEmployerProfile.plan,
+            isSubscribed: createdEmployerProfile.isSubscribed,
+          });
+        }
+
+        if (role === "jobseeker" && createdJobseekerProfile) {
+          await syncSupabaseProfile(supabase, "jobseekerprofile", {
+            id: createdJobseekerProfile.id,
+            userId: createdJobseekerProfile.userId,
+            firstName: createdJobseekerProfile.firstName,
+            lastName: createdJobseekerProfile.lastName,
+            email: createdJobseekerProfile.email,
+            phone: createdJobseekerProfile.phone,
+            address1: createdJobseekerProfile.address1,
+            address2: createdJobseekerProfile.address2,
+            city: createdJobseekerProfile.city,
+            state: createdJobseekerProfile.state,
+            zip: createdJobseekerProfile.zip,
+            trade: createdJobseekerProfile.trade,
+            resumeUrl: createdJobseekerProfile.resumeUrl,
+            licensedStates: createdJobseekerProfile.licensedStates,
+            certFiles: createdJobseekerProfile.certFiles,
+            hasJourneymanLicense: createdJobseekerProfile.hasJourneymanLicense,
+            isSubscribed: createdJobseekerProfile.isSubscribed,
+          });
+        }
+      } catch (syncError) {
+        console.error("Failed to synchronize profile with Supabase", syncError);
+        await cleanupUserRecords(createdUser.id, supabase);
+        throw new HttpError(500, "Failed to finalize registration. Please try again.");
+      }
+    }
 
     if (
       role === "jobseeker" &&
@@ -293,9 +416,7 @@ export default async function handler(req, res) {
         }
       } catch (error) {
         console.error("Failed to upload jobseeker resume during registration", error);
-        await prisma.user
-          .delete({ where: { id: createdUser.id } })
-          .catch((cleanupError) => console.error("Failed to cleanup user after resume upload error", cleanupError));
+        await cleanupUserRecords(createdUser.id, supabase);
         throw new HttpError(500, "Failed to upload resume. Your account was not created.");
       }
     }

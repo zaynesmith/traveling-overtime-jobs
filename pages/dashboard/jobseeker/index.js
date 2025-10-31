@@ -140,34 +140,42 @@ export async function getServerSideProps(context) {
     };
   }
 
-  const baseGreeting = session.user?.name?.trim?.() || "";
-
   try {
     const { default: prisma } = await import("@/lib/prisma");
 
-    const profile = await prisma.jobseekerProfile.findUnique({
-      where: { userId: session.user.id },
-      select: {
-        firstName: true,
-        lastName: true,
+    const userRecord = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        jobseekerprofile: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
       },
     });
 
-    const profileName = [profile?.firstName, profile?.lastName]
+    const profile = userRecord?.jobseekerprofile;
+    const primaryGreeting = profile?.firstName?.trim?.();
+    const fallbackGreeting = [profile?.firstName, profile?.lastName]
       .map((value) => (value ? String(value).trim() : ""))
       .filter(Boolean)
       .join(" ");
 
     return {
       props: {
-        greetingName: profileName || baseGreeting,
+        greetingName:
+          primaryGreeting ||
+          fallbackGreeting ||
+          session.user?.name?.trim?.() ||
+          "",
       },
     };
   } catch (error) {
     console.error(error);
     return {
       props: {
-        greetingName: baseGreeting,
+        greetingName: session.user?.name?.trim?.() || "",
       },
     };
   }
