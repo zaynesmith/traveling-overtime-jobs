@@ -41,7 +41,6 @@ async function ensureEmployerProfile(user) {
 
   await prisma.employerProfile.create({
     data: {
-      userId: user.id,
       companyName,
       firstName,
       lastName,
@@ -56,6 +55,7 @@ async function ensureEmployerProfile(user) {
       subscription_tier: "basic",
       isSubscribed: false,
       email: user.email,
+      user: { connect: { id: user.id } },
     },
   });
 
@@ -73,7 +73,6 @@ async function ensureJobseekerProfile(user) {
 
   await prisma.jobseekerProfile.create({
     data: {
-      userId: user.id,
       email: user.email,
       firstName: firstName || null,
       lastName: lastName || null,
@@ -89,6 +88,7 @@ async function ensureJobseekerProfile(user) {
       certFiles: [],
       hasJourneymanLicense: false,
       isSubscribed: false,
+      user: { connect: { id: user.id } },
     },
   });
 

@@ -290,15 +290,19 @@ export default async function handler(req, res) {
 
           console.log("Creating employer profile for user", userId);
 
-          const createData = pruneUndefined({
+          const employerCreateFields = pruneUndefined({
             ...employerProfile,
-            userId,
             plan: null,
             isSubscribed: false,
             subscription_tier: null,
             subscription_status: "inactive",
             email: employerProfile.email ?? normalizedEmail,
           });
+
+          const createData = {
+            ...employerCreateFields,
+            user: { connect: { id: userId } },
+          };
 
           const updateData = pruneUndefined({
             ...employerProfile,
@@ -314,15 +318,19 @@ export default async function handler(req, res) {
 
         if (role === "jobseeker" && jobseekerProfileData) {
           const userId = newUser.id;
-          const createData = pruneUndefined({
+          const jobseekerCreateFields = pruneUndefined({
             ...jobseekerProfileData,
-            userId,
             email: jobseekerProfileData.email ?? normalizedEmail,
             licensedStates: jobseekerProfileData.licensedStates ?? [],
             certFiles: jobseekerProfileData.certFiles ?? [],
             hasJourneymanLicense: Boolean(jobseekerProfileData.hasJourneymanLicense),
             isSubscribed: false,
           });
+
+          const createData = {
+            ...jobseekerCreateFields,
+            user: { connect: { id: userId } },
+          };
 
           const updateData = pruneUndefined({
             ...jobseekerProfileData,

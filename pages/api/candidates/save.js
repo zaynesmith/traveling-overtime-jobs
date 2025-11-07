@@ -67,8 +67,8 @@ export default async function handler(req, res) {
 
       const savedCandidate = await prisma.saved_candidates.create({
         data: {
-          employer_id: employerProfile.id,
-          jobseeker_id: jobseekerId,
+          employerprofile: { connect: { id: employerProfile.id } },
+          jobseekerprofile: { connect: { id: jobseekerId } },
         },
       });
 
