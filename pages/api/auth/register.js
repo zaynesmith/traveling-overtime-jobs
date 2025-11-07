@@ -293,7 +293,7 @@ export default async function handler(req, res) {
           const employerCreateFields = pruneUndefined({
             ...employerProfile,
             plan: null,
-            isSubscribed: false,
+            issubscribed: false,
             subscription_tier: null,
             subscription_status: "inactive",
             email: employerProfile.email ?? normalizedEmail,
