@@ -217,17 +217,6 @@ export default async function handler(req, res) {
       payload.zipCode = validatedZip;
     }
 
-    const employerProfile = role === "employer" ? buildEmployerProfile(payload) : null;
-    if (role === "employer" && employerProfile instanceof Error) {
-      throw new HttpError(400, employerProfile.message);
-    }
-
-    const jobseekerProfileData =
-      role === "jobseeker" ? buildJobseekerProfile(payload, normalizedEmail) : null;
-    if (role === "jobseeker" && jobseekerProfileData instanceof Error) {
-      throw new HttpError(400, jobseekerProfileData.message);
-    }
-
     const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) {
       throw new HttpError(409, "An account already exists for that email.");
@@ -259,96 +248,37 @@ export default async function handler(req, res) {
 
     const passwordHash = await hash(password, 12);
 
-    const { user: createdUser, employerProfile: createdEmployerProfile, jobseekerProfile: createdJobseekerProfile } =
-      await prisma.$transaction(async (tx) => {
-        const userCreateData = {
-          email: normalizedEmail,
+    const {
+      user: createdUser,
+      employerProfile: createdEmployerProfile,
+      jobseekerProfile: createdJobseekerProfile,
+    } = await (async () => {
+      if (role === "employer") {
+        const employerProfile = buildEmployerProfile(payload);
+        if (employerProfile instanceof Error) {
+          throw new HttpError(400, employerProfile.message);
+        }
+
+        return registerEmployer({
+          employerProfile,
+          normalizedEmail,
           passwordHash,
-          role: role === "jobseeker" ? "jobseeker" : role,
-        };
-
-        if (supabaseUserId) {
-          userCreateData.id = supabaseUserId;
-        }
-
-        const newUser = await tx.user.create({
-          data: userCreateData,
+          supabaseUserId,
         });
+      }
 
-        let employerProfileRecord = null;
-        let jobseekerProfileRecord = null;
+      const jobseekerProfileData = buildJobseekerProfile(payload, normalizedEmail);
+      if (jobseekerProfileData instanceof Error) {
+        throw new HttpError(400, jobseekerProfileData.message);
+      }
 
-        if (role === "employer" && employerProfile && !(employerProfile instanceof Error)) {
-          const rawId = newUser.id;
-          const userId = typeof rawId === "string" ? rawId.trim() : "";
-          if (!userId) {
-            console.error("User ID missing during employer registration", {
-              newUser,
-            });
-            throw new HttpError(400, "User ID missing during registration.");
-          }
-
-          console.log("Creating employer profile for user", userId);
-
-          const employerCreateFields = pruneUndefined({
-            ...employerProfile,
-            plan: null,
-            issubscribed: false,
-            subscription_tier: null,
-            subscription_status: "inactive",
-            email: employerProfile.email ?? normalizedEmail,
-          });
-
-          const createData = {
-            ...employerCreateFields,
-            user: { connect: { id: userId } },
-          };
-
-          const updateData = pruneUndefined({
-            ...employerProfile,
-            email: employerProfile.email ?? normalizedEmail,
-          });
-
-          employerProfileRecord = await tx.employerProfile.upsert({
-            where: { userId },
-            update: updateData,
-            create: createData,
-          });
-        }
-
-        if (role === "jobseeker" && jobseekerProfileData) {
-          const userId = newUser.id;
-          const jobseekerCreateFields = pruneUndefined({
-            ...jobseekerProfileData,
-            email: jobseekerProfileData.email ?? normalizedEmail,
-            licensedStates: jobseekerProfileData.licensedStates ?? [],
-            certFiles: jobseekerProfileData.certFiles ?? [],
-            hasJourneymanLicense: Boolean(jobseekerProfileData.hasJourneymanLicense),
-          });
-
-          const createData = {
-            ...jobseekerCreateFields,
-            user: { connect: { id: userId } },
-          };
-
-          const updateData = pruneUndefined({
-            ...jobseekerProfileData,
-            email: jobseekerProfileData.email ?? normalizedEmail,
-          });
-
-          jobseekerProfileRecord = await tx.jobseekerProfile.upsert({
-            where: { userId },
-            update: updateData,
-            create: createData,
-          });
-        }
-
-        return {
-          user: newUser,
-          employerProfile: employerProfileRecord,
-          jobseekerProfile: jobseekerProfileRecord,
-        };
+      return registerJobseeker({
+        jobseekerProfileData,
+        normalizedEmail,
+        passwordHash,
+        supabaseUserId,
       });
+    })();
 
     if (supabase && createdUser?.id) {
       try {
@@ -432,13 +362,120 @@ export default async function handler(req, res) {
   } catch (error) {
     const status = error instanceof HttpError || typeof error?.status === "number" ? error.status : 500;
     if (status >= 500) {
-      console.error("Employer registration failure", error?.stack || error);
+      console.error("Registration failure", error?.stack || error);
     } else {
-      console.warn("Employer registration issue", error.message);
+      console.warn("Registration issue", error.message);
     }
     const message = error?.message || "An unexpected error occurred.";
     return res.status(status).json({ error: message });
   }
+}
+
+async function registerEmployer({ employerProfile, normalizedEmail, passwordHash, supabaseUserId }) {
+  return prisma.$transaction(async (tx) => {
+    const userCreateData = {
+      email: normalizedEmail,
+      passwordHash,
+      role: "employer",
+    };
+
+    if (supabaseUserId) {
+      userCreateData.id = supabaseUserId;
+    }
+
+    const newUser = await tx.user.create({
+      data: userCreateData,
+    });
+
+    const rawId = newUser.id;
+    const userId = typeof rawId === "string" ? rawId.trim() : "";
+    if (!userId) {
+      console.error("User ID missing during employer registration", { newUser });
+      throw new HttpError(400, "User ID missing during registration.");
+    }
+
+    console.log("Creating employer profile for user", userId);
+
+    const employerCreateFields = pruneUndefined({
+      ...employerProfile,
+      plan: null,
+      issubscribed: false,
+      subscription_tier: null,
+      subscription_status: "inactive",
+      email: employerProfile.email ?? normalizedEmail,
+    });
+
+    const createData = {
+      ...employerCreateFields,
+      user: { connect: { id: userId } },
+    };
+
+    const updateData = pruneUndefined({
+      ...employerProfile,
+      email: employerProfile.email ?? normalizedEmail,
+    });
+
+    const employerProfileRecord = await tx.employerProfile.upsert({
+      where: { userId },
+      update: updateData,
+      create: createData,
+    });
+
+    return {
+      user: newUser,
+      employerProfile: employerProfileRecord,
+      jobseekerProfile: null,
+    };
+  });
+}
+
+async function registerJobseeker({ jobseekerProfileData, normalizedEmail, passwordHash, supabaseUserId }) {
+  return prisma.$transaction(async (tx) => {
+    const userCreateData = {
+      email: normalizedEmail,
+      passwordHash,
+      role: "jobseeker",
+    };
+
+    if (supabaseUserId) {
+      userCreateData.id = supabaseUserId;
+    }
+
+    const newUser = await tx.user.create({
+      data: userCreateData,
+    });
+
+    const userId = newUser.id;
+    const jobseekerCreateFields = pruneUndefined({
+      ...jobseekerProfileData,
+      email: jobseekerProfileData.email ?? normalizedEmail,
+      licensedStates: jobseekerProfileData.licensedStates ?? [],
+      certFiles: jobseekerProfileData.certFiles ?? [],
+      hasJourneymanLicense: Boolean(jobseekerProfileData.hasJourneymanLicense),
+    });
+
+    const createData = {
+      ...jobseekerCreateFields,
+      user: { connect: { id: userId } },
+    };
+
+    const updateData = pruneUndefined({
+      ...jobseekerProfileData,
+      email: jobseekerProfileData.email ?? normalizedEmail,
+    });
+
+    const jobseekerProfileRecord = await tx.jobseekerProfile.upsert({
+      where: { userId },
+      update: updateData,
+      create: createData,
+    });
+
+    return {
+      user: newUser,
+      employerProfile: null,
+      jobseekerProfile: jobseekerProfileRecord,
+    };
+  });
 }
 
 export function buildEmployerProfile(payload) {
