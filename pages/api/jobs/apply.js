@@ -50,8 +50,8 @@ export default async function handler(req, res) {
 
     const application = await prisma.applications.create({
       data: {
-        job_id: job.id,
-        jobseeker_id: jobseekerProfile.id,
+        jobs: { connect: { id: job.id } },
+        jobseekerprofile: { connect: { id: jobseekerProfile.id } },
         applied_at: new Date(),
         status: "pending",
       },

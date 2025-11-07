@@ -88,7 +88,7 @@ export default async function handler(req, res) {
         hourly_pay: hourly_pay || null,
         per_diem: per_diem || null,
         additional_requirements: additional_requirements || null,
-        employer_id: employerProfile.id,
+        employerprofile: { connect: { id: employerProfile.id } },
         showFirstName: Boolean(showFirstName),
         showEmail: Boolean(showEmail),
         showPhone: Boolean(showPhone),
