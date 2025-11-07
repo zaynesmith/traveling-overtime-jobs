@@ -324,7 +324,6 @@ export default async function handler(req, res) {
             licensedStates: jobseekerProfileData.licensedStates ?? [],
             certFiles: jobseekerProfileData.certFiles ?? [],
             hasJourneymanLicense: Boolean(jobseekerProfileData.hasJourneymanLicense),
-            isSubscribed: false,
           });
 
           const createData = {
