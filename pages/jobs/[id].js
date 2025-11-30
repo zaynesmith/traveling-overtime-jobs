@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { normalizeTrade } from "@/lib/trades";
 
@@ -190,9 +191,12 @@ export default function JobDetails({ job }) {
                   : "Apply Now"}
               </button>
             ) : (
-              <p className="w-full max-w-md text-center text-sm text-slate-500">
+              <Link
+                href="/jobseeker/login"
+                className="w-full max-w-md text-center text-sm text-slate-500"
+              >
                 Sign in as a jobseeker to apply for this position.
-              </p>
+              </Link>
             )}
           </footer>
         </div>
