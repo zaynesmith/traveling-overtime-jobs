@@ -171,6 +171,7 @@ export async function getServerSideProps(context) {
           select: {
             id: true,
             jobseeker_id: true,
+            viewed_at: true,
             jobseekerprofile: {
               select: {
                 id: true,
@@ -195,6 +196,11 @@ export async function getServerSideProps(context) {
         notFound: true,
       };
     }
+
+    await prisma.applications.updateMany({
+      where: { job_id: jobId, viewed_at: null },
+      data: { viewed_at: new Date() },
+    });
 
     const applicants = job.applications
       .filter((application) => Boolean(application.jobseekerprofile))

@@ -46,6 +46,7 @@ export default async function handler(req, res) {
             id: true,
             status: true,
             applied_at: true,
+            viewed_at: true,
             jobseekerprofile: {
               select: {
                 firstName: true,
@@ -63,10 +64,15 @@ export default async function handler(req, res) {
 
     const payload = jobs.map((job) => ({
       ...job,
+      totalApplicants: job.applications.filter((application) => application.jobseekerprofile).length,
+      newApplicantsCount: job.applications.filter(
+        (application) => application.jobseekerprofile && !application.viewed_at,
+      ).length,
       applications: job.applications.map((application) => ({
         id: application.id,
         status: application.status,
         applied_at: application.applied_at,
+        viewed_at: application.viewed_at,
         jobseeker: application.jobseekerprofile
           ? {
               firstName: application.jobseekerprofile.firstName || "",
