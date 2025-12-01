@@ -3,52 +3,23 @@ import authOptions from "@/lib/authOptions";
 
 const plans = [
   {
-    name: "Promo",
+    name: "Unlimited Recruiting Access – Early Access Promo",
     key: "promo",
-    price: "$99/mo unlimited",
-    buttonClass: "bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded w-full mt-4",
+    price: "$99/month",
+    buttonClass:
+      "bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded w-full mt-4",
     buttonLabel: "Subscribe $99/mo",
     features: [
-      "Unlimited job posts",
-      "Highlighted listings",
-      "Email support",
+      "Unlimited job postings",
+      "Unlimited resume searches",
+      "Unlimited applicant visibility",
+      "Priority placement in search results",
+      "Access to all new features during the early growth phase",
+      "Early adopter pricing locked in for 3 years",
+      "Cancel anytime",
     ],
-  },
-  {
-    name: "Basic",
-    key: "basic",
-    price: "$99/mo limited",
-    buttonClass: "bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded w-full mt-4",
-    buttonLabel: "Subscribe $99/mo",
-    features: [
-      "Up to 5 active job posts",
-      "Resume search with limited filters",
-      "Email support",
-    ],
-  },
-  {
-    name: "Pro",
-    key: "pro",
-    price: "$199/mo unlimited",
-    buttonClass: "bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded w-full mt-4",
-    buttonLabel: "Subscribe $199/mo",
-    features: [
-      "Unlimited job posts",
-      "Full resume search",
-      "Saved candidate sync",
-      "Priority support",
-    ],
-  },
-  {
-    name: "Custom",
-    key: "custom",
-    price: "Custom",
-    features: [
-      "Dedicated success manager",
-      "ATS integrations",
-      "Custom billing",
-      "Onsite hiring events",
-    ],
+    promoNote:
+      "Subscribe before 01/01/2027 to lock in this rate for 36 months. After this date, pricing is subject to increase as the platform expands.",
   },
 ];
 
@@ -90,6 +61,7 @@ export default function BillingPage({ employerProfile }) {
               <p className="text-sm font-semibold text-slate-700">Current plan</p>
               <p className="text-2xl font-bold text-slate-900 capitalize">{plan || "None"}</p>
               <p className="text-sm text-slate-600 capitalize">Status: {isSubscribed ? "Active" : "Inactive"}</p>
+              <p className="text-sm text-slate-600">Upgrade to the paid plan to unlock full access.</p>
             </div>
             <button className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500">
               Update payment method
@@ -123,11 +95,10 @@ export default function BillingPage({ employerProfile }) {
                     <li key={feature}>• {feature}</li>
                   ))}
                 </ul>
-                {planOption.key === "custom" ? (
-                  <button className="mt-6 w-full rounded-xl border border-sky-200 px-4 py-2 text-sm font-semibold text-sky-600 transition hover:bg-sky-50">
-                    {normalizedPlan === planOption.key && isSubscribed ? "Current plan" : "Talk to sales"}
-                  </button>
-                ) : normalizedPlan === planOption.key && isSubscribed ? (
+                {planOption.promoNote ? (
+                  <p className="mt-4 text-xs text-slate-500">{planOption.promoNote}</p>
+                ) : null}
+                {normalizedPlan === planOption.key && isSubscribed ? (
                   <button className="mt-6 w-full rounded-xl border border-sky-200 px-4 py-2 text-sm font-semibold text-sky-600 transition hover:bg-sky-50" disabled>
                     Current plan
                   </button>
