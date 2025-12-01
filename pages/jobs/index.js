@@ -35,7 +35,7 @@ export default function Jobs() {
   } = useJobSearch({ pageSize: PAGE_SIZE });
 
   useEffect(() => {
-    if (!router.isReady) return;
+    if (!router.isReady || router.pathname !== "/jobs") return;
 
     const parsedPage = Number.parseInt(router.query?.page ?? "", 10);
     const nextPage = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
@@ -54,7 +54,7 @@ export default function Jobs() {
   }, [router.isReady]);
 
   useEffect(() => {
-    if (!router.isReady) return;
+    if (!router.isReady || router.pathname !== "/jobs") return;
 
     const params = new URLSearchParams();
     if (activeFilters.keyword) params.set("keyword", activeFilters.keyword);
@@ -68,7 +68,7 @@ export default function Jobs() {
 
     const query = Object.fromEntries(params.entries());
     router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
-  }, [router, activeFilters, page]);
+  }, [router.isReady, router.pathname, activeFilters, page]);
 
   const handlePreviousPage = () => setPage((current) => Math.max(1, current - 1));
   const handleNextPage = () => setPage((current) => current + 1);
