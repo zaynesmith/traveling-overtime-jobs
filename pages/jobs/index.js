@@ -1,11 +1,14 @@
 import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/router";
 import JobSearchFilters, { filterPanelClasses } from "@/components/jobs/JobSearchFilters";
 import { getStateNameFromCode } from "@/lib/constants/states";
-import { useJobSearch } from "@/lib/hooks/useJobSearch";
+import { defaultJobFilters, useJobSearch } from "@/lib/hooks/useJobSearch";
 import { normalizeTrade } from "@/lib/trades";
 
 const listingCardClasses =
   "w-full max-w-2xl bg-white border border-gray-200 rounded-2xl shadow-md p-6";
+const PAGE_SIZE = 15;
 
 function formatCityState(job) {
   if (!job) return "";
@@ -14,6 +17,7 @@ function formatCityState(job) {
 }
 
 export default function Jobs() {
+  const router = useRouter();
   const {
     formFilters,
     activeFilters,
@@ -23,7 +27,54 @@ export default function Jobs() {
     jobs,
     loading,
     error,
-  } = useJobSearch();
+    page,
+    pageSize,
+    setPage,
+    setFormFilters,
+    setActiveFilters,
+  } = useJobSearch({ pageSize: PAGE_SIZE });
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const parsedPage = Number.parseInt(router.query?.page ?? "", 10);
+    const nextPage = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+
+    const queryFilters = {
+      keyword: router.query?.keyword?.toString() ?? defaultJobFilters.keyword,
+      trade: router.query?.trade?.toString() ?? defaultJobFilters.trade,
+      state: router.query?.state?.toString() ?? defaultJobFilters.state,
+      zip: router.query?.zip?.toString() ?? defaultJobFilters.zip,
+      radius: router.query?.radius?.toString() ?? defaultJobFilters.radius,
+    };
+
+    setFormFilters(queryFilters);
+    setActiveFilters(queryFilters);
+    setPage(nextPage);
+  }, [router.isReady]);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const params = new URLSearchParams();
+    if (activeFilters.keyword) params.set("keyword", activeFilters.keyword);
+    if (activeFilters.trade) params.set("trade", activeFilters.trade);
+    if (activeFilters.state) params.set("state", activeFilters.state);
+    if (activeFilters.zip) {
+      params.set("zip", activeFilters.zip);
+      if (activeFilters.radius) params.set("radius", activeFilters.radius);
+    }
+    if (page > 1) params.set("page", page.toString());
+
+    const query = Object.fromEntries(params.entries());
+    router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
+  }, [router, activeFilters, page]);
+
+  const handlePreviousPage = () => setPage((current) => Math.max(1, current - 1));
+  const handleNextPage = () => setPage((current) => current + 1);
+
+  const canGoPrevious = page > 1 && !loading;
+  const canGoNext = jobs.length === pageSize && !loading;
 
   const hasDistanceData = jobs.some((job) => typeof job?.distance === "number");
   const parsedRadius = Number.parseFloat(activeFilters?.radius ?? "");
@@ -132,6 +183,24 @@ export default function Jobs() {
                   </article>
                 );
               })}
+              <div className="flex w-full max-w-2xl justify-between">
+                <button
+                  type="button"
+                  onClick={handlePreviousPage}
+                  disabled={!canGoPrevious}
+                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Previous page
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextPage}
+                  disabled={!canGoNext}
+                  className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Next page
+                </button>
+              </div>
             </>
           )}
         </section>
