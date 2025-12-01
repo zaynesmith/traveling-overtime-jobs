@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import CandidateCard from "@/components/employer/CandidateCard";
@@ -7,6 +8,8 @@ import { getStateNameFromCode } from "@/lib/constants/states";
 import { TRADES } from "@/lib/trades";
 
 export default function ResumeSearchPage({ employerId, initialSavedIds }) {
+  const router = useRouter();
+  const PAGE_SIZE = 15;
   const [filters, setFilters] = useState({ trade: "", state: "", zip: "", radius: "50", keyword: "" });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -15,47 +18,97 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
   const [pendingIds, setPendingIds] = useState(() => new Set());
   const [saveError, setSaveError] = useState(null);
   const [appliedFilters, setAppliedFilters] = useState(null);
+  const [page, setPage] = useState(1);
 
   const employerIdentifier = employerId || null;
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const parsedPage = Number.parseInt(router.query?.page ?? "", 10);
+    const nextPage = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+
+    setPage(nextPage);
+    setFilters((current) => ({
+      ...current,
+      trade: router.query?.trade?.toString() ?? current.trade,
+      state: router.query?.state?.toString() ?? current.state,
+      zip: router.query?.zip?.toString() ?? current.zip,
+      radius: router.query?.radius?.toString() ?? current.radius,
+      keyword: router.query?.keyword?.toString() ?? current.keyword,
+    }));
+  }, [router.isReady]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFilters((current) => ({ ...current, [name]: value }));
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const updateRoute = (filtersForQuery, targetPage) => {
+    const params = new URLSearchParams();
+    if (filtersForQuery.trade) params.set("trade", filtersForQuery.trade);
+    if (filtersForQuery.state) params.set("state", filtersForQuery.state);
+    if (filtersForQuery.zip) params.set("zip", filtersForQuery.zip);
+    if (filtersForQuery.radius) params.set("radius", filtersForQuery.radius);
+    if (filtersForQuery.keyword) params.set("keyword", filtersForQuery.keyword);
+    params.set("page", targetPage.toString());
+    params.set("pageSize", PAGE_SIZE.toString());
+
+    const query = Object.fromEntries(params.entries());
+    router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
+  };
+
+  const performSearch = async (targetPage, filtersToUse) => {
     setLoading(true);
     setError(null);
     setResults([]);
+    setPage(targetPage);
+    setAppliedFilters(filtersToUse);
 
     try {
-      const currentFilters = {
-        trade: filters.trade,
-        state: filters.state,
-        zip: filters.zip,
-        radius: filters.radius,
-        keyword: filters.keyword,
-      };
-      setAppliedFilters(currentFilters);
-
       const params = new URLSearchParams();
-      if (filters.trade) params.set("trade", filters.trade);
-      if (filters.state) params.set("state", filters.state);
-      if (filters.zip) params.set("zip", filters.zip);
-      if (filters.radius) params.set("radius", filters.radius);
-      if (filters.keyword) params.set("keyword", filters.keyword);
+      if (filtersToUse.trade) params.set("trade", filtersToUse.trade);
+      if (filtersToUse.state) params.set("state", filtersToUse.state);
+      if (filtersToUse.zip) params.set("zip", filtersToUse.zip);
+      if (filtersToUse.radius) params.set("radius", filtersToUse.radius);
+      if (filtersToUse.keyword) params.set("keyword", filtersToUse.keyword);
+      params.set("page", targetPage.toString());
+      params.set("pageSize", PAGE_SIZE.toString());
 
       const response = await fetch(`/api/resumes/search?${params.toString()}`);
       if (!response.ok) throw new Error("Unable to search resumes");
       const data = await response.json();
       setResults(Array.isArray(data) ? data : []);
+      updateRoute(filtersToUse, targetPage);
     } catch (err) {
       console.error(err);
       setError(err.message || "Unable to search resumes");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const currentFilters = {
+      trade: filters.trade,
+      state: filters.state,
+      zip: filters.zip,
+      radius: filters.radius,
+      keyword: filters.keyword,
+    };
+
+    await performSearch(1, currentFilters);
+  };
+
+  const handlePreviousPage = () => {
+    if (!appliedFilters || page <= 1 || loading) return;
+    performSearch(page - 1, appliedFilters);
+  };
+
+  const handleNextPage = () => {
+    if (!appliedFilters || loading) return;
+    performSearch(page + 1, appliedFilters);
   };
 
   const toggleSave = async (jobseekerId) => {
@@ -144,6 +197,9 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
       : null;
   const stateMessage =
     !targetZip && stateLabel ? `Showing candidates in ${stateLabel}` : null;
+
+  const canGoPrevious = Boolean(appliedFilters) && page > 1 && !loading;
+  const canGoNext = Boolean(appliedFilters) && results.length === PAGE_SIZE && !loading;
 
   return (
     <main className="bg-slate-50 py-12">
@@ -253,6 +309,24 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
                 />
               ))}
             </ul>
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={handlePreviousPage}
+                disabled={!canGoPrevious}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Previous page
+              </button>
+              <button
+                type="button"
+                onClick={handleNextPage}
+                disabled={!canGoNext}
+                className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Next page
+              </button>
+            </div>
           </section>
         ) : null}
       </div>
