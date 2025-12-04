@@ -64,7 +64,7 @@ export default function JobseekerJobsPage({ jobs: initialJobs, initialFilters, i
   });
 
   useEffect(() => {
-    if (!router.isReady) return;
+    if (!router.isReady || router.pathname !== "/dashboard/jobseeker/jobs") return;
 
     const params = new URLSearchParams();
     if (activeFilters.keyword) params.set("keyword", activeFilters.keyword);
@@ -78,7 +78,7 @@ export default function JobseekerJobsPage({ jobs: initialJobs, initialFilters, i
 
     const query = Object.fromEntries(params.entries());
     router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
-  }, [router, activeFilters, page]);
+  }, [router.isReady, router.pathname, activeFilters, page]);
 
   const handlePreviousPage = () => setPage((current) => Math.max(1, current - 1));
   const handleNextPage = () => setPage((current) => current + 1);
