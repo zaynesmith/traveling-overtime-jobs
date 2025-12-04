@@ -5,6 +5,9 @@ import authOptions from "@/lib/authOptions";
 import StateSelect from "@/components/forms/StateSelect";
 import { formatZipSuggestionLocation, formatZipSuggestionMessage } from "@/lib/utils/zipMessages";
 import { TRADES } from "@/lib/trades";
+import UpgradeGate from "@/components/employer/UpgradeGate";
+import { getEmployerSubscriptionStatus } from "@/lib/employer/subscription";
+import prisma from "@/lib/prisma";
 
 const blankJob = {
   title: "",
@@ -30,7 +33,7 @@ function Field({ label, htmlFor, children }) {
   );
 }
 
-export default function PostJobPage({ jobId, contactDetails }) {
+export default function PostJobPage({ jobId, contactDetails, isSubscribed }) {
   const router = useRouter();
   const [form, setForm] = useState(blankJob);
   const [loading, setLoading] = useState(false);
@@ -67,6 +70,7 @@ export default function PostJobPage({ jobId, contactDetails }) {
   useEffect(() => {
     let ignore = false;
     async function loadJob() {
+      if (!isSubscribed) return;
       if (!jobId) return;
       try {
         const response = await fetch(`/api/jobs/${jobId}`);
@@ -100,7 +104,7 @@ export default function PostJobPage({ jobId, contactDetails }) {
     return () => {
       ignore = true;
     };
-  }, [jobId]);
+  }, [isSubscribed, jobId]);
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
@@ -192,6 +196,21 @@ export default function PostJobPage({ jobId, contactDetails }) {
   };
 
   const zipSuggestionLocation = formatZipSuggestionLocation(zipFeedback?.suggestion);
+
+  if (!isSubscribed) {
+    return (
+      <UpgradeGate
+        title="Upgrade to unlock this feature"
+        description="Posting jobs is available to subscribed employers. Upgrade to our Early Access plan to unlock unlimited job postings, resume searches, and full recruiting access across the platform."
+        benefits={[
+          "Unlimited job postings",
+          "Unlimited resume searches",
+          "Full recruiting access across the platform",
+        ]}
+        ctaLabel="Upgrade to unlock"
+      />
+    );
+  }
 
   return (
     <main className="bg-slate-50 py-12">
@@ -458,7 +477,8 @@ export async function getServerSideProps(context) {
     };
   }
 
-  const { default: prisma } = await import("@/lib/prisma");
+  const { isSubscribed } = await getEmployerSubscriptionStatus(session.user.id);
+
   const employerProfile = await prisma.employerProfile.findUnique({
     where: { userId: session.user.id },
     select: {
@@ -484,6 +504,7 @@ export async function getServerSideProps(context) {
     props: {
       jobId: context.query?.id || null,
       contactDetails,
+      isSubscribed,
     },
   };
 }
