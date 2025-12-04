@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { signIn, useSession } from "next-auth/react";
@@ -6,6 +6,7 @@ import StateSelect from "@/components/forms/StateSelect";
 import { US_STATES, normalizeStateCode } from "@/lib/constants/states";
 import { formatZipSuggestionLocation, formatZipSuggestionMessage } from "@/lib/utils/zipMessages";
 import { TRADES } from "@/lib/trades";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 const initialForm = {
   firstName: "",
@@ -49,6 +50,7 @@ export default function JobseekerRegisterPage() {
     ...initialForm,
     licensedStates: normalizeLicensedStates(initialForm.licensedStates),
   }));
+  const turnstileRef = useRef(null);
   const [resumeName, setResumeName] = useState("");
   const [resumeFile, setResumeFile] = useState(null);
   const [error, setError] = useState(null);
@@ -123,6 +125,11 @@ export default function JobseekerRegisterPage() {
     setZipFeedback(null);
 
     try {
+      const turnstileToken = await turnstileRef.current?.execute();
+      if (!turnstileToken) {
+        throw new Error("Unable to verify you’re human. Please try again.");
+      }
+
       let resumePayload = null;
       if (resumeFile) {
         try {
@@ -164,6 +171,7 @@ export default function JobseekerRegisterPage() {
           hasJourneymanLicense,
           licensedStates,
           resume: resumePayload,
+          turnstileToken,
         }),
       });
 
@@ -208,6 +216,7 @@ export default function JobseekerRegisterPage() {
     } catch (err) {
       setError(err.message);
     } finally {
+      turnstileRef.current?.reset?.();
       setLoading(false);
     }
   }
@@ -396,6 +405,7 @@ export default function JobseekerRegisterPage() {
           {resumeName ? <span className="form-hint">Selected: {resumeName}</span> : null}
         </label>
         {error ? <p className="form-error">{error}</p> : null}
+        <TurnstileWidget ref={turnstileRef} siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} />
         <button type="submit" className="form-button" disabled={loading}>
           {loading ? "Creating profile…" : "Create profile"}
         </button>

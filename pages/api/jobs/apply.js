@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -14,7 +15,12 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: "Jobseeker authentication required" });
     }
 
-    const { jobId } = req.body || {};
+    const { jobId, turnstileToken } = req.body || {};
+    const humanVerified = await verifyTurnstileToken(turnstileToken, req);
+    if (!humanVerified) {
+      return res.status(400).json({ error: "Unable to verify you’re human. Please try again." });
+    }
+
     if (!jobId) {
       return res.status(400).json({ error: "Job ID is required" });
     }

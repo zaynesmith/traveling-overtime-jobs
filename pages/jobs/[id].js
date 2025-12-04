@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { normalizeTrade } from "@/lib/trades";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 const detailPanelClasses =
   "bg-white border border-gray-100 rounded-3xl shadow-2xl p-10";
@@ -29,6 +30,7 @@ export default function JobDetails({ job }) {
   const [status, setStatus] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
+  const turnstileRef = useRef(null);
 
   if (!job) {
     return (
@@ -49,10 +51,15 @@ export default function JobDetails({ job }) {
     setSubmitting(true);
     setStatus(null);
     try {
+      const turnstileToken = await turnstileRef.current?.execute();
+      if (!turnstileToken) {
+        throw new Error("Unable to verify you’re human. Please try again.");
+      }
+
       const response = await fetch("/api/jobs/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId: job.id }),
+        body: JSON.stringify({ jobId: job.id, turnstileToken }),
       });
       const payload = await response.json();
 
@@ -75,6 +82,7 @@ export default function JobDetails({ job }) {
       setStatus({ type: "error", message: error.message || "Unable to apply" });
     } finally {
       setSubmitting(false);
+      turnstileRef.current?.reset?.();
     }
   };
 
@@ -179,17 +187,20 @@ export default function JobDetails({ job }) {
               </div>
             ) : null}
             {canApply ? (
-              <button
-                onClick={handleApply}
-                disabled={disableApplyButton}
-                className="w-full max-w-md rounded-full bg-sky-600 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {submitting
-                  ? "Sending application…"
-                  : hasApplied
-                  ? "Application submitted"
-                  : "Apply Now"}
-              </button>
+              <>
+                <TurnstileWidget ref={turnstileRef} siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} />
+                <button
+                  onClick={handleApply}
+                  disabled={disableApplyButton}
+                  className="w-full max-w-md rounded-full bg-sky-600 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {submitting
+                    ? "Sending application…"
+                    : hasApplied
+                    ? "Application submitted"
+                    : "Apply Now"}
+                </button>
+              </>
             ) : (
               <Link
                 href="/jobseeker/login"
