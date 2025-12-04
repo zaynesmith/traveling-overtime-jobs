@@ -125,11 +125,6 @@ export default function JobseekerRegisterPage() {
     setZipFeedback(null);
 
     try {
-      const turnstileToken = await turnstileRef.current?.execute();
-      if (!turnstileToken) {
-        throw new Error("Unable to verify you’re human. Please try again.");
-      }
-
       let resumePayload = null;
       if (resumeFile) {
         try {
@@ -171,7 +166,6 @@ export default function JobseekerRegisterPage() {
           hasJourneymanLicense,
           licensedStates,
           resume: resumePayload,
-          turnstileToken,
         }),
       });
 
@@ -219,7 +213,7 @@ export default function JobseekerRegisterPage() {
         throw new Error("Account created, but sign in failed. Try logging in manually.");
       }
 
-      router.push("/jobseeker/dashboard");
+      router.push("/dashboard/jobseeker");
     } catch (err) {
       setError(err.message);
     } finally {
