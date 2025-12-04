@@ -6,8 +6,11 @@ import CandidateCard from "@/components/employer/CandidateCard";
 import StateSelect from "@/components/forms/StateSelect";
 import { getStateNameFromCode } from "@/lib/constants/states";
 import { TRADES } from "@/lib/trades";
+import UpgradeGate from "@/components/employer/UpgradeGate";
+import { getEmployerSubscriptionStatus } from "@/lib/employer/subscription";
+import prisma from "@/lib/prisma";
 
-export default function ResumeSearchPage({ employerId, initialSavedIds }) {
+export default function ResumeSearchPage({ employerId, initialSavedIds, isSubscribed }) {
   const router = useRouter();
   const PAGE_SIZE = 15;
   const [filters, setFilters] = useState({ trade: "", state: "", zip: "", radius: "50", keyword: "" });
@@ -23,7 +26,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
   const employerIdentifier = employerId || null;
 
   useEffect(() => {
-    if (!router.isReady) return;
+    if (!router.isReady || !isSubscribed) return;
 
     const parsedPage = Number.parseInt(router.query?.page ?? "", 10);
     const nextPage = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
@@ -37,7 +40,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
       radius: router.query?.radius?.toString() ?? current.radius,
       keyword: router.query?.keyword?.toString() ?? current.keyword,
     }));
-  }, [router.isReady]);
+  }, [isSubscribed, router.isReady]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -201,6 +204,22 @@ export default function ResumeSearchPage({ employerId, initialSavedIds }) {
   const canGoPrevious = Boolean(appliedFilters) && page > 1 && !loading;
   const canGoNext = Boolean(appliedFilters) && results.length === PAGE_SIZE && !loading;
 
+  if (!isSubscribed) {
+    return (
+      <UpgradeGate
+        eyebrow="Upgrade to unlock resume search"
+        title="Unlock resume search"
+        description="Resume search is available to subscribed employers. Upgrade to our Early Access plan to unlock unlimited resume searches, job postings, and full recruiting access."
+        benefits={[
+          "Unlimited resume searches",
+          "Unlimited job postings",
+          "Full recruiting access across the platform",
+        ]}
+        ctaLabel="Upgrade to unlock"
+      />
+    );
+  }
+
   return (
     <main className="bg-slate-50 py-12">
       <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 sm:px-6 lg:px-8">
@@ -357,12 +376,13 @@ export async function getServerSideProps(context) {
   }
 
   try {
-    const { default: prisma } = await import("@/lib/prisma");
-
-    const employerProfile = await prisma.employerProfile.findUnique({
-      where: { userId: session.user.id },
-      select: { id: true },
-    });
+    const [{ isSubscribed }, employerProfile] = await Promise.all([
+      getEmployerSubscriptionStatus(session.user.id),
+      prisma.employerProfile.findUnique({
+        where: { userId: session.user.id },
+        select: { id: true },
+      }),
+    ]);
 
     if (!employerProfile) {
       return {
@@ -386,6 +406,7 @@ export async function getServerSideProps(context) {
       props: {
         employerId: employerProfile.id,
         initialSavedIds,
+        isSubscribed,
       },
     };
   } catch (error) {
@@ -394,6 +415,7 @@ export async function getServerSideProps(context) {
       props: {
         employerId: null,
         initialSavedIds: [],
+        isSubscribed: false,
       },
     };
   }
