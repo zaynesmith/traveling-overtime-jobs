@@ -49,11 +49,6 @@ export default function EmployerRegisterPage() {
     setError(null);
 
     try {
-      const turnstileToken = await turnstileRef.current?.execute();
-      if (!turnstileToken) {
-        throw new Error("Unable to verify you’re human. Please try again.");
-      }
-
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -73,7 +68,6 @@ export default function EmployerRegisterPage() {
           zip: form.zip,
           website: form.website,
           timezone: form.timezone,
-          turnstileToken,
         }),
       });
 
@@ -99,7 +93,7 @@ export default function EmployerRegisterPage() {
         throw new Error("Account created, but sign in failed. Try logging in manually.");
       }
 
-      router.push("/employer/dashboard");
+      router.push("/dashboard/employer");
     } catch (err) {
       setError(err.message);
     } finally {
