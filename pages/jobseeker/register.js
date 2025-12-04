@@ -202,10 +202,17 @@ export default function JobseekerRegisterPage() {
         throw new Error(errorMessage);
       }
 
+      const loginTurnstileToken = await turnstileRef.current?.execute();
+      if (!loginTurnstileToken) {
+        throw new Error("Account created, but sign in failed. Try logging in manually.");
+      }
+
       const loginResult = await signIn("credentials", {
-        redirect: false,
+        redirect: true,
+        callbackUrl: "/dashboard/jobseeker",
         email: form.email,
         password: form.password,
+        turnstileToken: loginTurnstileToken,
       });
 
       if (loginResult?.error) {
