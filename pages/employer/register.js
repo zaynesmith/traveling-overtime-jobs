@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { signIn, useSession } from "next-auth/react";
 import StateSelect from "@/components/forms/StateSelect";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 const initialForm = {
   firstName: "",
@@ -25,6 +26,7 @@ export default function EmployerRegisterPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const [form, setForm] = useState(initialForm);
+  const turnstileRef = useRef(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -47,6 +49,11 @@ export default function EmployerRegisterPage() {
     setError(null);
 
     try {
+      const turnstileToken = await turnstileRef.current?.execute();
+      if (!turnstileToken) {
+        throw new Error("Unable to verify you’re human. Please try again.");
+      }
+
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -66,6 +73,7 @@ export default function EmployerRegisterPage() {
           zip: form.zip,
           website: form.website,
           timezone: form.timezone,
+          turnstileToken,
         }),
       });
 
@@ -88,6 +96,7 @@ export default function EmployerRegisterPage() {
     } catch (err) {
       setError(err.message);
     } finally {
+      turnstileRef.current?.reset?.();
       setLoading(false);
     }
   }
@@ -225,6 +234,7 @@ export default function EmployerRegisterPage() {
           />
         </label>
         {error ? <p className="form-error">{error}</p> : null}
+        <TurnstileWidget ref={turnstileRef} siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} />
         <button type="submit" className="form-button" disabled={loading}>
           {loading ? "Creating profile…" : "Create profile"}
         </button>

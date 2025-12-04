@@ -3,6 +3,7 @@ import prisma from "../../../lib/prisma";
 import { getSupabaseServiceClient } from "../../../lib/supabaseServer";
 import { normalizeStateCode } from "@/lib/constants/states";
 import { validateZip } from "@/lib/utils/validateZip";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 export const config = {
   api: {
@@ -142,6 +143,7 @@ export default async function handler(req, res) {
     const role = payload.role;
     const email = payload.email;
     const password = payload.password;
+    const turnstileToken = payload.turnstileToken;
 
     const safeLogPayload = { ...payload };
     if (safeLogPayload.password) {
@@ -164,6 +166,11 @@ export default async function handler(req, res) {
     }
 
     const normalizedEmail = email.toLowerCase();
+
+    const humanVerified = await verifyTurnstileToken(turnstileToken, req);
+    if (!humanVerified) {
+      throw new HttpError(400, "Unable to verify you’re human. Please try again.");
+    }
 
     if (role === "employer") {
       const requiredEmployerFields = {

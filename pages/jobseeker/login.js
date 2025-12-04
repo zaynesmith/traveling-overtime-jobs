@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { signIn, useSession } from "next-auth/react";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 export default function JobseekerLoginPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const [form, setForm] = useState({ email: "", password: "" });
+  const turnstileRef = useRef(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -28,19 +30,32 @@ export default function JobseekerLoginPage() {
     setLoading(true);
     setError(null);
 
-    const result = await signIn("credentials", {
-      redirect: false,
-      email: form.email,
-      password: form.password,
-    });
-
-    if (result?.error) {
-      setError("Invalid email or password.");
+    const turnstileToken = await turnstileRef.current?.execute();
+    if (!turnstileToken) {
+      setError("Unable to verify you’re human. Please try again.");
       setLoading(false);
       return;
     }
 
+    const result = await signIn("credentials", {
+      redirect: false,
+      email: form.email,
+      password: form.password,
+      turnstileToken,
+    });
+
+    if (result?.error) {
+      const message = result.error.includes("verify you’re human")
+        ? "Unable to verify you’re human. Please try again."
+        : "Invalid email or password.";
+      setError(message);
+      setLoading(false);
+      turnstileRef.current?.reset?.();
+      return;
+    }
+
     router.push("/jobseeker/dashboard");
+    turnstileRef.current?.reset?.();
   }
 
   return (
@@ -70,6 +85,7 @@ export default function JobseekerLoginPage() {
           />
         </label>
         {error ? <p className="form-error">{error}</p> : null}
+        <TurnstileWidget ref={turnstileRef} siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} />
         <button type="submit" className="form-button" disabled={loading}>
           {loading ? "Signing in…" : "Sign in"}
         </button>
