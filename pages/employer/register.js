@@ -82,10 +82,17 @@ export default function EmployerRegisterPage() {
         throw new Error(data.error || "Unable to create employer profile.");
       }
 
+      const loginTurnstileToken = await turnstileRef.current?.execute();
+      if (!loginTurnstileToken) {
+        throw new Error("Account created, but sign in failed. Try logging in manually.");
+      }
+
       const loginResult = await signIn("credentials", {
-        redirect: false,
+        redirect: true,
+        callbackUrl: "/dashboard/employer",
         email: form.email,
         password: form.password,
+        turnstileToken: loginTurnstileToken,
       });
 
       if (loginResult?.error) {
