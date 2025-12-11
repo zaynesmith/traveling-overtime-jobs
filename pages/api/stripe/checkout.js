@@ -1,4 +1,7 @@
 import Stripe from "stripe";
+import { getServerSession } from "next-auth/next";
+import authOptions from "@/lib/authOptions";
+import prisma from "@/lib/prisma";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
@@ -26,6 +29,26 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Stripe is not configured" });
   }
 
+  const session = await getServerSession(req, res, authOptions);
+
+  if (!session?.user?.id || session.user.role !== "employer") {
+    return res.status(403).json({ error: "Employer authentication required" });
+  }
+
+  const employerProfile = await prisma.employerProfile.findUnique({
+    where: { userId: session.user.id },
+    select: { id: true },
+  });
+
+  if (!employerProfile) {
+    return res.status(400).json({ error: "Employer profile not found" });
+  }
+
+  const metadata = {
+    employerProfileId: employerProfile.id?.toString(),
+    userId: session.user.id?.toString(),
+  };
+
   const price = priceMap[plan];
 
   if (!price) {
@@ -35,7 +58,7 @@ export default async function handler(req, res) {
   try {
     const origin = req.headers.origin || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-    const session = await stripe.checkout.sessions.create({
+    const checkoutSession = await stripe.checkout.sessions.create({
       mode: "subscription",
       allow_promotion_codes: true,
       line_items: [
@@ -44,6 +67,7 @@ export default async function handler(req, res) {
           quantity: 1,
         },
       ],
+      metadata,
       success_url: `${origin}/dashboard/employer?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/dashboard/employer/subscription`,
       subscription_data: {
@@ -53,7 +77,7 @@ export default async function handler(req, res) {
       },
     });
 
-    return res.status(200).json({ url: session.url });
+    return res.status(200).json({ url: checkoutSession.url });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Unable to create checkout session" });
