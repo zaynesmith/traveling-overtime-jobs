@@ -63,7 +63,20 @@ function isSubscriptionActive(subscription) {
   return ["active", "trialing"].includes(subscription?.status);
 }
 
-async function findEmployerProfile({ customerId, customerEmail }) {
+async function findEmployerProfile({
+  employerProfileId,
+  customerId,
+  customerEmail,
+}) {
+  if (employerProfileId) {
+    const profile = await prisma.employerProfile.findUnique({
+      where: { id: employerProfileId },
+      select: { id: true, stripe_customer_id: true, stripecustomerid: true },
+    });
+
+    if (profile) return profile;
+  }
+
   if (!customerId) return null;
 
   const profile = await prisma.employerProfile.findFirst({
@@ -109,7 +122,7 @@ async function findEmployerProfile({ customerId, customerEmail }) {
   };
 }
 
-async function handleSubscriptionEvent(subscription) {
+async function handleSubscriptionEvent(subscription, employerProfileId) {
   if (!subscription?.customer) {
     console.warn("Subscription event missing customer", subscription?.id);
     return;
@@ -123,6 +136,7 @@ async function handleSubscriptionEvent(subscription) {
   const isActive = isSubscriptionActive(subscription);
 
   const employerProfile = await findEmployerProfile({
+    employerProfileId,
     customerId: subscription.customer,
     customerEmail: subscription.customer_email,
   });
@@ -176,15 +190,20 @@ export default async function handler(req, res) {
       case "customer.subscription.created":
       case "customer.subscription.updated":
       case "customer.subscription.deleted":
-        await handleSubscriptionEvent(event.data.object);
+        await handleSubscriptionEvent(
+          event.data.object,
+          event.data.object.metadata?.employerProfileId || null
+        );
         break;
       case "checkout.session.completed": {
         const session = event.data.object;
         if (session?.mode === "subscription" && session.subscription) {
+          const employerProfileId =
+            event.data.object.metadata?.employerProfileId || null;
           const subscription = await stripe.subscriptions.retrieve(
             session.subscription
           );
-          await handleSubscriptionEvent(subscription);
+          await handleSubscriptionEvent(subscription, employerProfileId);
         }
         break;
       }
