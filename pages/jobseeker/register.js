@@ -56,6 +56,8 @@ export default function JobseekerRegisterPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [zipFeedback, setZipFeedback] = useState(null);
+  const [certificationIds, setCertificationIds] = useState([]);
+  const [certificationsCatalog, setCertificationsCatalog] = useState([]);
 
   const updateForm = (updater) => {
     setFormState((previous) => {
@@ -72,6 +74,111 @@ export default function JobseekerRegisterPage() {
     updateForm((prev) => ({ ...prev, zipCode: suggestion.zip }));
     setZipFeedback(null);
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const normalizeCatalog = (catalogPayload) => {
+      if (!catalogPayload) return [];
+
+      const categories = Array.isArray(catalogPayload?.categories)
+        ? catalogPayload.categories
+        : Array.isArray(catalogPayload)
+        ? catalogPayload
+        : [];
+
+      if (categories.length && categories[0]?.certifications) {
+        return categories
+          .map((category) => {
+            const name =
+              typeof category?.category === "string"
+                ? category.category
+                : typeof category?.name === "string"
+                ? category.name
+                : null;
+
+            const certifications = Array.isArray(category?.certifications)
+              ? category.certifications
+              : Array.isArray(category?.items)
+              ? category.items
+              : [];
+
+            const normalizedCerts = certifications
+              .map((cert) => {
+                const id = typeof cert?.id === "string" ? cert.id : null;
+                const label =
+                  typeof cert?.name === "string"
+                    ? cert.name
+                    : typeof cert?.label === "string"
+                    ? cert.label
+                    : null;
+                if (!id || !label) return null;
+                return { id, name: label };
+              })
+              .filter(Boolean);
+
+            if (!name || !normalizedCerts.length) return null;
+            return { category: name, certifications: normalizedCerts };
+          })
+          .filter(Boolean);
+      }
+
+      if (categories.length) {
+        const grouped = categories.reduce((acc, cert) => {
+          const id = typeof cert?.id === "string" ? cert.id : null;
+          const name =
+            typeof cert?.name === "string"
+              ? cert.name
+              : typeof cert?.label === "string"
+              ? cert.label
+              : null;
+          const category =
+            typeof cert?.category === "string"
+              ? cert.category
+              : typeof cert?.type === "string"
+              ? cert.type
+              : "Other";
+
+          if (!id || !name) return acc;
+          if (!acc[category]) acc[category] = [];
+          acc[category].push({ id, name });
+          return acc;
+        }, {});
+
+        return Object.entries(grouped).map(([category, certifications]) => ({
+          category,
+          certifications,
+        }));
+      }
+
+      return [];
+    };
+
+    const fetchCatalog = async () => {
+      try {
+        const response = await fetch("/api/profile/certifications-catalog");
+        if (!response.ok) {
+          throw new Error("Unable to load certifications catalog");
+        }
+
+        const data = await response.json();
+        if (!cancelled) {
+          setCertificationsCatalog(normalizeCatalog(data));
+        }
+      } catch (catalogError) {
+        console.error(catalogError);
+        if (!cancelled) {
+          setCertificationsCatalog([]);
+        }
+      }
+    };
+
+    fetchCatalog();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!session?.user?.role) return;
@@ -102,6 +209,15 @@ export default function JobseekerRegisterPage() {
   const updateLicensedStates = (event) => {
     const selected = Array.from(event.target.selectedOptions || [], (option) => option.value);
     updateForm((prev) => ({ ...prev, licensedStates: selected }));
+  };
+
+  const toggleCertificationSelection = (certId) => {
+    setCertificationIds((current) => {
+      if (current.includes(certId)) {
+        return current.filter((id) => id !== certId);
+      }
+      return [...current, certId];
+    });
   };
 
   const handleResumeChange = (event) => {
@@ -165,6 +281,7 @@ export default function JobseekerRegisterPage() {
           trade: form.trade,
           hasJourneymanLicense,
           licensedStates,
+          certificationIds,
           resume: resumePayload,
         }),
       });
@@ -352,6 +469,38 @@ export default function JobseekerRegisterPage() {
             ))}
           </select>
         </label>
+        <div className="form-label">
+          <p className="font-semibold">Certifications (optional)</p>
+          {certificationsCatalog.length === 0 ? (
+            <p className="form-hint">Select any relevant certifications once available.</p>
+          ) : (
+            <div className="mt-2 space-y-3">
+              {certificationsCatalog.map((category) => (
+                <fieldset key={category.category} className="space-y-1">
+                  <legend className="text-sm font-semibold text-gray-700">
+                    {category.category}
+                  </legend>
+                  <div className="flex flex-col gap-1">
+                    {category.certifications.map((certification) => (
+                      <label
+                        key={certification.id}
+                        className="inline-flex items-center gap-2 text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          value={certification.id}
+                          checked={certificationIds.includes(certification.id)}
+                          onChange={() => toggleCertificationSelection(certification.id)}
+                        />
+                        <span>{certification.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="form-label">
           Journeyman License
           <div>
