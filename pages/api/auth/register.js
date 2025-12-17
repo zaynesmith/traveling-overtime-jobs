@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { hash } from "bcryptjs";
 import prisma from "../../../lib/prisma";
 import { getSupabaseServiceClient } from "../../../lib/supabaseServer";
@@ -39,6 +40,20 @@ function sanitizeLicensedStates(input) {
       return normalizeStateCode(state) || state;
     })
     .filter(Boolean);
+}
+
+function sanitizeCertificationIds(input) {
+  const rawList = Array.isArray(input)
+    ? input
+    : input === undefined || input === null
+    ? []
+    : [input];
+
+  const normalized = rawList
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter(Boolean);
+
+  return Array.from(new Set(normalized));
 }
 
 function sanitizeFileName(fileName) {
@@ -164,6 +179,7 @@ export default async function handler(req, res) {
     }
 
     const normalizedEmail = email.toLowerCase();
+    let certificationIds = [];
 
     if (role === "employer") {
       const requiredEmployerFields = {
@@ -190,6 +206,7 @@ export default async function handler(req, res) {
       const sanitizedCity = sanitize(payload.city);
       const sanitizedState = sanitize(payload.state);
       const sanitizedZip = sanitize(payload.zip ?? payload.zipCode);
+      certificationIds = sanitizeCertificationIds(payload.certificationIds);
       const normalizedState = normalizeStateCode(sanitizedState) || null;
       const zipValidation = await validateZip(sanitizedZip, sanitizedCity, normalizedState);
       if (!zipValidation.valid) {
@@ -277,6 +294,7 @@ export default async function handler(req, res) {
         normalizedEmail,
         passwordHash,
         supabaseUserId,
+        certificationIds,
       });
     })();
 
@@ -429,7 +447,13 @@ async function registerEmployer({ employerProfile, normalizedEmail, passwordHash
   });
 }
 
-async function registerJobseeker({ jobseekerProfileData, normalizedEmail, passwordHash, supabaseUserId }) {
+async function registerJobseeker({
+  jobseekerProfileData,
+  normalizedEmail,
+  passwordHash,
+  supabaseUserId,
+  certificationIds = [],
+}) {
   return prisma.$transaction(async (tx) => {
     const userCreateData = {
       email: normalizedEmail,
@@ -469,6 +493,18 @@ async function registerJobseeker({ jobseekerProfileData, normalizedEmail, passwo
       update: updateData,
       create: createData,
     });
+
+    if (Array.isArray(certificationIds) && certificationIds.length > 0) {
+      const insertValues = certificationIds.map((certId) =>
+        Prisma.sql`(${jobseekerProfileRecord.id}, ${certId})`
+      );
+
+      await tx.$executeRaw`
+        INSERT INTO public.jobseekerprofile_certifications (jobseekerprofile_id, certification_id)
+        VALUES ${Prisma.join(insertValues)}
+        ON CONFLICT DO NOTHING;
+      `;
+    }
 
     return {
       user: newUser,
