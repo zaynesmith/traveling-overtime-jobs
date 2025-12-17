@@ -16,6 +16,19 @@ function formatCityState(job) {
   return parts.join(", ");
 }
 
+function formatPostedDate(dateValue) {
+  if (!dateValue) return null;
+
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date.toLocaleDateString("en-US", {
+    month: "numeric",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export default function Jobs() {
   const router = useRouter();
   const {
@@ -134,6 +147,7 @@ export default function Jobs() {
               {jobs.map((job) => {
                 const cityState =
                   formatCityState(job) || job.location || job.zip || "Location TBD";
+                const postedDate = formatPostedDate(job.posted_at);
 
                 return (
                   <article key={job.id} className={listingCardClasses}>
@@ -145,6 +159,9 @@ export default function Jobs() {
                         {normalizeTrade(job.trade) || "General"}
                       </p>
                       <p className="text-sm text-slate-600">{cityState}</p>
+                      {postedDate ? (
+                        <p className="text-xs text-slate-500">Posted: {postedDate}</p>
+                      ) : null}
                     </header>
 
                     <dl className="mt-4 grid gap-4 sm:grid-cols-2">
