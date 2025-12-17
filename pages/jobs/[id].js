@@ -25,6 +25,19 @@ function formatJobHighlights(job) {
   return [tradeName, hourly, perDiem].join(" • ");
 }
 
+function formatPostedDate(dateValue) {
+  if (!dateValue) return null;
+
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date.toLocaleDateString("en-US", {
+    month: "numeric",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export default function JobDetails({ job }) {
   const { data: session } = useSession();
   const [status, setStatus] = useState(null);
@@ -90,6 +103,7 @@ export default function JobDetails({ job }) {
   const canApply = isJobseeker;
   const disableApplyButton = submitting || hasApplied;
   const listingLocation = formatJobLocation(job) || job.employerLocation || "Location TBD";
+  const postedDate = formatPostedDate(job.posted_at);
   const requirementsText =
     job.additional_requirements ||
     job.requirements ||
@@ -133,6 +147,9 @@ export default function JobDetails({ job }) {
               {job.employerName || "Private listing"}
             </p>
             <p className="mt-2 text-sm text-slate-500">{listingLocation}</p>
+            {postedDate ? (
+              <p className="mt-2 text-xs text-slate-500">Posted: {postedDate}</p>
+            ) : null}
             <p className="mt-4 text-base font-medium text-slate-600">
               {jobHighlights}
             </p>
