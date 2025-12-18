@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
@@ -35,6 +36,16 @@ function DashboardCard({ href, title, description, children, cta = "Open" }) {
 }
 
 export default function JobseekerDashboard({ greetingName }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-slate-100" />;
+  }
+
   const heading = greetingName ? `Welcome back, ${greetingName}` : "Welcome back";
 
   return (
