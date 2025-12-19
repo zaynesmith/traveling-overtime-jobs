@@ -551,7 +551,12 @@ export default function JobseekerRegisterPage() {
         </p>
         <label className="form-label">
           Resume (optional)
-          <input type="file" className="form-input" onChange={handleResumeChange} />
+          <input
+            type="file"
+            accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
+            className="form-input"
+            onChange={handleResumeChange}
+          />
           {resumeName ? <span className="form-hint">Selected: {resumeName}</span> : null}
         </label>
         {error ? <p className="form-error">{error}</p> : null}

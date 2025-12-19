@@ -357,6 +357,7 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
 
               <input
                 type="file"
+                accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
                 multiple
                 onChange={handleCertFileSelect}
                 className="block w-full text-sm text-slate-600 file:mr-4 file:rounded-xl file:border-0 file:bg-sky-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-sky-500"
