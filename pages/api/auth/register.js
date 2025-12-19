@@ -623,6 +623,11 @@ export function buildJobseekerProfile(payload, email) {
   const state = stateInput ? normalizeStateCode(stateInput) || stateInput : null;
   const zip = sanitize(payload.zip ?? payload.zipCode);
   const resumeUrl = sanitize(payload.resumeUrl ?? payload.resumeURL);
+  const emailJobAlertsInput = payload.email_job_alerts;
+  const emailJobAlerts =
+    emailJobAlertsInput === undefined
+      ? true
+      : emailJobAlertsInput === true || emailJobAlertsInput === "true" || emailJobAlertsInput === 1;
 
   const profile = {
     email,
@@ -635,6 +640,7 @@ export function buildJobseekerProfile(payload, email) {
     trade,
     hasJourneymanLicense,
     licensedStates,
+    email_job_alerts: emailJobAlerts,
   };
 
   const optionalFields = {
