@@ -496,7 +496,7 @@ async function registerJobseeker({
 
     if (Array.isArray(certificationIds) && certificationIds.length > 0) {
       const insertValues = certificationIds.map((certId) =>
-        Prisma.sql`(${jobseekerProfileRecord.id}, ${certId})`
+        Prisma.sql`(${jobseekerProfileRecord.id}::uuid, ${certId}::uuid)`
       );
 
       await tx.$executeRaw`
