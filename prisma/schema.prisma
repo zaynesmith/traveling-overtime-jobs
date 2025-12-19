@@ -77,6 +77,9 @@ model JobseekerProfile {
   lastBump             DateTime?          @db.Timestamp(6)
   last_bump            DateTime?          @db.Timestamp(6)
   email_job_alerts     Boolean?           @default(false)
+  /// SQL migration (not run here):
+  /// ALTER TABLE public.jobseekerprofile ADD COLUMN last_job_alert_sent_at timestamptz NULL;
+  last_job_alert_sent_at DateTime?        @db.Timestamptz(6)
   lat                  Float?
   lon                  Float?
   applications         applications[]
