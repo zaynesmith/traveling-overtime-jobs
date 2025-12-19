@@ -28,9 +28,11 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
   const [form, setForm] = useState(preferences);
   const [profileForm, setProfileForm] = useState(profile);
   const [message, setMessage] = useState(null);
+  const [preferencesError, setPreferencesError] = useState(null);
   const [profileMessage, setProfileMessage] = useState(null);
   const [profileError, setProfileError] = useState(null);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPreferences, setSavingPreferences] = useState(false);
   const [pendingUploads, setPendingUploads] = useState([]);
   const [bumpState, setBumpState] = useState({ status: null, message: null });
   const [bumping, setBumping] = useState(false);
@@ -41,9 +43,34 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
     setForm((current) => ({ ...current, [name]: checked }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    setMessage("Settings saved (demo)");
+    setMessage(null);
+    setPreferencesError(null);
+    setSavingPreferences(true);
+
+    try {
+      const response = await fetch("/api/profile/jobseeker", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile: { email_job_alerts: form.emailAlerts === true },
+        }),
+      });
+
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Unable to update preferences");
+      }
+
+      setMessage("Settings saved.");
+    } catch (error) {
+      console.error(error);
+      setPreferencesError(error.message || "Unable to update preferences");
+    } finally {
+      setSavingPreferences(false);
+    }
   };
 
   const handleProfileInputChange = (event) => {
@@ -428,11 +455,18 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
               </label>
             </fieldset>
 
+            {preferencesError ? (
+              <p className="text-sm font-medium text-rose-600">{preferencesError}</p>
+            ) : null}
             {message ? <p className="text-sm font-medium text-emerald-600">{message}</p> : null}
 
             <div className="flex justify-end gap-3">
-              <button type="submit" className="rounded-xl bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500">
-                Save preferences
+              <button
+                type="submit"
+                disabled={savingPreferences}
+                className="rounded-xl bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {savingPreferences ? "Saving..." : "Save preferences"}
               </button>
             </div>
           </form>
@@ -485,7 +519,7 @@ export async function getServerSideProps(context) {
     return {
       props: {
         preferences: {
-          emailAlerts: true,
+          emailAlerts: jobseekerProfile?.email_job_alerts === true,
           smsAlerts: false,
           showProfile: true,
           shareResume: true,
@@ -498,7 +532,7 @@ export async function getServerSideProps(context) {
     return {
       props: {
         preferences: {
-          emailAlerts: true,
+          emailAlerts: false,
           smsAlerts: false,
           showProfile: true,
           shareResume: true,
