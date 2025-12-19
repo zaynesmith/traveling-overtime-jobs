@@ -76,6 +76,7 @@ model JobseekerProfile {
   certFiles            String[]
   lastBump             DateTime?          @db.Timestamp(6)
   last_bump            DateTime?          @db.Timestamp(6)
+  email_job_alerts     Boolean?           @default(false)
   lat                  Float?
   lon                  Float?
   applications         applications[]

@@ -98,6 +98,10 @@ export default async function handler(req, res) {
       updateData.licensedStates = normalizeLicensedStatesInput(profile.licensedStates);
     }
 
+    if (Object.prototype.hasOwnProperty.call(profile, "email_job_alerts")) {
+      updateData.email_job_alerts = profile.email_job_alerts === true;
+    }
+
     const supabase = getSupabaseServiceClient();
 
     const existingCertFiles = Array.isArray(jobseekerProfile.certFiles)
