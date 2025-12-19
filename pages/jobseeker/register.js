@@ -22,6 +22,7 @@ const initialForm = {
   trade: "",
   hasJourneymanLicense: "no",
   licensedStates: [],
+  emailJobAlerts: true,
 };
 
 function normalizeLicensedStates(value) {
@@ -211,6 +212,11 @@ export default function JobseekerRegisterPage() {
     updateForm((prev) => ({ ...prev, licensedStates: selected }));
   };
 
+  const updateEmailJobAlerts = (event) => {
+    const { checked } = event.target;
+    updateForm((prev) => ({ ...prev, emailJobAlerts: checked }));
+  };
+
   const toggleCertificationSelection = (certId) => {
     setCertificationIds((current) => {
       if (current.includes(certId)) {
@@ -283,6 +289,7 @@ export default function JobseekerRegisterPage() {
           licensedStates,
           certificationIds,
           resume: resumePayload,
+          email_job_alerts: form.emailJobAlerts === false ? false : true,
         }),
       });
 
@@ -468,6 +475,14 @@ export default function JobseekerRegisterPage() {
               </option>
             ))}
           </select>
+        </label>
+        <label className="form-label inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+          <input
+            type="checkbox"
+            checked={form.emailJobAlerts}
+            onChange={updateEmailJobAlerts}
+          />
+          <span>Email me new jobs that match my trade</span>
         </label>
         <div className="form-label">
           <p className="font-semibold">Certifications (optional)</p>
