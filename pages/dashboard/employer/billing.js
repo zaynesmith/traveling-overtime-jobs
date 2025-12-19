@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 
@@ -24,6 +25,8 @@ const plans = [
 ];
 
 export default function BillingPage({ employerProfile }) {
+  const [portalError, setPortalError] = useState(null);
+
   async function startCheckout(plan) {
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
@@ -32,6 +35,27 @@ export default function BillingPage({ employerProfile }) {
     });
     const data = await res.json();
     if (data.url) window.location.href = data.url;
+  }
+
+  async function openCustomerPortal() {
+    setPortalError(null);
+
+    try {
+      const res = await fetch("/api/stripe/customer-portal", {
+        method: "POST",
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      setPortalError(data?.error || "Unable to open billing portal.");
+    } catch (error) {
+      setPortalError("Unable to open billing portal.");
+    }
   }
 
   const { plan, isSubscribed } = employerProfile || {};
@@ -63,10 +87,16 @@ export default function BillingPage({ employerProfile }) {
               <p className="text-sm text-slate-600 capitalize">Status: {isSubscribed ? "Active" : "Inactive"}</p>
               <p className="text-sm text-slate-600">Upgrade to the paid plan to unlock full access.</p>
             </div>
-            <button className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500">
+            <button
+              onClick={openCustomerPortal}
+              className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
+            >
               Update payment method
             </button>
           </div>
+          {portalError ? (
+            <p className="mt-3 text-sm text-red-600">{portalError}</p>
+          ) : null}
         </section>
 
         <section className="space-y-4">
