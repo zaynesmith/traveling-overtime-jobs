@@ -32,7 +32,6 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
   const [profileMessage, setProfileMessage] = useState(null);
   const [profileError, setProfileError] = useState(null);
   const [savingProfile, setSavingProfile] = useState(false);
-  const [deletingResume, setDeletingResume] = useState(false);
   const [savingPreferences, setSavingPreferences] = useState(false);
   const [pendingUploads, setPendingUploads] = useState([]);
   const [bumpState, setBumpState] = useState({ status: null, message: null });
@@ -275,37 +274,8 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
     }
   };
 
-  const handleResumeDelete = async () => {
-    if (!profileForm.resumeUrl) return;
-    setProfileMessage(null);
-    setProfileError(null);
-    setDeletingResume(true);
-
-    try {
-      const response = await fetch("/api/profile/jobseeker", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile: { resumeUrl: null } }),
-      });
-
-      const payload = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error(payload?.error || "Unable to delete resume");
-      }
-
-      setProfileForm((current) => ({ ...current, resumeUrl: null }));
-      setResumeFile(null);
-      setResumeName("");
-      setProfileMessage("Resume deleted.");
-    } catch (error) {
-      console.error(error);
-      setProfileError(error.message || "Unable to delete resume");
-    } finally {
-      setDeletingResume(false);
-    }
-  };
-
   const zipSuggestionLocation = formatZipSuggestionLocation(zipFeedback?.suggestion);
+  const resumeButtonLabel = profileForm.resumeUrl ? "Replace/Update resume" : "Choose File";
 
   return (
     <main className="bg-slate-50 py-12">
@@ -482,14 +452,6 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
                   <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
                     Resume uploaded
                   </span>
-                  <button
-                    type="button"
-                    onClick={handleResumeDelete}
-                    disabled={deletingResume || savingProfile}
-                    className="text-xs font-semibold text-rose-600 hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {deletingResume ? "Deleting..." : "Delete resume"}
-                  </button>
                 </div>
               ) : (
                 <p className="text-sm text-slate-500">No resume uploaded yet.</p>
@@ -501,7 +463,12 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
                 type="file"
                 accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
                 onChange={handleResumeSelect}
-                className="block w-full text-sm text-slate-600 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"
+                aria-label={resumeButtonLabel}
+                className={`block w-full text-sm text-slate-600 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800 ${
+                  profileForm.resumeUrl
+                    ? "file:[content:'Replace/Update_resume']"
+                    : "file:[content:'Choose_File']"
+                }`}
               />
             </div>
 
