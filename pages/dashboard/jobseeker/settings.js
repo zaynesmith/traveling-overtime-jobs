@@ -32,11 +32,14 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
   const [profileMessage, setProfileMessage] = useState(null);
   const [profileError, setProfileError] = useState(null);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [deletingResume, setDeletingResume] = useState(false);
   const [savingPreferences, setSavingPreferences] = useState(false);
   const [pendingUploads, setPendingUploads] = useState([]);
   const [bumpState, setBumpState] = useState({ status: null, message: null });
   const [bumping, setBumping] = useState(false);
   const [zipFeedback, setZipFeedback] = useState(null);
+  const [resumeFile, setResumeFile] = useState(null);
+  const [resumeName, setResumeName] = useState("");
 
   const handleChange = (event) => {
     const { name, checked } = event.target;
@@ -101,6 +104,14 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
     event.target.value = "";
   };
 
+  const handleResumeSelect = (event) => {
+    const [file] = Array.from(event.target.files || []);
+    if (!file) return;
+    setResumeFile(file);
+    setResumeName(file.name);
+    event.target.value = "";
+  };
+
   const pendingUploadNames = useMemo(() => pendingUploads.map((file) => file.name), [pendingUploads]);
 
   const handleViewDocument = async (path) => {
@@ -145,34 +156,55 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
         }))
       );
 
+      let resumePayload = null;
+      if (resumeFile) {
+        try {
+          const base64 = await readFileAsDataUrl(resumeFile);
+          resumePayload = {
+            base64,
+            fileName: resumeFile.name,
+            fileType: resumeFile.type || "application/octet-stream",
+          };
+        } catch (fileError) {
+          console.error(fileError);
+          throw new Error("Unable to read resume file. Please try again.");
+        }
+      }
+
+      const payload = {
+        profile: {
+          phone: profileForm.phone,
+          city: profileForm.city,
+          state: profileForm.state,
+          zip: profileForm.zip,
+          certifications: profileForm.certifications,
+          certFiles: profileForm.certFiles,
+        },
+        newCertFiles: uploadsPayload,
+      };
+
+      if (resumePayload) {
+        payload.resume = resumePayload;
+      }
+
       const response = await fetch("/api/profile/jobseeker", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          profile: {
-            phone: profileForm.phone,
-            city: profileForm.city,
-            state: profileForm.state,
-            zip: profileForm.zip,
-            certifications: profileForm.certifications,
-            certFiles: profileForm.certFiles,
-          },
-          newCertFiles: uploadsPayload,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      let payload = null;
+      let responsePayload = null;
       try {
-        payload = await response.json();
+        responsePayload = await response.json();
       } catch (parseError) {
-        payload = null;
+        responsePayload = null;
       }
 
       if (!response.ok) {
-        if (payload?.error === "Invalid ZIP") {
-          const suggestion = payload?.suggestion || null;
+        if (responsePayload?.error === "Invalid ZIP") {
+          const suggestion = responsePayload?.suggestion || null;
           const messageText =
-            payload?.message || formatZipSuggestionMessage(suggestion);
+            responsePayload?.message || formatZipSuggestionMessage(suggestion);
           setZipFeedback({
             type: suggestion ? "suggestion" : "error",
             message: messageText,
@@ -184,16 +216,19 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
           return;
         }
 
-        throw new Error(payload?.error || "Unable to update profile information");
+        throw new Error(responsePayload?.error || "Unable to update profile information");
       }
 
-      const data = payload || {};
+      const data = responsePayload || {};
 
       setProfileForm((current) => ({
         ...current,
         certFiles: Array.isArray(data.certFiles) ? data.certFiles : current.certFiles,
+        resumeUrl: data.resumeUrl !== undefined ? data.resumeUrl : current.resumeUrl,
       }));
       setPendingUploads([]);
+      setResumeFile(null);
+      setResumeName("");
       setProfileMessage("Profile information updated.");
     } catch (error) {
       console.error(error);
@@ -237,6 +272,36 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
       setBumpState({ status: "error", message: error.message || "Unable to bump resume" });
     } finally {
       setBumping(false);
+    }
+  };
+
+  const handleResumeDelete = async () => {
+    if (!profileForm.resumeUrl) return;
+    setProfileMessage(null);
+    setProfileError(null);
+    setDeletingResume(true);
+
+    try {
+      const response = await fetch("/api/profile/jobseeker", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile: { resumeUrl: null } }),
+      });
+
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error || "Unable to delete resume");
+      }
+
+      setProfileForm((current) => ({ ...current, resumeUrl: null }));
+      setResumeFile(null);
+      setResumeName("");
+      setProfileMessage("Resume deleted.");
+    } catch (error) {
+      console.error(error);
+      setProfileError(error.message || "Unable to delete resume");
+    } finally {
+      setDeletingResume(false);
     }
   };
 
@@ -391,6 +456,55 @@ export default function JobseekerSettingsPage({ preferences, profile }) {
               />
             </div>
 
+            <div className="space-y-3 rounded-xl border border-slate-200 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">Resume</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Upload or replace your resume so employers can review your latest experience.
+                  </p>
+                </div>
+
+                {profileForm.resumeUrl ? (
+                  <a
+                    href={profileForm.resumeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-semibold text-sky-600 hover:text-sky-500"
+                  >
+                    View resume
+                  </a>
+                ) : null}
+              </div>
+
+              {profileForm.resumeUrl ? (
+                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    Resume uploaded
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleResumeDelete}
+                    disabled={deletingResume || savingProfile}
+                    className="text-xs font-semibold text-rose-600 hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {deletingResume ? "Deleting..." : "Delete resume"}
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">No resume uploaded yet.</p>
+              )}
+
+              {resumeName ? <p className="text-xs text-slate-600">Selected: {resumeName}</p> : null}
+
+              <input
+                type="file"
+                accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
+                onChange={handleResumeSelect}
+                className="block w-full text-sm text-slate-600 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"
+              />
+            </div>
+
             {profileError ? <p className="text-sm font-medium text-rose-600">{profileError}</p> : null}
             {profileMessage ? <p className="text-sm font-medium text-emerald-600">{profileMessage}</p> : null}
 
@@ -514,6 +628,7 @@ export async function getServerSideProps(context) {
       certifications: jobseekerProfile?.certifications || "",
       certFiles: Array.isArray(jobseekerProfile?.certFiles) ? jobseekerProfile.certFiles : [],
       lastBump: jobseekerProfile?.lastBump ? jobseekerProfile.lastBump.toISOString() : null,
+      resumeUrl: jobseekerProfile?.resumeUrl || null,
     };
 
     return {
@@ -546,6 +661,7 @@ export async function getServerSideProps(context) {
           certifications: "",
           certFiles: [],
           lastBump: null,
+          resumeUrl: null,
         },
       },
     };

@@ -43,6 +43,16 @@ function sanitizeStorageFileName(fileName = "") {
   return safeName.length ? safeName : `file-${Date.now()}`;
 }
 
+function getStoragePathFromPublicUrl(url, bucket) {
+  if (!url || !bucket) return null;
+  const marker = `/${bucket}/`;
+  const index = url.indexOf(marker);
+  if (index === -1) return null;
+
+  const path = url.slice(index + marker.length).split("?")[0];
+  return path || null;
+}
+
 export default async function handler(req, res) {
   if (!['POST', 'PATCH'].includes(req.method)) {
     res.setHeader("Allow", ["POST", "PATCH"]);
@@ -59,7 +69,14 @@ export default async function handler(req, res) {
 
     const jobseekerProfile = await prisma.jobseekerProfile.findUnique({
       where: { userId: session.user.id },
-      select: { id: true, certFiles: true, city: true, state: true, zip: true },
+      select: {
+        id: true,
+        certFiles: true,
+        city: true,
+        state: true,
+        zip: true,
+        resumeUrl: true,
+      },
     });
 
     if (!jobseekerProfile) {
@@ -103,6 +120,7 @@ export default async function handler(req, res) {
     }
 
     const supabase = getSupabaseServiceClient();
+    const existingResumePath = getStoragePathFromPublicUrl(jobseekerProfile.resumeUrl, "resumes");
 
     const existingCertFiles = Array.isArray(jobseekerProfile.certFiles)
       ? jobseekerProfile.certFiles.filter((value) => typeof value === "string" && value.length)
@@ -166,11 +184,22 @@ export default async function handler(req, res) {
       updateData.certFiles = combinedCertFiles;
     }
 
+    let newResumePath = null;
+    const shouldDeleteExistingResume = Object.prototype.hasOwnProperty.call(profile, "resumeUrl")
+      ? profile.resumeUrl === null || profile.resumeUrl === ""
+      : false;
+
     if (resume?.base64 && resume?.fileName) {
+      if (existingResumePath && !supabase) {
+        return res.status(503).json({ error: "Storage service unavailable for resume replacement" });
+      }
+
       const base64Data = resume.base64.split(",").pop();
       if (base64Data) {
         const buffer = Buffer.from(base64Data, "base64");
-        const filePath = `jobseeker-resumes/${jobseekerProfile.id}-${Date.now()}-${resume.fileName}`;
+        const filePath = `jobseeker-resumes/${jobseekerProfile.id}-${Date.now()}-${sanitizeStorageFileName(
+          resume.fileName
+        )}`;
         const contentType = resume.fileType || "application/octet-stream";
         if (supabase) {
           const { error: uploadError } = await supabase.storage
@@ -182,6 +211,7 @@ export default async function handler(req, res) {
           }
           const { data: publicData } = supabase.storage.from("resumes").getPublicUrl(filePath);
           updateData.resumeUrl = publicData?.publicUrl || null;
+          newResumePath = filePath;
         } else {
           updateData.resumeUrl = resume.base64;
         }
@@ -247,6 +277,30 @@ export default async function handler(req, res) {
     }
 
     const zipChanged = hasZipUpdate && finalZip !== currentZip;
+
+    let removedExistingResume = false;
+
+    if (shouldDeleteExistingResume && existingResumePath) {
+      if (!supabase) {
+        return res.status(503).json({ error: "Storage service unavailable for resume deletion" });
+      }
+
+      const { error: removeError } = await supabase.storage.from("resumes").remove([existingResumePath]);
+      if (removeError) {
+        console.error(removeError);
+        return res.status(500).json({ error: "Failed to delete resume" });
+      }
+
+      removedExistingResume = true;
+    }
+
+    if (newResumePath && existingResumePath && supabase && !removedExistingResume) {
+      const { error: removeError } = await supabase.storage.from("resumes").remove([existingResumePath]);
+      if (removeError) {
+        console.error(removeError);
+        return res.status(500).json({ error: "Failed to replace existing resume" });
+      }
+    }
 
     let updated = await prisma.jobseekerProfile.update({
       where: { id: jobseekerProfile.id },
