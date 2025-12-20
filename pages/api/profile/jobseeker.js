@@ -246,16 +246,18 @@ export default async function handler(req, res) {
       updateData.zip = finalZip;
     }
 
+    const zipChanged = hasZipUpdate && finalZip !== currentZip;
+
     let updated = await prisma.jobseekerProfile.update({
       where: { id: jobseekerProfile.id },
       data: updateData,
     });
 
-    const geo = await geocodeZip(updated?.zip);
-    if (geo) {
+    if (zipChanged) {
+      const geo = await geocodeZip(updated?.zip);
       updated = await prisma.jobseekerProfile.update({
         where: { id: jobseekerProfile.id },
-        data: { lat: geo.lat, lon: geo.lon },
+        data: { lat: geo?.lat ?? null, lon: geo?.lon ?? null },
       });
     }
 

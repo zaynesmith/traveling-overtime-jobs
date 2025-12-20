@@ -3,6 +3,7 @@ import { hash } from "bcryptjs";
 import prisma from "../../../lib/prisma";
 import { getSupabaseServiceClient } from "../../../lib/supabaseServer";
 import { normalizeStateCode } from "@/lib/constants/states";
+import { geocodeZip } from "@/lib/utils/geocode";
 import { validateZip } from "@/lib/utils/validateZip";
 
 export const config = {
@@ -470,12 +471,14 @@ async function registerJobseeker({
     });
 
     const userId = newUser.id;
+    const geo = await geocodeZip(jobseekerProfileData.zip);
     const jobseekerCreateFields = pruneUndefined({
       ...jobseekerProfileData,
       email: jobseekerProfileData.email ?? normalizedEmail,
       licensedStates: jobseekerProfileData.licensedStates ?? [],
       certFiles: jobseekerProfileData.certFiles ?? [],
       hasJourneymanLicense: Boolean(jobseekerProfileData.hasJourneymanLicense),
+      ...(geo ? { lat: geo.lat, lon: geo.lon } : {}),
     });
 
     const createData = {
@@ -486,6 +489,7 @@ async function registerJobseeker({
     const updateData = pruneUndefined({
       ...jobseekerProfileData,
       email: jobseekerProfileData.email ?? normalizedEmail,
+      ...(geo ? { lat: geo.lat, lon: geo.lon } : {}),
     });
 
     const jobseekerProfileRecord = await tx.jobseekerProfile.upsert({
