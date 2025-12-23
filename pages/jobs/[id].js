@@ -101,6 +101,7 @@ export default function JobDetails({ job }) {
 
   const isJobseeker = session?.user?.role === "jobseeker";
   const canApply = isJobseeker;
+  const isAdminSeeded = job?.is_admin_seeded === true;
   const disableApplyButton = submitting || hasApplied;
   const listingLocation = formatJobLocation(job) || job.employerLocation || "Location TBD";
   const postedDate = formatPostedDate(job.posted_at);
@@ -204,20 +205,28 @@ export default function JobDetails({ job }) {
               </div>
             ) : null}
             {canApply ? (
-              <>
-                <TurnstileWidget ref={turnstileRef} siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} />
-                <button
-                  onClick={handleApply}
-                  disabled={disableApplyButton}
-                  className="w-full max-w-md rounded-full bg-sky-600 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {submitting
-                    ? "Sending application…"
-                    : hasApplied
-                    ? "Application submitted"
-                    : "Apply Now"}
-                </button>
-              </>
+              isAdminSeeded ? (
+                <p className="w-full max-w-md text-center text-sm text-slate-600">
+                  This job was created by a TravelingOvertimeJobs.com administrator.
+                  <br />
+                  To apply, contact the employer using the information listed in the description.
+                </p>
+              ) : (
+                <>
+                  <TurnstileWidget ref={turnstileRef} siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} />
+                  <button
+                    onClick={handleApply}
+                    disabled={disableApplyButton}
+                    className="w-full max-w-md rounded-full bg-sky-600 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {submitting
+                      ? "Sending application…"
+                      : hasApplied
+                      ? "Application submitted"
+                      : "Apply Now"}
+                  </button>
+                </>
+              )
             ) : (
               <Link
                 href="/jobseeker/login"
@@ -266,6 +275,7 @@ export async function getServerSideProps({ params }) {
       props: {
         job: {
           ...JSON.parse(JSON.stringify(job)),
+          is_admin_seeded: job.is_admin_seeded ?? false,
           trade: normalizeTrade(job.trade),
           employerName: job.employerprofile?.companyName || null,
           employerLocation: employerLocation || null,

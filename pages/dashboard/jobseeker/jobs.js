@@ -230,6 +230,7 @@ export async function getServerSideProps(context) {
           zip: job.zip,
           hourly_pay: job.hourly_pay,
           per_diem: job.per_diem,
+          is_admin_seeded: job.is_admin_seeded ?? false,
           distance: job.distance ?? null,
         }))
       : [];

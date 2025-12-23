@@ -182,6 +182,7 @@ export default async function handler(req, res) {
 
     const normalizedJobs = jobs.map((job) => ({
       ...job,
+      is_admin_seeded: job.is_admin_seeded ?? false,
       trade: normalizeTrade(job.trade),
     }));
 
