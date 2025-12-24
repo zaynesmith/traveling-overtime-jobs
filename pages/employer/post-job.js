@@ -11,7 +11,7 @@ import prisma from "@/lib/prisma";
 
 const blankJob = {
   title: "",
-  trade: "",
+  trades: [],
   description: "",
   city: "",
   state: "",
@@ -80,7 +80,12 @@ export default function PostJobPage({ jobId, contactDetails, isSubscribed }) {
           setForm({
             ...blankJob,
             title: data.title || "",
-            trade: data.trade || "",
+            trades:
+              Array.isArray(data.trades) && data.trades.length
+                ? data.trades
+                : data.trade
+                ? [data.trade]
+                : [],
             description: data.description || "",
             city: data.city || "",
             state: data.state || "",
@@ -111,6 +116,16 @@ export default function PostJobPage({ jobId, contactDetails, isSubscribed }) {
     if (name === "zip" || name === "city" || name === "state") {
       setZipFeedback(null);
     }
+    if (name === "trades") {
+      const selectedTrades = Array.from(event.target.selectedOptions)
+        .map((option) => option.value)
+        .filter(Boolean);
+      setForm((current) => ({
+        ...current,
+        trades: selectedTrades,
+      }));
+      return;
+    }
     setForm((current) => ({
       ...current,
       [name]: type === "checkbox" ? checked : value,
@@ -132,7 +147,8 @@ export default function PostJobPage({ jobId, contactDetails, isSubscribed }) {
     try {
       const payload = {
         title: form.title.trim(),
-        trade: form.trade,
+        trade: form.trades[0] || null,
+        trades: form.trades,
         description: form.description,
         city: form.city,
         state: form.state,
@@ -241,15 +257,15 @@ export default function PostJobPage({ jobId, contactDetails, isSubscribed }) {
                 />
               </Field>
 
-              <Field label="Trade" htmlFor="trade">
+              <Field label="Trade" htmlFor="trades">
                 <select
-                  id="trade"
-                  name="trade"
-                  value={form.trade}
+                  id="trades"
+                  name="trades"
+                  multiple
+                  value={form.trades}
                   onChange={handleChange}
                   className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
                 >
-                  <option value="">Select trade</option>
                   {TRADES.map((trade) => (
                     <option key={trade} value={trade}>
                       {trade}

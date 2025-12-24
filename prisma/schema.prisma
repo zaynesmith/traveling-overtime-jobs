@@ -108,7 +108,8 @@ model jobs {
   employer_id             String?          @db.Uuid
   title                   String
   description             String?
-  trade                   String?
+  trade                   String
+  trades                  String[]         @default([])
   location                String?
   zip                     String?
   hourly_pay              String?
