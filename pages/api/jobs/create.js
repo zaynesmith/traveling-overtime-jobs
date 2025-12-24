@@ -30,6 +30,7 @@ export default async function handler(req, res) {
     const {
       title,
       trade,
+      trades,
       description,
       city,
       state,
@@ -47,7 +48,14 @@ export default async function handler(req, res) {
     const trimmedZip = typeof zip === "string" ? zip.trim() : zip;
     const normalizedState = normalizeStateCode(trimmedState) || null;
 
-    if (!title || !trade || !description) {
+    const normalizedTradesInput = Array.isArray(trades) ? trades : [];
+    const normalizedTrades = (normalizedTradesInput.length ? normalizedTradesInput : [trade])
+      .map((value) => (typeof value === "string" ? value.trim() : ""))
+      .filter(Boolean)
+      .map((value) => normalizeTrade(value));
+    const primaryTrade = normalizedTrades[0] || null;
+
+    if (!title || !primaryTrade || !description) {
       return res.status(400).json({ error: "Title, trade, and description are required." });
     }
 
@@ -74,12 +82,12 @@ export default async function handler(req, res) {
     const finalState = normalizedState || resolvedState || null;
 
     const combinedLocation = [finalCity, finalState].filter(Boolean).join(", ");
-    const normalizedTrade = normalizeTrade(trade);
 
     const job = await prisma.jobs.create({
       data: {
         title,
-        trade: normalizedTrade,
+        trade: primaryTrade,
+        trades: normalizedTrades,
         description,
         location: combinedLocation || null,
         city: finalCity,

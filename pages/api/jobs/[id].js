@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import { normalizeStateCode } from "@/lib/constants/states";
+import { normalizeTrade } from "@/lib/trades";
 import { geocodeZip } from "@/lib/utils/geocode";
 import { validateZip } from "@/lib/utils/validateZip";
 
@@ -43,6 +44,7 @@ export default async function handler(req, res) {
       id: job.id,
       title: job.title,
       trade: job.trade,
+      trades: job.trades,
       description: job.description,
       city: job.city,
       state: job.state,
@@ -101,11 +103,28 @@ export default async function handler(req, res) {
 
       const geo = finalZip ? await geocodeZip(finalZip) : null;
 
+      const payloadTrades = Array.isArray(payload.trades) ? payload.trades : null;
+      const hasTrade = Object.prototype.hasOwnProperty.call(payload, "trade");
+      const hasTrades = Object.prototype.hasOwnProperty.call(payload, "trades");
+
+      const normalizedTrades = (payloadTrades && payloadTrades.length
+        ? payloadTrades
+        : hasTrade
+        ? [payload.trade]
+        : job.trades
+      )
+        .map((value) => (typeof value === "string" ? value.trim() : ""))
+        .filter(Boolean)
+        .map((value) => normalizeTrade(value));
+
+      const primaryTrade = normalizedTrades[0] || job.trade;
+
       const updated = await prisma.jobs.update({
         where: { id: jobId },
         data: {
           title: payload.title ?? job.title,
-          trade: payload.trade ?? job.trade,
+          trade: primaryTrade,
+          ...(hasTrades || hasTrade ? { trades: normalizedTrades } : {}),
           description: payload.description ?? job.description,
           city: finalCity,
           state: finalState,
