@@ -103,6 +103,11 @@ export default function JobDetails({ job }) {
   const canApply = isJobseeker;
   const isAdminSeeded = job?.is_admin_seeded === true;
   const disableApplyButton = submitting || hasApplied;
+  const callbackUrl = `/jobs/${job.id}`;
+  const loginHref = {
+    pathname: "/jobseeker/login",
+    query: { callbackUrl },
+  };
   const listingLocation = formatJobLocation(job) || job.employerLocation || "Location TBD";
   const postedDate = formatPostedDate(job.posted_at);
   const requirementsText =
@@ -229,8 +234,8 @@ export default function JobDetails({ job }) {
               )
             ) : (
               <Link
-                href="/jobseeker/login"
-                className="w-full max-w-md text-center text-sm text-slate-500"
+                href={loginHref}
+                className="w-full max-w-md rounded-full bg-sky-600 px-6 py-3 text-center text-base font-semibold text-white shadow-lg transition hover:bg-sky-500"
               >
                 Sign in as a jobseeker to apply for this position.
               </Link>
