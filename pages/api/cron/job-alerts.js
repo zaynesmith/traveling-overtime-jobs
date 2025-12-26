@@ -87,7 +87,7 @@ export default async function handler(req, res) {
         },
       });
 
-      if (newJobsCount < 5) {
+      if (newJobsCount < 1) {
         continue;
       }
 
