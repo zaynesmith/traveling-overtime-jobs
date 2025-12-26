@@ -37,16 +37,27 @@ export default async function handler(req, res) {
 
   const passwordHash = await hash(password, 12);
 
-  await prisma.$transaction([
-    prisma.user.update({
+  const tokenConsumed = await prisma.$transaction(async (tx) => {
+    const tokenUpdate = await tx.passwordResetToken.updateMany({
+      where: { id: resetToken.id, usedAt: null },
+      data: { usedAt: now },
+    });
+
+    if (tokenUpdate.count === 0) {
+      return false;
+    }
+
+    await tx.user.update({
       where: { id: resetToken.userId },
       data: { passwordHash },
-    }),
-    prisma.passwordResetToken.update({
-      where: { id: resetToken.id },
-      data: { usedAt: now },
-    }),
-  ]);
+    });
+
+    return true;
+  });
+
+  if (!tokenConsumed) {
+    return res.status(400).json({ error: "Invalid or expired reset link." });
+  }
 
   return res.status(200).json({ message: "Password reset successful." });
 }

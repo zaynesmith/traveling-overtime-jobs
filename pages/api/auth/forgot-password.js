@@ -9,9 +9,11 @@ function normalizeRole(role) {
 }
 
 function buildResetUrl(req, token, role) {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    `${req.headers["x-forwarded-proto"] || "http"}://${req.headers.host}`;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+  if (!baseUrl) {
+    console.warn("APP_URL not configured");
+    return null;
+  }
   const resetUrl = new URL("/reset-password", baseUrl);
   resetUrl.searchParams.set("token", token);
   if (role) {
@@ -51,6 +53,9 @@ export default async function handler(req, res) {
       });
 
       const resetUrl = buildResetUrl(req, rawToken, normalizedRole);
+      if (!resetUrl) {
+        return res.status(200).json({ message: GENERIC_MESSAGE });
+      }
       const subject = "Reset your Traveling Overtime Jobs password";
       const text = `We received a request to reset your Traveling Overtime Jobs password.\n\nReset your password: ${resetUrl}\n\nThis link expires in 1 hour.`;
       const html = `
