@@ -93,6 +93,9 @@ export default function EmployerLoginPage() {
       <p className="form-footer-link">
         New here? <Link href="/employer/register">Create an Employer Profile</Link>
       </p>
+      <p className="form-footer-link">
+        <Link href="/forgot-password?role=employer">Forgot password?</Link>
+      </p>
     </main>
   );
 }
