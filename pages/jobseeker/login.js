@@ -93,6 +93,9 @@ export default function JobseekerLoginPage() {
       <p className="form-footer-link">
         New here? <Link href="/jobseeker/register">Create a Jobseeker Profile</Link>
       </p>
+      <p className="form-footer-link">
+        <Link href="/forgot-password?role=jobseeker">Forgot password?</Link>
+      </p>
     </main>
   );
 }
