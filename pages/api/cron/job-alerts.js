@@ -23,8 +23,8 @@ function formatDate(date) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", ["POST"]);
+  if (!["GET", "POST"].includes(req.method)) {
+    res.setHeader("Allow", ["GET", "POST"]);
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
