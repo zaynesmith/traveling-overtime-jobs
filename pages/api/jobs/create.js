@@ -18,6 +18,13 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: "Employer authentication required" });
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { is_admin: true },
+    });
+
+    const isAdminSeeded = user?.is_admin === true;
+
     const employerProfile = await prisma.employerProfile.findUnique({
       where: { userId: session.user.id },
       select: { id: true },
@@ -100,6 +107,7 @@ export default async function handler(req, res) {
         showFirstName: Boolean(showFirstName),
         showEmail: Boolean(showEmail),
         showPhone: Boolean(showPhone),
+        ...(isAdminSeeded ? { is_admin_seeded: true } : {}),
       },
     });
 
