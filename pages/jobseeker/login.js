@@ -7,6 +7,8 @@ import TurnstileWidget from "@/components/TurnstileWidget";
 export default function JobseekerLoginPage() {
   const router = useRouter();
   const { data: session } = useSession();
+  const callbackUrl =
+    typeof router.query.callbackUrl === "string" ? router.query.callbackUrl : null;
   const [form, setForm] = useState({ email: "", password: "" });
   const turnstileRef = useRef(null);
   const [error, setError] = useState(null);
@@ -39,6 +41,7 @@ export default function JobseekerLoginPage() {
 
     const result = await signIn("credentials", {
       redirect: false,
+      callbackUrl: callbackUrl || undefined,
       email: form.email,
       password: form.password,
       turnstileToken,
@@ -54,7 +57,7 @@ export default function JobseekerLoginPage() {
       return;
     }
 
-    router.push("/jobseeker/dashboard");
+    router.push(callbackUrl || "/jobseeker/dashboard");
     turnstileRef.current?.reset?.();
   }
 
@@ -91,7 +94,16 @@ export default function JobseekerLoginPage() {
         </button>
       </form>
       <p className="form-footer-link">
-        New here? <Link href="/jobseeker/register">Create a Jobseeker Profile</Link>
+        New here?{" "}
+        <Link
+          href={
+            callbackUrl
+              ? { pathname: "/jobseeker/register", query: { callbackUrl } }
+              : "/jobseeker/register"
+          }
+        >
+          Create a Jobseeker Profile
+        </Link>
       </p>
       <p className="form-footer-link">
         <Link href="/forgot-password?role=jobseeker">Forgot password?</Link>

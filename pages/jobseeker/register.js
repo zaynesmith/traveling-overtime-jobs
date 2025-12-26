@@ -47,6 +47,8 @@ function normalizeLicensedStates(value) {
 export default function JobseekerRegisterPage() {
   const router = useRouter();
   const { data: session } = useSession();
+  const callbackUrl =
+    typeof router.query.callbackUrl === "string" ? router.query.callbackUrl : null;
   const [form, setFormState] = useState(() => ({
     ...initialForm,
     licensedStates: normalizeLicensedStates(initialForm.licensedStates),
@@ -325,9 +327,10 @@ export default function JobseekerRegisterPage() {
         throw new Error("Account created, but sign in failed. Try logging in manually.");
       }
 
+      const redirectTo = callbackUrl || "/dashboard/jobseeker";
       const loginResult = await signIn("credentials", {
         redirect: true,
-        callbackUrl: "/dashboard/jobseeker",
+        callbackUrl: redirectTo,
         email: form.email,
         password: form.password,
         turnstileToken: loginTurnstileToken,
@@ -337,7 +340,7 @@ export default function JobseekerRegisterPage() {
         throw new Error("Account created, but sign in failed. Try logging in manually.");
       }
 
-      router.push("/dashboard/jobseeker");
+      router.push(redirectTo);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -581,7 +584,16 @@ export default function JobseekerRegisterPage() {
         </button>
       </form>
       <p className="form-footer-link">
-        Already have an account? <Link href="/jobseeker/login">Sign in</Link>
+        Already have an account?{" "}
+        <Link
+          href={
+            callbackUrl
+              ? { pathname: "/jobseeker/login", query: { callbackUrl } }
+              : "/jobseeker/login"
+          }
+        >
+          Sign in
+        </Link>
       </p>
     </main>
   );
