@@ -73,6 +73,11 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error("Forgot password request failed.");
+    console.error("Forgot password request failed:", error?.message || error);
+    const responseStatus = error?.response?.status;
+    if (responseStatus) {
+      console.error("Forgot password request failed with status:", responseStatus);
+    }
   }
 
   return res.status(200).json({ message: GENERIC_MESSAGE });
