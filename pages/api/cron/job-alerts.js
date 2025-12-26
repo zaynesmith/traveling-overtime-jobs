@@ -28,8 +28,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  const secret = req.headers["x-cron-secret"];
-  if (!secret || secret !== process.env.CRON_SECRET) {
+  const headerSecret = req.headers["x-cron-secret"];
+  const bearerSecret = req.headers["authorization"];
+  const isAuthorized =
+    headerSecret === process.env.CRON_SECRET ||
+    bearerSecret === `Bearer ${process.env.CRON_SECRET}`;
+  if (!isAuthorized) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
