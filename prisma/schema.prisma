@@ -139,6 +139,7 @@ model jobs {
   lon                     Float?
   show_email              Boolean?         @default(true)
   is_admin_seeded         Boolean          @default(false)
+  isAdmin                 Boolean          @default(false) @map("is_admin")
   applications            applications[]
   employerprofile         EmployerProfile? @relation(fields: [employer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 

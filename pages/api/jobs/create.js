@@ -20,10 +20,10 @@ export default async function handler(req, res) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { is_admin: true },
+      select: { isAdmin: true },
     });
 
-    const isAdminSeeded = user?.is_admin === true;
+    const isAdminSeeded = user?.isAdmin === true;
 
     const employerProfile = await prisma.employerProfile.findUnique({
       where: { userId: session.user.id },
