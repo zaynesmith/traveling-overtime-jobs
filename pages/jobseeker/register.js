@@ -242,6 +242,35 @@ export default function JobseekerRegisterPage() {
       reader.readAsDataURL(file);
     });
 
+  const uploadResume = async (file) => {
+    const tempId =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const formData = new FormData();
+    formData.append("resume", file);
+    formData.append("tempId", tempId);
+
+    const response = await fetch("/api/upload/resume", {
+      method: "POST",
+      body: formData,
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      data = null;
+    }
+
+    if (!response.ok) {
+      const errorMessage = data?.error || data?.message || "Unable to upload resume.";
+      throw new Error(errorMessage);
+    }
+
+    return data?.resumeUrl || null;
+  };
+
   async function handleSubmit(event) {
     event.preventDefault();
     setLoading(true);
@@ -249,18 +278,23 @@ export default function JobseekerRegisterPage() {
     setZipFeedback(null);
 
     try {
+      let resumeUrl = null;
       let resumePayload = null;
       if (resumeFile) {
         try {
-          const base64 = await readFileAsDataUrl(resumeFile);
-          resumePayload = {
-            base64,
-            fileName: resumeFile.name,
-            fileType: resumeFile.type || "application/octet-stream",
-          };
+          if (resumeFile.size > 1.5 * 1024 * 1024) {
+            resumeUrl = await uploadResume(resumeFile);
+          } else {
+            const base64 = await readFileAsDataUrl(resumeFile);
+            resumePayload = {
+              base64,
+              fileName: resumeFile.name,
+              fileType: resumeFile.type || "application/octet-stream",
+            };
+          }
         } catch (fileError) {
           console.error(fileError);
-          throw new Error("Unable to read resume file. Please try again.");
+          throw new Error(fileError.message || "Unable to upload resume. Please try again.");
         }
       }
 
@@ -291,6 +325,7 @@ export default function JobseekerRegisterPage() {
           licensedStates,
           certificationIds,
           resume: resumePayload,
+          resumeUrl,
           email_job_alerts: form.emailJobAlerts === false ? false : true,
         }),
       });
@@ -318,7 +353,8 @@ export default function JobseekerRegisterPage() {
           return;
         }
 
-        const errorMessage = data?.error || "Unable to create jobseeker profile.";
+        const errorMessage =
+          data?.error || data?.message || "Unable to create jobseeker profile.";
         throw new Error(errorMessage);
       }
 
