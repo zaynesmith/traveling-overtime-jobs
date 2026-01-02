@@ -5,6 +5,7 @@ import { getSupabaseServiceClient } from "../../../lib/supabaseServer";
 import { normalizeStateCode } from "@/lib/constants/states";
 import { geocodeZip } from "@/lib/utils/geocode";
 import { validateZip } from "@/lib/utils/validateZip";
+import sanitizeFileName from "@/lib/utils/sanitizeFileName";
 
 export const config = {
   api: {
@@ -55,17 +56,6 @@ function sanitizeCertificationIds(input) {
     .filter(Boolean);
 
   return Array.from(new Set(normalized));
-}
-
-function sanitizeFileName(fileName) {
-  if (typeof fileName !== "string") {
-    return `resume-${Date.now()}`;
-  }
-  const trimmed = fileName.trim().replace(/[\\/]/g, "_");
-  if (!trimmed) {
-    return `resume-${Date.now()}`;
-  }
-  return trimmed.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
 async function uploadJobseekerResume(userId, resume) {
@@ -359,6 +349,7 @@ export default async function handler(req, res) {
     if (
       role === "jobseeker" &&
       createdUser?.id &&
+      !payload.resumeUrl &&
       payload.resume?.base64 &&
       payload.resume?.fileName
     ) {
