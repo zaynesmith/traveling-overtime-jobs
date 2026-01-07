@@ -45,6 +45,7 @@ export default async function handler(req, res) {
     const pagination = parsePagination(req.query);
 
     let resumes = [];
+    let totalCount = 0;
     let radiusFilterApplied = false;
 
     if (zip && distance && Number.isFinite(distance) && distance > 0) {
@@ -78,26 +79,32 @@ export default async function handler(req, res) {
               }),
           );
 
-          const filteredCandidates = await prisma.jobseekerProfile.findMany({
-            where: {
-              trade: trade ? trade.toString() : undefined,
-              state: stateFilter,
-              OR: keyword
-                ? [
-                    { firstName: { contains: keyword, mode: "insensitive" } },
-                    { lastName: { contains: keyword, mode: "insensitive" } },
-                    { city: { contains: keyword, mode: "insensitive" } },
-                    { trade: { contains: keyword, mode: "insensitive" } },
-                  ]
-                : undefined,
-              resumeUrl: {
-                not: null,
-              },
-              NOT: {
-                resumeUrl: { equals: "" },
-              },
-              id: { in: candidateIds },
+          const radiusWhere = {
+            trade: trade ? trade.toString() : undefined,
+            state: stateFilter,
+            OR: keyword
+              ? [
+                  { firstName: { contains: keyword, mode: "insensitive" } },
+                  { lastName: { contains: keyword, mode: "insensitive" } },
+                  { city: { contains: keyword, mode: "insensitive" } },
+                  { trade: { contains: keyword, mode: "insensitive" } },
+                ]
+              : undefined,
+            resumeUrl: {
+              not: null,
             },
+            NOT: {
+              resumeUrl: { equals: "" },
+            },
+            id: { in: candidateIds },
+          };
+
+          totalCount = await prisma.jobseekerProfile.count({
+            where: radiusWhere,
+          });
+
+          const filteredCandidates = await prisma.jobseekerProfile.findMany({
+            where: radiusWhere,
             select: {
               id: true,
               firstName: true,
@@ -177,6 +184,10 @@ export default async function handler(req, res) {
         queryOptions.take = pagination.take;
       }
 
+      totalCount = await prisma.jobseekerProfile.count({
+        where: fallbackWhere,
+      });
+
       resumes = await prisma.jobseekerProfile.findMany(queryOptions);
     }
 
@@ -192,12 +203,12 @@ export default async function handler(req, res) {
         phone: candidate.phone ?? null,
         lastActive: candidate.lastActive ?? null,
         resumeUrl: candidate.resumeUrl,
-        updatedAt: candidate.updated_at ?? candidate.updatedAt ?? null,
+        updatedAt: candidate.updatedAt ?? null,
         resumeUpdatedAt: candidate.resumeUpdatedAt ?? null,
         distance: candidate.distance ?? null,
       }));
 
-    res.status(200).json(normalized);
+    res.status(200).json({ candidates: normalized, totalCount });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Resume search failed" });
