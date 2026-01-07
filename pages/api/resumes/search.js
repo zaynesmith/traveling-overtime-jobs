@@ -193,7 +193,7 @@ export default async function handler(req, res) {
         lastActive: candidate.lastActive ?? null,
         resumeUrl: candidate.resumeUrl,
         updatedAt: candidate.updated_at ?? candidate.updatedAt ?? null,
-        resumeUpdatedAt: candidate.resumeUpdatedAt ?? candidate.resume_updated_at ?? null,
+        resumeUpdatedAt: candidate.resumeUpdatedAt ?? null,
         distance: candidate.distance ?? null,
       }));
 
