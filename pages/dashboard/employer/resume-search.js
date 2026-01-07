@@ -178,7 +178,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds, isSubscr
           location: locationParts.length ? locationParts.join(", ") : null,
           phone: candidate.phone,
           lastActive: candidate.lastActive,
-          resumeUpdated: candidate.updatedAt,
+          resumeUpdated: candidate.resumeUpdatedAt ?? null,
           resumeUrl: candidate.resumeUrl,
           distance: typeof candidate.distance === "number" ? candidate.distance : null,
         };

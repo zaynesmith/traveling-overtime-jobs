@@ -84,6 +84,7 @@ model JobseekerProfile {
   userId               String?            @unique(map: "jobseekerprofile_userid_key") @db.Uuid
   lastActive           DateTime?          @default(now()) @db.Timestamp(6)
   updatedAt            DateTime?          @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  resumeUpdatedAt      DateTime?          @map("resume_updated_at") @db.Timestamp(6)
   phone                String?
   hasJourneymanLicense Boolean?           @default(false)
   licensedStates       String[]

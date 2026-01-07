@@ -98,6 +98,19 @@ export default async function handler(req, res) {
               },
               id: { in: candidateIds },
             },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              trade: true,
+              city: true,
+              state: true,
+              phone: true,
+              lastActive: true,
+              resumeUrl: true,
+              updatedAt: true,
+              resumeUpdatedAt: true,
+            },
           });
 
           const candidatesById = new Map(filteredCandidates.map((candidate) => [candidate.id, candidate]));
@@ -144,6 +157,19 @@ export default async function handler(req, res) {
         orderBy: {
           updatedAt: "desc",
         },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          trade: true,
+          city: true,
+          state: true,
+          phone: true,
+          lastActive: true,
+          resumeUrl: true,
+          updatedAt: true,
+          resumeUpdatedAt: true,
+        },
       };
 
       if (pagination.shouldPaginate) {
@@ -167,6 +193,7 @@ export default async function handler(req, res) {
         lastActive: candidate.lastActive ?? null,
         resumeUrl: candidate.resumeUrl,
         updatedAt: candidate.updated_at ?? candidate.updatedAt ?? null,
+        resumeUpdatedAt: candidate.resumeUpdatedAt ?? candidate.resume_updated_at ?? null,
         distance: candidate.distance ?? null,
       }));
 
