@@ -15,6 +15,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds, isSubscr
   const PAGE_SIZE = 15;
   const [filters, setFilters] = useState({ trade: "", state: "", zip: "", radius: "50", keyword: "" });
   const [results, setResults] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [savedIds, setSavedIds] = useState(() => new Set(initialSavedIds || []));
@@ -81,7 +82,10 @@ export default function ResumeSearchPage({ employerId, initialSavedIds, isSubscr
       const response = await fetch(`/api/resumes/search?${params.toString()}`);
       if (!response.ok) throw new Error("Unable to search resumes");
       const data = await response.json();
-      setResults(Array.isArray(data) ? data : []);
+      const candidates = Array.isArray(data) ? data : data?.candidates ?? [];
+      const nextTotalCount = typeof data?.totalCount === "number" ? data.totalCount : candidates.length;
+      setResults(candidates);
+      setTotalCount(nextTotalCount);
       updateRoute(filtersToUse, targetPage);
     } catch (err) {
       console.error(err);
@@ -309,7 +313,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds, isSubscr
         {resultsWithDetails.length > 0 ? (
           <section className="space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">
-              {resultsWithDetails.length} candidate{resultsWithDetails.length === 1 ? "" : "s"} found
+              {totalCount} candidate{totalCount === 1 ? "" : "s"} found
             </h2>
             {radiusMessage ? (
               <p className="text-sm text-slate-500">{radiusMessage}</p>
