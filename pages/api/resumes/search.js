@@ -86,7 +86,7 @@ export default async function handler(req, res) {
           : Prisma.empty;
 
         try {
-          resumes = await prisma.$queryRaw`
+          const radiusResultsQuery = Prisma.sql`
             WITH distance_candidates AS (
               SELECT jsp.id,
                 earth_distance(
@@ -145,6 +145,7 @@ export default async function handler(req, res) {
               id ASC
             ${paginationSql}
           `;
+          resumes = await prisma.$queryRaw(radiusResultsQuery);
         } catch (error) {
           console.error(
             "resume search radius query failed",
@@ -157,7 +158,7 @@ export default async function handler(req, res) {
           totalCount = Number(resumes[0]?.total_count ?? 0);
         } else {
           try {
-            const countResult = await prisma.$queryRaw`
+            const radiusCountQuery = Prisma.sql`
               WITH distance_candidates AS (
                 SELECT jsp.id
                 FROM jobseekerprofile jsp
@@ -177,6 +178,7 @@ export default async function handler(req, res) {
               SELECT COUNT(*)::int AS total_count
               FROM filtered
             `;
+            const countResult = await prisma.$queryRaw(radiusCountQuery);
             totalCount = Number(countResult?.[0]?.total_count ?? 0);
           } catch (error) {
             console.error(
@@ -225,11 +227,12 @@ export default async function handler(req, res) {
         : Prisma.empty;
 
       try {
-        const countResult = await prisma.$queryRaw`
+        const fallbackCountQuery = Prisma.sql`
           SELECT COUNT(*)::int AS total_count
           FROM jobseekerprofile jsp
           ${fallbackWhereSql}
         `;
+        const countResult = await prisma.$queryRaw(fallbackCountQuery);
         totalCount = Number(countResult?.[0]?.total_count ?? 0);
       } catch (error) {
         console.error(
@@ -240,7 +243,7 @@ export default async function handler(req, res) {
       }
 
       try {
-        resumes = await prisma.$queryRaw`
+        const fallbackResultsQuery = Prisma.sql`
           SELECT
             jsp.id,
             jsp."firstName",
@@ -263,6 +266,7 @@ export default async function handler(req, res) {
           jsp.id ASC
           ${paginationSql}
         `;
+        resumes = await prisma.$queryRaw(fallbackResultsQuery);
       } catch (error) {
         console.error(
           "resume search fallback query failed",
