@@ -27,37 +27,6 @@ function parsePagination(query = {}) {
   };
 }
 
-function buildSqlFilters({ trade, stateFilter, zip, keyword, includeZip }) {
-  const filters = [];
-
-  if (trade) {
-    filters.push(Prisma.sql`jsp.trade = ${trade.toString()}`);
-  }
-
-  if (stateFilter) {
-    filters.push(Prisma.sql`jsp.state = ${stateFilter}`);
-  }
-
-  if (includeZip && zip) {
-    filters.push(Prisma.sql`jsp.zip = ${zip.toString()}`);
-  }
-
-  if (keyword) {
-    const keywordLike = `%${keyword}%`;
-    filters.push(
-      Prisma.sql`(jsp."firstName" ILIKE ${keywordLike}
-        OR jsp."lastName" ILIKE ${keywordLike}
-        OR jsp.city ILIKE ${keywordLike}
-        OR jsp.trade ILIKE ${keywordLike})`,
-    );
-  }
-
-  filters.push(Prisma.sql`jsp."resumeUrl" IS NOT NULL`);
-  filters.push(Prisma.sql`jsp."resumeUrl" <> ''`);
-
-  return filters;
-}
-
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
@@ -86,86 +55,44 @@ export default async function handler(req, res) {
       if (coordinates?.lat !== undefined && coordinates?.lon !== undefined) {
         radiusFilterApplied = true;
         const radiusMeters = distance * 1609.34;
-        const radiusFilters = buildSqlFilters({
-          trade,
-          stateFilter,
-          keyword,
-          includeZip: false,
-        });
-        const radiusWhereSql = Prisma.sql`WHERE ${Prisma.join(
-          radiusFilters,
-          Prisma.sql` AND `,
-        )}`;
+        const radiusKeywordLike = keyword ? `%${keyword}%` : null;
+        const radiusWhereClauses = [
+          Prisma.sql`jsp."resumeUrl" IS NOT NULL`,
+          Prisma.sql`jsp."resumeUrl" <> ''`,
+        ];
+
+        if (trade) {
+          radiusWhereClauses.push(Prisma.sql`jsp.trade = ${trade.toString()}`);
+        }
+
+        if (stateFilter) {
+          radiusWhereClauses.push(Prisma.sql`jsp.state = ${stateFilter}`);
+        }
+
+        if (keyword) {
+          radiusWhereClauses.push(
+            Prisma.sql`(jsp."firstName" ILIKE ${radiusKeywordLike}
+              OR jsp."lastName" ILIKE ${radiusKeywordLike}
+              OR jsp.city ILIKE ${radiusKeywordLike}
+              OR jsp.trade ILIKE ${radiusKeywordLike})`,
+          );
+        }
+        const radiusWhereSql =
+          radiusWhereClauses.length > 0
+            ? Prisma.sql`WHERE ${Prisma.join(radiusWhereClauses, Prisma.sql` AND `)}`
+            : Prisma.empty;
         const paginationSql = pagination.shouldPaginate
           ? Prisma.sql`LIMIT ${pagination.take} OFFSET ${pagination.skip}`
           : Prisma.empty;
 
-        resumes = await prisma.$queryRaw`
-          WITH distance_candidates AS (
-            SELECT jsp.id,
-              earth_distance(
-                ll_to_earth(jsp.lat, jsp.lon),
-                ll_to_earth(${coordinates.lat}, ${coordinates.lon})
-              ) AS distance
-            FROM jobseekerprofile jsp
-            WHERE jsp.lat IS NOT NULL
-              AND jsp.lon IS NOT NULL
-              AND earth_distance(
-                ll_to_earth(jsp.lat, jsp.lon),
-                ll_to_earth(${coordinates.lat}, ${coordinates.lon})
-              ) <= ${radiusMeters}
-          ),
-          filtered AS (
-            SELECT
-              jsp.id,
-              jsp."firstName",
-              jsp."lastName",
-              jsp.trade,
-              jsp.city,
-              jsp.state,
-              jsp.phone,
-              jsp."lastActive",
-              jsp."resumeUrl",
-              jsp."updated_at" AS "updatedAt",
-              jsp."resume_updated_at" AS "resumeUpdatedAt",
-              (distance_candidates.distance / 1609.34) AS distance,
-              GREATEST(
-                jsp."resume_updated_at",
-                jsp."lastBump",
-                jsp."last_bump"
-              ) AS "resumeActivityAt",
-              COUNT(*) OVER() AS total_count
-            FROM jobseekerprofile jsp
-            JOIN distance_candidates ON distance_candidates.id = jsp.id
-            ${radiusWhereSql}
-          )
-          SELECT
-            id,
-            "firstName",
-            "lastName",
-            trade,
-            city,
-            state,
-            phone,
-            "lastActive",
-            "resumeUrl",
-            "updatedAt",
-            "resumeUpdatedAt",
-            distance,
-            total_count
-          FROM filtered
-          ORDER BY "resumeActivityAt" DESC NULLS LAST,
-            distance ASC,
-            id ASC
-          ${paginationSql}
-        `;
-
-        if (resumes.length) {
-          totalCount = Number(resumes[0]?.total_count ?? 0);
-        } else {
-          const countResult = await prisma.$queryRaw`
+        try {
+          resumes = await prisma.$queryRaw`
             WITH distance_candidates AS (
-              SELECT jsp.id
+              SELECT jsp.id,
+                earth_distance(
+                  ll_to_earth(jsp.lat, jsp.lon),
+                  ll_to_earth(${coordinates.lat}, ${coordinates.lon})
+                ) AS distance
               FROM jobseekerprofile jsp
               WHERE jsp.lat IS NOT NULL
                 AND jsp.lon IS NOT NULL
@@ -175,85 +102,174 @@ export default async function handler(req, res) {
                 ) <= ${radiusMeters}
             ),
             filtered AS (
-              SELECT jsp.id
+              SELECT
+                jsp.id,
+                jsp."firstName",
+                jsp."lastName",
+                jsp.trade,
+                jsp.city,
+                jsp.state,
+                jsp.phone,
+                jsp."lastActive",
+                jsp."resumeUrl",
+                jsp."updated_at" AS "updatedAt",
+                jsp."resume_updated_at" AS "resumeUpdatedAt",
+                (distance_candidates.distance / 1609.34) AS distance,
+                GREATEST(
+                  jsp."resume_updated_at",
+                  jsp."lastBump",
+                  jsp."last_bump"
+                ) AS "resumeActivityAt",
+                COUNT(*) OVER() AS total_count
               FROM jobseekerprofile jsp
               JOIN distance_candidates ON distance_candidates.id = jsp.id
               ${radiusWhereSql}
             )
-            SELECT COUNT(*)::int AS total_count
+            SELECT
+              id,
+              "firstName",
+              "lastName",
+              trade,
+              city,
+              state,
+              phone,
+              "lastActive",
+              "resumeUrl",
+              "updatedAt",
+              "resumeUpdatedAt",
+              distance,
+              total_count
             FROM filtered
+            ORDER BY "resumeActivityAt" DESC NULLS LAST,
+              distance ASC,
+              id ASC
+            ${paginationSql}
           `;
-          totalCount = Number(countResult?.[0]?.total_count ?? 0);
+        } catch (error) {
+          console.error(
+            "resume search radius query failed",
+            error?.meta?.message || error?.message,
+          );
+          throw error;
+        }
+
+        if (resumes.length) {
+          totalCount = Number(resumes[0]?.total_count ?? 0);
+        } else {
+          try {
+            const countResult = await prisma.$queryRaw`
+              WITH distance_candidates AS (
+                SELECT jsp.id
+                FROM jobseekerprofile jsp
+                WHERE jsp.lat IS NOT NULL
+                  AND jsp.lon IS NOT NULL
+                  AND earth_distance(
+                    ll_to_earth(jsp.lat, jsp.lon),
+                    ll_to_earth(${coordinates.lat}, ${coordinates.lon})
+                  ) <= ${radiusMeters}
+              ),
+              filtered AS (
+                SELECT jsp.id
+                FROM jobseekerprofile jsp
+                JOIN distance_candidates ON distance_candidates.id = jsp.id
+                ${radiusWhereSql}
+              )
+              SELECT COUNT(*)::int AS total_count
+              FROM filtered
+            `;
+            totalCount = Number(countResult?.[0]?.total_count ?? 0);
+          } catch (error) {
+            console.error(
+              "resume search radius count query failed",
+              error?.meta?.message || error?.message,
+            );
+            throw error;
+          }
         }
       }
     }
 
     if (!resumes.length && !radiusFilterApplied) {
-      const fallbackWhere = {
-        trade: trade ? trade.toString() : undefined,
-        state: stateFilter,
-        ...(zip ? { zip: zip.toString() } : {}),
-        OR: keyword
-          ? [
-              { firstName: { contains: keyword, mode: "insensitive" } },
-              { lastName: { contains: keyword, mode: "insensitive" } },
-              { city: { contains: keyword, mode: "insensitive" } },
-              { trade: { contains: keyword, mode: "insensitive" } },
-            ]
-          : undefined,
-        resumeUrl: {
-          not: null,
-        },
-        NOT: {
-          resumeUrl: { equals: "" },
-        },
-      };
+      const fallbackKeywordLike = keyword ? `%${keyword}%` : null;
+      const fallbackWhereClauses = [
+        Prisma.sql`jsp."resumeUrl" IS NOT NULL`,
+        Prisma.sql`jsp."resumeUrl" <> ''`,
+      ];
 
-      const fallbackFilters = buildSqlFilters({
-        trade,
-        stateFilter,
-        zip,
-        keyword,
-        includeZip: Boolean(zip),
-      });
-      const fallbackWhereSql = Prisma.sql`WHERE ${Prisma.join(
-        fallbackFilters,
-        Prisma.sql` AND `,
-      )}`;
+      if (trade) {
+        fallbackWhereClauses.push(Prisma.sql`jsp.trade = ${trade.toString()}`);
+      }
+
+      if (stateFilter) {
+        fallbackWhereClauses.push(Prisma.sql`jsp.state = ${stateFilter}`);
+      }
+
+      if (zip) {
+        fallbackWhereClauses.push(Prisma.sql`jsp.zip = ${zip.toString()}`);
+      }
+
+      if (keyword) {
+        fallbackWhereClauses.push(
+          Prisma.sql`(jsp."firstName" ILIKE ${fallbackKeywordLike}
+            OR jsp."lastName" ILIKE ${fallbackKeywordLike}
+            OR jsp.city ILIKE ${fallbackKeywordLike}
+            OR jsp.trade ILIKE ${fallbackKeywordLike})`,
+        );
+      }
+      const fallbackWhereSql =
+        fallbackWhereClauses.length > 0
+          ? Prisma.sql`WHERE ${Prisma.join(fallbackWhereClauses, Prisma.sql` AND `)}`
+          : Prisma.empty;
       const paginationSql = pagination.shouldPaginate
         ? Prisma.sql`LIMIT ${pagination.take} OFFSET ${pagination.skip}`
         : Prisma.empty;
 
-      const countResult = await prisma.$queryRaw`
-        SELECT COUNT(*)::int AS total_count
-        FROM jobseekerprofile jsp
-        ${fallbackWhereSql}
-      `;
-      totalCount = Number(countResult?.[0]?.total_count ?? 0);
+      try {
+        const countResult = await prisma.$queryRaw`
+          SELECT COUNT(*)::int AS total_count
+          FROM jobseekerprofile jsp
+          ${fallbackWhereSql}
+        `;
+        totalCount = Number(countResult?.[0]?.total_count ?? 0);
+      } catch (error) {
+        console.error(
+          "resume search fallback count query failed",
+          error?.meta?.message || error?.message,
+        );
+        throw error;
+      }
 
-      resumes = await prisma.$queryRaw`
-        SELECT
-          jsp.id,
-          jsp."firstName",
-          jsp."lastName",
-          jsp.trade,
-          jsp.city,
-          jsp.state,
-          jsp.phone,
-          jsp."lastActive",
-          jsp."resumeUrl",
-          jsp."updated_at" AS "updatedAt",
-          jsp."resume_updated_at" AS "resumeUpdatedAt"
-        FROM jobseekerprofile jsp
-        ${fallbackWhereSql}
-        ORDER BY GREATEST(
-          jsp."resume_updated_at",
-          jsp."lastBump",
-          jsp."last_bump"
-        ) DESC NULLS LAST,
-        jsp.id ASC
-        ${paginationSql}
-      `;
+      try {
+        resumes = await prisma.$queryRaw`
+          SELECT
+            jsp.id,
+            jsp."firstName",
+            jsp."lastName",
+            jsp.trade,
+            jsp.city,
+            jsp.state,
+            jsp.phone,
+            jsp."lastActive",
+            jsp."resumeUrl",
+            jsp."updated_at" AS "updatedAt",
+            jsp."resume_updated_at" AS "resumeUpdatedAt"
+          FROM jobseekerprofile jsp
+          ${fallbackWhereSql}
+          ORDER BY GREATEST(
+            jsp."resume_updated_at",
+            jsp."lastBump",
+            jsp."last_bump"
+          ) DESC NULLS LAST,
+          jsp.id ASC
+          ${paginationSql}
+        `;
+      } catch (error) {
+        console.error(
+          "resume search fallback query failed",
+          error?.meta?.message || error?.message,
+        );
+        throw error;
+      }
     }
 
     const normalized = resumes
