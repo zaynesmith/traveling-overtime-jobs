@@ -193,35 +193,6 @@ export default async function handler(req, res) {
 
     if (!resumes.length && !radiusFilterApplied) {
       const fallbackKeywordLike = keyword ? `%${keyword}%` : null;
-      const fallbackWhereClauses = [
-        Prisma.sql`jsp."resumeUrl" IS NOT NULL`,
-        Prisma.sql`jsp."resumeUrl" <> ''`,
-      ];
-
-      if (trade) {
-        fallbackWhereClauses.push(Prisma.sql`jsp.trade = ${trade.toString()}`);
-      }
-
-      if (stateFilter) {
-        fallbackWhereClauses.push(Prisma.sql`jsp.state = ${stateFilter}`);
-      }
-
-      if (zip) {
-        fallbackWhereClauses.push(Prisma.sql`jsp.zip = ${zip.toString()}`);
-      }
-
-      if (keyword) {
-        fallbackWhereClauses.push(
-          Prisma.sql`(jsp."firstName" ILIKE ${fallbackKeywordLike}
-            OR jsp."lastName" ILIKE ${fallbackKeywordLike}
-            OR jsp.city ILIKE ${fallbackKeywordLike}
-            OR jsp.trade ILIKE ${fallbackKeywordLike})`,
-        );
-      }
-      const fallbackWhereSql =
-        fallbackWhereClauses.length > 0
-          ? Prisma.sql`WHERE ${Prisma.join(fallbackWhereClauses, Prisma.sql` AND `)}`
-          : Prisma.empty;
       const paginationSql = pagination.shouldPaginate
         ? Prisma.sql`LIMIT ${pagination.take} OFFSET ${pagination.skip}`
         : Prisma.empty;
@@ -230,7 +201,17 @@ export default async function handler(req, res) {
         const fallbackCountQuery = Prisma.sql`
           SELECT COUNT(*)::int AS total_count
           FROM jobseekerprofile jsp
-          ${fallbackWhereSql}
+          WHERE jsp."resumeUrl" IS NOT NULL
+            AND jsp."resumeUrl" <> ''
+            ${trade ? Prisma.sql`AND jsp.trade = ${trade.toString()}` : Prisma.empty}
+            ${stateFilter ? Prisma.sql`AND jsp.state = ${stateFilter}` : Prisma.empty}
+            ${zip ? Prisma.sql`AND jsp.zip = ${zip.toString()}` : Prisma.empty}
+            ${keyword ? Prisma.sql`AND (
+              jsp."firstName" ILIKE ${fallbackKeywordLike}
+              OR jsp."lastName" ILIKE ${fallbackKeywordLike}
+              OR jsp.city ILIKE ${fallbackKeywordLike}
+              OR jsp.trade ILIKE ${fallbackKeywordLike}
+            )` : Prisma.empty}
         `;
         const countResult = await prisma.$queryRaw(fallbackCountQuery);
         totalCount = Number(countResult?.[0]?.total_count ?? 0);
@@ -257,7 +238,17 @@ export default async function handler(req, res) {
             jsp."updated_at" AS "updatedAt",
             jsp."resume_updated_at" AS "resumeUpdatedAt"
           FROM jobseekerprofile jsp
-          ${fallbackWhereSql}
+          WHERE jsp."resumeUrl" IS NOT NULL
+            AND jsp."resumeUrl" <> ''
+            ${trade ? Prisma.sql`AND jsp.trade = ${trade.toString()}` : Prisma.empty}
+            ${stateFilter ? Prisma.sql`AND jsp.state = ${stateFilter}` : Prisma.empty}
+            ${zip ? Prisma.sql`AND jsp.zip = ${zip.toString()}` : Prisma.empty}
+            ${keyword ? Prisma.sql`AND (
+              jsp."firstName" ILIKE ${fallbackKeywordLike}
+              OR jsp."lastName" ILIKE ${fallbackKeywordLike}
+              OR jsp.city ILIKE ${fallbackKeywordLike}
+              OR jsp.trade ILIKE ${fallbackKeywordLike}
+            )` : Prisma.empty}
           ORDER BY GREATEST(
             jsp."resume_updated_at",
             jsp."lastBump",
