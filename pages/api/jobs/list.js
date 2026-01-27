@@ -126,7 +126,7 @@ export default async function handler(req, res) {
               }),
           );
 
-          const filteredJobs = await prisma.jobs.findMany({
+          const queryOptions = {
             where: {
               ...filters,
               id: { in: jobIds },
@@ -136,22 +136,19 @@ export default async function handler(req, res) {
                 select: { companyName: true, city: true, state: true },
               },
             },
-          });
-
-          const jobsById = new Map(filteredJobs.map((job) => [job.id, job]));
-          const orderedJobs = jobIds
-            .map((id) => {
-              const job = jobsById.get(id);
-              if (!job) return null;
-              return { ...job, distance: distanceById.get(id) ?? null };
-            })
-            .filter(Boolean);
+            orderBy: { posted_at: "desc" },
+          };
 
           if (pagination.shouldPaginate) {
-            jobs = orderedJobs.slice(pagination.skip, pagination.skip + pagination.take);
-          } else {
-            jobs = orderedJobs;
+            queryOptions.skip = pagination.skip;
+            queryOptions.take = pagination.take;
           }
+
+          const filteredJobs = await prisma.jobs.findMany(queryOptions);
+          jobs = filteredJobs.map((job) => ({
+            ...job,
+            distance: distanceById.get(job.id) ?? null,
+          }));
         }
       }
     }

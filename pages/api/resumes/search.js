@@ -40,6 +40,7 @@ export default async function handler(req, res) {
     }
 
     const { trade, zip, radius, keyword, state } = req.query;
+    const zipCode = Array.isArray(zip) ? zip[0] : zip;
     const parsedRadius = radius !== undefined ? Number.parseFloat(radius) : undefined;
     const distance = Number.isFinite(parsedRadius) ? Math.min(Math.max(parsedRadius, 0), 500) : undefined;
     const stateFilter = normalizeStateCode(state) || undefined;
@@ -49,38 +50,25 @@ export default async function handler(req, res) {
     let totalCount = 0;
     let radiusFilterApplied = false;
 
-    if (zip && distance && Number.isFinite(distance) && distance > 0) {
-      const coordinates = await geocodeZip(zip);
+    if (zipCode && distance && Number.isFinite(distance) && distance > 0) {
+      const coordinates = await geocodeZip(zipCode);
 
       if (coordinates?.lat !== undefined && coordinates?.lon !== undefined) {
         radiusFilterApplied = true;
         const radiusMeters = distance * 1609.34;
         const radiusKeywordLike = keyword ? `%${keyword}%` : null;
-        const radiusWhereClauses = [
-          Prisma.sql`jsp."resumeUrl" IS NOT NULL`,
-          Prisma.sql`jsp."resumeUrl" <> ''`,
-        ];
-
-        if (trade) {
-          radiusWhereClauses.push(Prisma.sql`jsp.trade = ${trade.toString()}`);
-        }
-
-        if (stateFilter) {
-          radiusWhereClauses.push(Prisma.sql`jsp.state = ${stateFilter}`);
-        }
-
-        if (keyword) {
-          radiusWhereClauses.push(
-            Prisma.sql`(jsp."firstName" ILIKE ${radiusKeywordLike}
+        const radiusWhereSql = Prisma.sql`
+          WHERE jsp."resumeUrl" IS NOT NULL
+            AND jsp."resumeUrl" <> ''
+            ${trade ? Prisma.sql`AND jsp.trade = ${trade.toString()}` : Prisma.empty}
+            ${stateFilter ? Prisma.sql`AND jsp.state = ${stateFilter}` : Prisma.empty}
+            ${keyword ? Prisma.sql`AND (
+              jsp."firstName" ILIKE ${radiusKeywordLike}
               OR jsp."lastName" ILIKE ${radiusKeywordLike}
               OR jsp.city ILIKE ${radiusKeywordLike}
-              OR jsp.trade ILIKE ${radiusKeywordLike})`,
-          );
-        }
-        const radiusWhereSql =
-          radiusWhereClauses.length > 0
-            ? Prisma.sql`WHERE ${Prisma.join(radiusWhereClauses, Prisma.sql` AND `)}`
-            : Prisma.empty;
+              OR jsp.trade ILIKE ${radiusKeywordLike}
+            )` : Prisma.empty}
+        `;
         const paginationSql = pagination.shouldPaginate
           ? Prisma.sql`LIMIT ${pagination.take} OFFSET ${pagination.skip}`
           : Prisma.empty;
@@ -205,7 +193,7 @@ export default async function handler(req, res) {
             AND jsp."resumeUrl" <> ''
             ${trade ? Prisma.sql`AND jsp.trade = ${trade.toString()}` : Prisma.empty}
             ${stateFilter ? Prisma.sql`AND jsp.state = ${stateFilter}` : Prisma.empty}
-            ${zip ? Prisma.sql`AND jsp.zip = ${zip.toString()}` : Prisma.empty}
+            ${zipCode ? Prisma.sql`AND jsp.zip = ${zipCode.toString()}` : Prisma.empty}
             ${keyword ? Prisma.sql`AND (
               jsp."firstName" ILIKE ${fallbackKeywordLike}
               OR jsp."lastName" ILIKE ${fallbackKeywordLike}
@@ -242,7 +230,7 @@ export default async function handler(req, res) {
             AND jsp."resumeUrl" <> ''
             ${trade ? Prisma.sql`AND jsp.trade = ${trade.toString()}` : Prisma.empty}
             ${stateFilter ? Prisma.sql`AND jsp.state = ${stateFilter}` : Prisma.empty}
-            ${zip ? Prisma.sql`AND jsp.zip = ${zip.toString()}` : Prisma.empty}
+            ${zipCode ? Prisma.sql`AND jsp.zip = ${zipCode.toString()}` : Prisma.empty}
             ${keyword ? Prisma.sql`AND (
               jsp."firstName" ILIKE ${fallbackKeywordLike}
               OR jsp."lastName" ILIKE ${fallbackKeywordLike}
