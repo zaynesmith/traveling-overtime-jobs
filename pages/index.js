@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SupportContact from "@/components/SupportContact";
 
 export default function HomePage() {
   return (
@@ -51,6 +52,8 @@ export default function HomePage() {
               <li>Save jobs to review later once you sign up.</li>
             </ul>
           </div>
+
+          <SupportContact className="support-contact-home" />
 
           <div className="home-bottom-links">
             <Link className="home-bottom-link" href="/employer/register">
