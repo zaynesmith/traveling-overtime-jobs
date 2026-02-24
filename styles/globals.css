@@ -261,3 +261,28 @@ body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial
   color: #0f172a;
   margin: 0;
 }
+
+
+.support-contact {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.support-contact a {
+  color: #0f172a;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.support-contact a:hover {
+  text-decoration: underline;
+}
+
+.support-contact-home {
+  text-align: center;
+}
+
+.support-contact-form {
+  text-align: center;
+}

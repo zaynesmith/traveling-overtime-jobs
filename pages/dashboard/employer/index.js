@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
+import SupportContact from "@/components/SupportContact";
 import { normalizeTrade } from "@/lib/trades";
 
 function DashboardCard({ href, title, description, children, cta = "Open" }) {
@@ -150,6 +151,9 @@ export default function EmployerDashboard({ previewJobs, savedCount, subscriptio
               </div>
             </DashboardCard>
           </div>
+        </div>
+        <div className="mx-auto mt-8 max-w-6xl px-4 pb-2 sm:px-6 lg:px-8">
+          <SupportContact className="rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 text-center text-sm text-slate-600 shadow-sm [&_a]:font-semibold [&_a]:text-slate-900" />
         </div>
       </section>
     </main>

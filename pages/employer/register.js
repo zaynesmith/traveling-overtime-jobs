@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { signIn, useSession } from "next-auth/react";
 import StateSelect from "@/components/forms/StateSelect";
 import TurnstileWidget from "@/components/TurnstileWidget";
+import SupportContact from "@/components/SupportContact";
 
 const initialForm = {
   firstName: "",
@@ -240,6 +241,7 @@ export default function EmployerRegisterPage() {
           {loading ? "Creating profile…" : "Create profile"}
         </button>
       </form>
+      <SupportContact className="support-contact-form" />
       <p className="form-footer-link">
         Already have an account? <Link href="/employer/login">Sign in</Link>
       </p>

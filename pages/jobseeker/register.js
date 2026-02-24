@@ -7,6 +7,7 @@ import { US_STATES, normalizeStateCode } from "@/lib/constants/states";
 import { formatZipSuggestionLocation, formatZipSuggestionMessage } from "@/lib/utils/zipMessages";
 import { TRADES } from "@/lib/trades";
 import TurnstileWidget from "@/components/TurnstileWidget";
+import SupportContact from "@/components/SupportContact";
 
 const initialForm = {
   firstName: "",
@@ -619,6 +620,7 @@ export default function JobseekerRegisterPage() {
           {loading ? "Creating profile…" : "Create profile"}
         </button>
       </form>
+      <SupportContact className="support-contact-form" />
       <p className="form-footer-link">
         Already have an account?{" "}
         <Link
