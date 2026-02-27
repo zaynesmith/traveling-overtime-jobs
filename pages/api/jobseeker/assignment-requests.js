@@ -4,6 +4,11 @@ import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
 
 const PHASE_II_EMAIL = "zayne.smith18@gmail.com";
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value) {
+  return typeof value === "string" && UUID_PATTERN.test(value);
+}
 
 function isPhaseTwoUser(session) {
   return String(session?.user?.email || "").toLowerCase() === PHASE_II_EMAIL;
@@ -60,6 +65,10 @@ async function handlePost(req, res, session) {
   const { requestId, decision } = req.body || {};
   if (!requestId || !["accept", "decline"].includes(decision)) {
     return res.status(400).json({ error: "Invalid request" });
+  }
+
+  if (!isUuid(requestId)) {
+    return res.status(400).json({ error: "Invalid requestId" });
   }
 
   const jobseekerProfileId = await getJobseekerProfileId(session.user.id);
