@@ -3,6 +3,9 @@ import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import SupportContact from "@/components/SupportContact";
+import TOTJEmploymentCard from "@/components/jobseeker/TOTJEmploymentCard";
+
+const PHASE_II_EMAIL = "zayne.smith18@gmail.com";
 
 function DashboardCard({ href, title, description, children, cta = "Open" }) {
   return (
@@ -36,7 +39,7 @@ function DashboardCard({ href, title, description, children, cta = "Open" }) {
   );
 }
 
-export default function JobseekerDashboard({ greetingName }) {
+export default function JobseekerDashboard({ greetingName, showTotjEmploymentCard }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -123,6 +126,9 @@ export default function JobseekerDashboard({ greetingName }) {
                 Update login details, manage notifications, and tailor how employers can reach out.
               </p>
             </DashboardCard>
+
+            {/* Phase II – gated to a specific user email until general release. TODO: replace with feature flag/role gate. */}
+            {showTotjEmploymentCard ? <TOTJEmploymentCard /> : null}
           </div>
         </div>
         <div className="mx-auto mt-8 max-w-6xl px-4 pb-2 sm:px-6 lg:px-8">
@@ -177,6 +183,8 @@ export async function getServerSideProps(context) {
       .filter(Boolean)
       .join(" ");
 
+    const showTotjEmploymentCard = String(session.user?.email || "").toLowerCase() === PHASE_II_EMAIL;
+
     return {
       props: {
         greetingName:
@@ -184,6 +192,7 @@ export async function getServerSideProps(context) {
           fallbackGreeting ||
           session.user?.name?.trim?.() ||
           "",
+        showTotjEmploymentCard,
       },
     };
   } catch (error) {
@@ -191,6 +200,7 @@ export async function getServerSideProps(context) {
     return {
       props: {
         greetingName: session.user?.name?.trim?.() || "",
+        showTotjEmploymentCard: String(session.user?.email || "").toLowerCase() === PHASE_II_EMAIL,
       },
     };
   }
