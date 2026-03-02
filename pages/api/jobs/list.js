@@ -47,27 +47,42 @@ export default async function handler(req, res) {
     const stateFilter = normalizeStateCode(state) || undefined;
     const pagination = parsePagination(req.query);
 
-    const filters = {
-      trade: normalizedTradeFilter
-        ? { in: getTradeSynonyms(normalizedTradeFilter) }
-        : undefined,
-      OR: searchTerm
-        ? [
-            { title: { contains: searchTerm, mode: "insensitive" } },
-            { description: { contains: searchTerm, mode: "insensitive" } },
-            { trade: { contains: searchTerm, mode: "insensitive" } },
-            { location: { contains: searchTerm, mode: "insensitive" } },
-            { city: { contains: searchTerm, mode: "insensitive" } },
-            { state: { contains: searchTerm, mode: "insensitive" } },
-            {
-              additional_requirements: {
-                contains: searchTerm,
-                mode: "insensitive",
-              },
+    const tradeSynonyms = normalizedTradeFilter
+      ? getTradeSynonyms(normalizedTradeFilter)
+      : [];
+
+    const andFilters = [];
+
+    if (tradeSynonyms.length) {
+      andFilters.push({
+        OR: [
+          { trade: { in: tradeSynonyms } },
+          { trades: { hasSome: tradeSynonyms } },
+        ],
+      });
+    }
+
+    if (searchTerm) {
+      andFilters.push({
+        OR: [
+          { title: { contains: searchTerm, mode: "insensitive" } },
+          { description: { contains: searchTerm, mode: "insensitive" } },
+          { trade: { contains: searchTerm, mode: "insensitive" } },
+          { trades: { has: searchTerm } },
+          { location: { contains: searchTerm, mode: "insensitive" } },
+          { city: { contains: searchTerm, mode: "insensitive" } },
+          { state: { contains: searchTerm, mode: "insensitive" } },
+          {
+            additional_requirements: {
+              contains: searchTerm,
+              mode: "insensitive",
             },
-          ]
-        : undefined,
-    };
+          },
+        ],
+      });
+    }
+
+    const filters = andFilters.length ? { AND: andFilters } : {};
 
     if (stateFilter) {
       filters.state = stateFilter;
@@ -181,6 +196,9 @@ export default async function handler(req, res) {
       ...job,
       is_admin_seeded: job.is_admin_seeded ?? false,
       trade: normalizeTrade(job.trade),
+      trades: Array.isArray(job.trades)
+        ? job.trades.map((value) => normalizeTrade(value)).filter(Boolean)
+        : [],
     }));
 
     res.status(200).json(normalizedJobs);
