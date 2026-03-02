@@ -29,6 +29,14 @@ function formatPostedDate(dateValue) {
   });
 }
 
+function formatTradeList(job) {
+  const values = Array.isArray(job?.trades) && job.trades.length ? job.trades : [job?.trade];
+  const normalized = values
+    .map((value) => normalizeTrade(value))
+    .filter(Boolean);
+  return normalized.length ? normalized.join(" • ") : "General";
+}
+
 export default function Jobs() {
   const router = useRouter();
   const {
@@ -156,8 +164,13 @@ export default function Jobs() {
                         {job.title}
                       </h2>
                       <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">
-                        {normalizeTrade(job.trade) || "General"}
+                        {formatTradeList(job)}
                       </p>
+                      {job.employerprofile?.companyName ? (
+                        <p className="text-sm font-medium text-slate-700">
+                          {job.employerprofile.companyName}
+                        </p>
+                      ) : null}
                       <p className="text-sm text-slate-600">{cityState}</p>
                       {postedDate ? (
                         <p className="text-xs text-slate-500">Posted: {postedDate}</p>
