@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
+import TimekeepingHomeCard from "@/components/jobseeker/TimekeepingHomeCard";
 
 const PHASE_II_EMAIL = "zayne.smith18@gmail.com";
 
@@ -184,19 +185,9 @@ export default function TotjEmploymentHub({ snapshot, verification, documents, s
           )}
         </SectionCard>
 
-        <SectionCard title="Timekeeping Snapshot">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-            {assignment ? (
-              <>
-                <p className="font-semibold text-slate-900">Assignment-linked snapshot</p>
-                <p className="mt-1">This read-only view will expand with timecard details in a later phase.</p>
-                <p className="mt-1">Current assignment status: {assignment.status || "—"}</p>
-              </>
-            ) : (
-              <p>No assignment timekeeping context is available yet.</p>
-            )}
-          </div>
-        </SectionCard>
+        <div className="xl:col-span-2">
+          <TimekeepingHomeCard />
+        </div>
       </section>
     </main>
   );
