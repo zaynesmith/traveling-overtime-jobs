@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import SupportContact from "@/components/SupportContact";
-import TOTJEmploymentCard from "@/components/jobseeker/TOTJEmploymentCard";
 
 const PHASE_II_EMAIL = "zayne.smith18@gmail.com";
 
@@ -127,8 +126,20 @@ export default function JobseekerDashboard({ greetingName, showTotjEmploymentCar
               </p>
             </DashboardCard>
 
-            {/* Phase II – gated to a specific user email until general release. TODO: replace with feature flag/role gate. */}
-            {showTotjEmploymentCard ? <TOTJEmploymentCard /> : null}
+            {/* Phase II test-only access point: restricted to one jobseeker account until intentional rollout. */}
+            {showTotjEmploymentCard ? (
+              <DashboardCard
+                href="/dashboard/jobseeker/totj-employment"
+                title="TOTJ Employment"
+                description="Phase II hub preview for employment onboarding, verification progress, and assignment visibility."
+                cta="Manage"
+              >
+                <p className="text-sm text-slate-600">
+                  Review your employment snapshot, documents, assignment requests, and active assignment status in one
+                  place.
+                </p>
+              </DashboardCard>
+            ) : null}
           </div>
         </div>
         <div className="mx-auto mt-8 max-w-6xl px-4 pb-2 sm:px-6 lg:px-8">
