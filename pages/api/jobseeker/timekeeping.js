@@ -4,7 +4,7 @@ import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
 
 const PHASE_II_EMAIL = "zayne.smith18@gmail.com";
-const TIMEKEEPING_ELIGIBLE_ASSIGNMENT_STATUSES = ["active", "accepted"];
+const TIMEKEEPING_BLOCKED_ASSIGNMENT_STATUSES = ["cancelled", "canceled", "rejected", "ended", "inactive"];
 
 const ACTION_TO_PUNCH_TYPE = {
   clock_in: "clock_in",
@@ -96,6 +96,7 @@ async function listActiveAssignments(jobseekerProfileId) {
         joa.id,
         joa.status,
         joa.job_order_id,
+        joa.employer_id,
         joa.project_id,
         joa.start_date,
         joa.end_date,
@@ -118,7 +119,19 @@ async function listActiveAssignments(jobseekerProfileId) {
         FROM public.job_order_assignments a
         INNER JOIN public.job_orders jo ON jo.id = a.job_order_id
         WHERE a.jobseeker_id = ${jobseekerProfileId}::uuid
-          AND a.status = ANY (${TIMEKEEPING_ELIGIBLE_ASSIGNMENT_STATUSES}::text[])
+          AND (
+            a.status IS NULL
+            OR LOWER(a.status) <> ALL (${TIMEKEEPING_BLOCKED_ASSIGNMENT_STATUSES}::text[])
+          )
+          AND (
+            a.assignment_request_id IS NULL
+            OR EXISTS (
+              SELECT 1
+              FROM public.assignment_requests ar
+              WHERE ar.id = a.assignment_request_id
+                AND LOWER(ar.status) = 'accepted'
+            )
+          )
         ORDER BY a.start_date DESC NULLS LAST, a.created_at DESC NULLS LAST
       ) joa
       INNER JOIN public.job_orders jo ON jo.id = joa.job_order_id
@@ -315,7 +328,19 @@ async function handlePost(req, res, session) {
       FROM public.job_order_assignments
       WHERE id = ${assignmentId}::uuid
         AND jobseeker_id = ${jobseekerProfileId}::uuid
-        AND status = ANY (${TIMEKEEPING_ELIGIBLE_ASSIGNMENT_STATUSES}::text[])
+        AND (
+          status IS NULL
+          OR LOWER(status) <> ALL (${TIMEKEEPING_BLOCKED_ASSIGNMENT_STATUSES}::text[])
+        )
+        AND (
+          assignment_request_id IS NULL
+          OR EXISTS (
+            SELECT 1
+            FROM public.assignment_requests ar
+            WHERE ar.id = assignment_request_id
+              AND LOWER(ar.status) = 'accepted'
+          )
+        )
       LIMIT 1
     `,
   );
