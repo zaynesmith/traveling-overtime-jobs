@@ -4,6 +4,7 @@ import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
 
 const PHASE_II_EMAIL = "zayne.smith18@gmail.com";
+const TIMEKEEPING_ELIGIBLE_ASSIGNMENT_STATUSES = ["active", "accepted"];
 
 const ACTION_TO_PUNCH_TYPE = {
   clock_in: "clock_in",
@@ -117,7 +118,7 @@ async function listActiveAssignments(jobseekerProfileId) {
         FROM public.job_order_assignments a
         INNER JOIN public.job_orders jo ON jo.id = a.job_order_id
         WHERE a.jobseeker_id = ${jobseekerProfileId}::uuid
-          AND a.status = 'active'
+          AND a.status = ANY (${TIMEKEEPING_ELIGIBLE_ASSIGNMENT_STATUSES}::text[])
         ORDER BY a.start_date DESC NULLS LAST, a.created_at DESC NULLS LAST
       ) joa
       INNER JOIN public.job_orders jo ON jo.id = joa.job_order_id
@@ -248,7 +249,7 @@ async function handleGet(req, res, session) {
 
   const assignments = await listActiveAssignments(jobseekerProfileId);
   if (!assignments.length) {
-    return res.status(200).json({ assignments: [], selectedAssignmentId: null, status: null, message: "No active assignment" });
+    return res.status(200).json({ assignments: [], selectedAssignmentId: null, status: null, message: "No eligible assignment" });
   }
 
   const assignmentIdParam = String(req.query.assignmentId || "");
@@ -314,14 +315,14 @@ async function handlePost(req, res, session) {
       FROM public.job_order_assignments
       WHERE id = ${assignmentId}::uuid
         AND jobseeker_id = ${jobseekerProfileId}::uuid
-        AND status = 'active'
+        AND status = ANY (${TIMEKEEPING_ELIGIBLE_ASSIGNMENT_STATUSES}::text[])
       LIMIT 1
     `,
   );
 
   const assignment = assignmentRows?.[0];
   if (!assignment) {
-    return res.status(404).json({ error: "Active assignment not found" });
+    return res.status(404).json({ error: "Eligible assignment not found" });
   }
 
   const statusSnapshot = await getAssignmentStatusSnapshot(jobseekerProfileId, assignment.id);
