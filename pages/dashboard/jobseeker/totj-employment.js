@@ -210,7 +210,9 @@ export default function TotjEmploymentHub({ snapshot, verification, documents, s
           cta="Open"
         >
           <p className="text-sm text-slate-600">
-            {assignment ? `Current assignment status: ${assignment.status || "active"}` : "No active assignment found yet."}
+            {assignment
+              ? `Current assignment status: ${assignment.status || "active"}`
+              : "No accepted or active assignment found yet."}
           </p>
         </DashboardActionCard>
 
