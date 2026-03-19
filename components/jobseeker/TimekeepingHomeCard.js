@@ -108,7 +108,7 @@ export default function TimekeepingHomeCard() {
   const requiredClockCodes = data.status?.requiredClockCodes || [];
   const needsCodeFor = (action) => requiredClockCodes.includes(action);
 
-  async function handlePunchAction(action) {
+  async function handlePunchAction(action, assignmentOverrideId) {
     setError("");
     setToast("");
 
@@ -125,7 +125,7 @@ export default function TimekeepingHomeCard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          assignmentId: data.selectedAssignmentId,
+          assignmentId: assignmentOverrideId || data.selectedAssignmentId,
           action,
           clockCode: needsCodeFor(action) ? clockCode.trim() : "",
           latitude: location?.latitude ?? null,
@@ -142,7 +142,7 @@ export default function TimekeepingHomeCard() {
 
       setToast(`${actionLabel(action)} saved.`);
       setClockCode("");
-      await load(data.selectedAssignmentId);
+      await load(assignmentOverrideId || data.selectedAssignmentId);
     } catch (err) {
       setError(err.message || "Punch action failed");
     } finally {
@@ -170,6 +170,48 @@ export default function TimekeepingHomeCard() {
 
       {!loading && data.assignments.length ? (
         <div className="mt-4 space-y-4">
+          <section className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Active assignments</p>
+            <ul className="mt-3 space-y-3">
+              {data.assignments.map((assignment) => (
+                <li key={assignment.id} className="rounded-xl border border-slate-200 p-3">
+                  <p className="text-sm font-semibold text-slate-900">
+                    {(assignment.projectName ? `${assignment.projectName} · ` : "") + assignment.jobName}
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    {assignment.city}, {assignment.state}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={submittingAction.length > 0}
+                      onClick={() => handlePunchAction("clock_in", assignment.id)}
+                      className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white disabled:opacity-50"
+                    >
+                      Clock In
+                    </button>
+                    <button
+                      type="button"
+                      disabled={submittingAction.length > 0}
+                      onClick={() => handlePunchAction("clock_out", assignment.id)}
+                      className="rounded-full bg-rose-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white disabled:opacity-50"
+                    >
+                      Clock Out
+                    </button>
+                    <button
+                      type="button"
+                      disabled={submittingAction.length > 0}
+                      onClick={() => load(assignment.id)}
+                      className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-700 disabled:opacity-50"
+                    >
+                      View
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+
           <div>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500" htmlFor="timekeeping-assignment-picker">
               Active assignment

@@ -21,10 +21,7 @@ function formatDate(value) {
 
 function SectionCard({ title, children }) {
   return (
-    <article className="rounded-3xl bg-white/90 p-6 shadow-xl ring-1 ring-slate-900/5">
-      <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
-      <div className="mt-4">{children}</div>
-    </article>
+    <article className="rounded-3xl bg-white/90 p-6 shadow-xl ring-1 ring-slate-900/5">{children}</article>
   );
 }
 
@@ -44,8 +41,41 @@ async function safeRaw(query) {
   }
 }
 
+function DashboardActionCard({ title, description, href, cta = "View", children }) {
+  return (
+    <Link
+      href={href}
+      className="group block h-full rounded-3xl bg-white/90 p-6 shadow-xl ring-1 ring-slate-900/5 transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200"
+    >
+      <div className="flex h-full flex-col gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
+          <p className="mt-1 text-sm text-slate-600">{description}</p>
+        </div>
+        {children}
+        <span className="mt-auto inline-flex items-center justify-center gap-2 self-start rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition-colors duration-300 group-hover:bg-slate-700">
+          {cta}
+          <svg
+            aria-hidden="true"
+            className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </span>
+      </div>
+    </Link>
+  );
+}
+
 export default function TotjEmploymentHub({ snapshot, verification, documents, signatures, requests, assignment }) {
   const profileName = [snapshot?.firstName, snapshot?.lastName].filter(Boolean).join(" ").trim();
+  const recentRequests = requests.slice(0, 3);
 
   return (
     <main className="bg-slate-100 pb-16">
@@ -68,10 +98,11 @@ export default function TotjEmploymentHub({ snapshot, verification, documents, s
         </div>
       </div>
 
-      <section className="mx-auto mt-[-2.5rem] grid max-w-6xl gap-6 px-4 sm:px-6 lg:px-8 xl:grid-cols-2">
+      <section className="relative z-10 -mt-12 mx-auto grid max-w-6xl gap-6 px-4 sm:px-6 lg:px-8 xl:grid-cols-2">
         <SectionCard title="Application/Profile Snapshot">
+          <h2 className="text-xl font-semibold text-slate-900">Application/Profile Snapshot</h2>
           {snapshot ? (
-            <dl className="grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
+            <dl className="mt-4 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
               <div>
                 <dt className="font-semibold text-slate-900">Name</dt>
                 <dd>{profileName || "—"}</dd>
@@ -98,9 +129,14 @@ export default function TotjEmploymentHub({ snapshot, verification, documents, s
           )}
         </SectionCard>
 
-        <SectionCard title="Employment Verification Progress">
+        <DashboardActionCard
+          href="/dashboard/jobseeker/totj-employment/verification"
+          title="Employment Verification Progress"
+          description="Review your verification status and latest updates."
+          cta="View"
+        >
           {verification ? (
-            <dl className="grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
+            <dl className="grid gap-2 text-sm text-slate-700">
               <div>
                 <dt className="font-semibold text-slate-900">Status</dt>
                 <dd>{verification.status || "pending"}</dd>
@@ -109,81 +145,74 @@ export default function TotjEmploymentHub({ snapshot, verification, documents, s
                 <dt className="font-semibold text-slate-900">Updated</dt>
                 <dd>{formatDate(verification.updated_at || verification.created_at)}</dd>
               </div>
-              <div className="sm:col-span-2">
-                <dt className="font-semibold text-slate-900">Notes</dt>
-                <dd>{verification.notes || "—"}</dd>
-              </div>
             </dl>
           ) : (
-            <EmptyState message="No employment verification records found yet." />
+            <p className="text-sm text-slate-600">No employment verification records found yet.</p>
           )}
-        </SectionCard>
+        </DashboardActionCard>
 
-        <SectionCard title="Employment Documents">
-          {documents.length > 0 ? (
-            <ul className="space-y-3 text-sm text-slate-700">
-              {documents.map((document) => (
-                <li key={document.id} className="rounded-2xl border border-slate-200 bg-white p-3">
-                  <p className="font-semibold text-slate-900">{document.document_type || "Document"}</p>
-                  <p>Uploaded: {formatDate(document.created_at)}</p>
-                  <p>Status: {document.status || "—"}</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState message="No employment documents uploaded yet." />
-          )}
-
-          {signatures.length > 0 ? (
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-              <p className="font-semibold text-slate-900">Form Signatures</p>
-              <p className="mt-1">Signed forms: {signatures.length}</p>
-              <p>Most recent signature: {formatDate(signatures[0]?.signed_at || signatures[0]?.created_at)}</p>
-            </div>
-          ) : null}
-        </SectionCard>
+        <DashboardActionCard
+          href="/dashboard/jobseeker/totj-employment/documents"
+          title="Employment Documents"
+          description="Check uploaded documents and form signatures."
+          cta="Manage"
+        >
+          <p className="text-sm text-slate-600">Documents: {documents.length}</p>
+          <p className="text-sm text-slate-600">Signed forms: {signatures.length}</p>
+        </DashboardActionCard>
 
         <SectionCard title="Assignment Requests">
-          {requests.length > 0 ? (
-            <ul className="space-y-3 text-sm text-slate-700">
-              {requests.map((request) => (
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">Assignment Requests</h2>
+              <p className="mt-1 text-sm text-slate-600">Most recent 3 assignment requests.</p>
+            </div>
+            <Link
+              href="/dashboard/jobseeker/totj-employment/assignment-requests"
+              className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-700"
+            >
+              View all
+            </Link>
+          </div>
+          {recentRequests.length > 0 ? (
+            <ul className="mt-4 space-y-3 text-sm text-slate-700">
+              {recentRequests.map((request) => (
                 <li key={request.id} className="rounded-2xl border border-slate-200 bg-white p-3">
-                  <p className="font-semibold text-slate-900">Employer: {request.employer_company_name || request.employer_id || "Unknown"}</p>
-                  <p>Status: {request.status || "pending"}</p>
-                  <p>Sent: {formatDate(request.sent_at)}</p>
-                  <p>Responded: {formatDate(request.responded_at)}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-slate-900">
+                        Employer: {request.employer_company_name || request.employer_id || "Unknown"}
+                      </p>
+                      <p>Status: {request.status || "pending"}</p>
+                      <p>Sent: {formatDate(request.sent_at)}</p>
+                    </div>
+                    <Link
+                      href={`/dashboard/jobseeker/totj-employment/assignment-requests/${request.id}`}
+                      className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-700 transition hover:bg-slate-200"
+                    >
+                      View
+                    </Link>
+                  </div>
                 </li>
               ))}
             </ul>
           ) : (
-            <EmptyState message="No assignment requests available yet." />
+            <div className="mt-4">
+              <EmptyState message="No assignment requests available yet." />
+            </div>
           )}
         </SectionCard>
 
-        <SectionCard title="Current Assignment">
-          {assignment ? (
-            <dl className="grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
-              <div>
-                <dt className="font-semibold text-slate-900">Assignment ID</dt>
-                <dd>{assignment.id || "—"}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-slate-900">Status</dt>
-                <dd>{assignment.status || "—"}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-slate-900">Start Date</dt>
-                <dd>{formatDate(assignment.start_date)}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-slate-900">End Date</dt>
-                <dd>{formatDate(assignment.end_date)}</dd>
-              </div>
-            </dl>
-          ) : (
-            <EmptyState message="No active assignment found yet." />
-          )}
-        </SectionCard>
+        <DashboardActionCard
+          href="/dashboard/jobseeker/totj-employment/timekeeping"
+          title="Timekeeping"
+          description="View active assignments and clock in/out activity."
+          cta="Open"
+        >
+          <p className="text-sm text-slate-600">
+            {assignment ? `Current assignment status: ${assignment.status || "active"}` : "No active assignment found yet."}
+          </p>
+        </DashboardActionCard>
 
         <div className="xl:col-span-2">
           <TimekeepingHomeCard />
