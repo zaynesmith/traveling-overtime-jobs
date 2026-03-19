@@ -163,15 +163,17 @@ export default function TimekeepingHomeCard() {
 
       {!loading && !data.assignments.length ? (
         <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-700">
-          <p className="font-semibold text-slate-900">No active assignment</p>
-          <p className="mt-1">You do not have an active assignment yet, so punch controls are unavailable right now.</p>
+          <p className="font-semibold text-slate-900">No eligible assignment</p>
+          <p className="mt-1">
+            You do not have an active or accepted assignment yet, so punch controls are unavailable right now.
+          </p>
         </div>
       ) : null}
 
       {!loading && data.assignments.length ? (
         <div className="mt-4 space-y-4">
           <section className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Active assignments</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Accepted/active assignments</p>
             <ul className="mt-3 space-y-3">
               {data.assignments.map((assignment) => (
                 <li key={assignment.id} className="rounded-xl border border-slate-200 p-3">

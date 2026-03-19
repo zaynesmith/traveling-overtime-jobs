@@ -93,7 +93,29 @@ async function handlePost(req, res, session) {
     return res.status(409).json({ error: "This assignment request is no longer pending" });
   }
 
-  return res.status(200).json({ request: updateResult[0] });
+  const acceptedRequest = updateResult[0];
+  let assignmentActivation = null;
+
+  if (decision === "accept") {
+    const activationResult = await prisma.$queryRaw(
+      Prisma.sql`
+        UPDATE public.job_order_assignments
+        SET status = 'active', updated_at = NOW()
+        WHERE jobseeker_id = ${jobseekerProfileId}::uuid
+          AND job_order_id = (
+            SELECT job_order_id
+            FROM public.assignment_requests
+            WHERE id = ${requestId}::uuid
+          )
+          AND status = 'accepted'
+        RETURNING id, status
+      `,
+    );
+
+    assignmentActivation = Array.isArray(activationResult) && activationResult.length > 0 ? activationResult[0] : null;
+  }
+
+  return res.status(200).json({ request: acceptedRequest, assignmentActivation });
 }
 
 export default async function handler(req, res) {
