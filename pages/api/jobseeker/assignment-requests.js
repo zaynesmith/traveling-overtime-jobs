@@ -85,7 +85,7 @@ async function handlePost(req, res, session) {
       WHERE id = ${requestId}::uuid
         AND jobseeker_id = ${jobseekerProfileId}::uuid
         AND status = 'pending'
-      RETURNING id, status, responded_at
+      RETURNING id, status, responded_at, employer_id, jobseeker_id, job_order_id, hourly_pay, per_diem
     `,
   );
 
@@ -99,16 +99,37 @@ async function handlePost(req, res, session) {
   if (decision === "accept") {
     const activationResult = await prisma.$queryRaw(
       Prisma.sql`
-        UPDATE public.job_order_assignments
-        SET status = 'active', updated_at = NOW()
-        WHERE jobseeker_id = ${jobseekerProfileId}::uuid
-          AND job_order_id = (
-            SELECT job_order_id
-            FROM public.assignment_requests
-            WHERE id = ${requestId}::uuid
-          )
-          AND status = 'accepted'
-        RETURNING id, status
+        INSERT INTO public.job_order_assignments (
+          job_order_id,
+          jobseeker_id,
+          employer_id,
+          assignment_request_id,
+          hourly_pay,
+          per_diem,
+          start_date,
+          end_date,
+          status
+        )
+        VALUES (
+          ${acceptedRequest.job_order_id}::uuid,
+          ${acceptedRequest.jobseeker_id}::uuid,
+          ${acceptedRequest.employer_id}::uuid,
+          ${acceptedRequest.id}::uuid,
+          ${acceptedRequest.hourly_pay},
+          ${acceptedRequest.per_diem},
+          CURRENT_DATE,
+          NULL,
+          'active'
+        )
+        ON CONFLICT (job_order_id, jobseeker_id) DO UPDATE
+        SET employer_id = EXCLUDED.employer_id,
+            assignment_request_id = EXCLUDED.assignment_request_id,
+            hourly_pay = EXCLUDED.hourly_pay,
+            per_diem = EXCLUDED.per_diem,
+            status = 'active',
+            start_date = COALESCE(LEAST(public.job_order_assignments.start_date, EXCLUDED.start_date), EXCLUDED.start_date),
+            updated_at = NOW()
+        RETURNING id, status, assignment_request_id, start_date
       `,
     );
 
