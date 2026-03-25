@@ -15,13 +15,22 @@ const ACTION_TO_PUNCH_TYPE = {
   lunch_end: "lunch_end",
 };
 
-const PUNCH_WRITE_RPC_CANDIDATES = [
+const LEGACY_PUNCH_WRITE_RPC_CANDIDATES = [
   "timekeeping_employee_create_punch",
   "time_create_punch",
   "create_time_punch",
   "clock_in_out",
   "timekeeping_punch_action",
 ];
+
+const ACTION_RPC_CANDIDATES = {
+  clock_in: ["clock_in", ...LEGACY_PUNCH_WRITE_RPC_CANDIDATES],
+  clock_out: ["clock_out", ...LEGACY_PUNCH_WRITE_RPC_CANDIDATES],
+  break_start: LEGACY_PUNCH_WRITE_RPC_CANDIDATES,
+  break_end: LEGACY_PUNCH_WRITE_RPC_CANDIDATES,
+  lunch_start: LEGACY_PUNCH_WRITE_RPC_CANDIDATES,
+  lunch_end: LEGACY_PUNCH_WRITE_RPC_CANDIDATES,
+};
 
 function isPhaseTwoUser(session) {
   return String(session?.user?.email || "").toLowerCase() === PHASE_II_EMAIL;
@@ -373,32 +382,63 @@ async function handlePost(req, res, session) {
   const longitude = sanitizeLocation(req.body?.longitude);
   const clientTz = String(req.body?.timezone || "").slice(0, 100) || "UTC";
 
-  const rpcName = await resolveExistingRpcName(PUNCH_WRITE_RPC_CANDIDATES);
+  const rpcCandidates = ACTION_RPC_CANDIDATES[action] || LEGACY_PUNCH_WRITE_RPC_CANDIDATES;
+  const rpcName = await resolveExistingRpcName(rpcCandidates);
 
   if (!rpcName) {
-    return res.status(500).json({
-      error: "No supported punch RPC found in this environment.",
+    return res.status(422).json({
+      error: "missing_rpc",
+      message: `No supported punch RPC found for action "${action}" in this environment.`,
+      expected: rpcCandidates,
     });
   }
 
-  // Reuse existing backend RPC for punch creation instead of duplicating payroll/timecard logic in frontend.
-  const rpcQuery = `SELECT * FROM public.${rpcName}($1::uuid, $2::text, $3::text, $4::double precision, $5::double precision, $6::text, $7::jsonb)`;
   const rpcPayload = {
     assignment_id: assignment.id,
     source: "web",
     requested_by: session.user.id,
+    action,
   };
 
-  const rpcResult = await prisma.$queryRawUnsafe(
-    rpcQuery,
-    assignment.id,
-    ACTION_TO_PUNCH_TYPE[action],
-    enteredCode || null,
-    latitude,
-    longitude,
-    clientTz,
-    JSON.stringify(rpcPayload),
-  );
+  let rpcResult;
+
+  if (rpcName === "clock_in") {
+    const rpcQuery = `SELECT * FROM public.clock_in($1::uuid, $2::text, $3::text, $4::numeric, $5::numeric, $6::jsonb, $7::text)`;
+    rpcResult = await prisma.$queryRawUnsafe(
+      rpcQuery,
+      assignment.id,
+      enteredCode || null,
+      clientTz,
+      latitude,
+      longitude,
+      JSON.stringify(rpcPayload),
+      null,
+    );
+  } else if (rpcName === "clock_out") {
+    const rpcQuery = `SELECT * FROM public.clock_out($1::uuid, $2::text, $3::numeric, $4::numeric, $5::jsonb, $6::text)`;
+    rpcResult = await prisma.$queryRawUnsafe(
+      rpcQuery,
+      assignment.id,
+      clientTz,
+      latitude,
+      longitude,
+      JSON.stringify(rpcPayload),
+      null,
+    );
+  } else {
+    // Reuse legacy backend RPC for punch creation instead of duplicating payroll/timecard logic in frontend.
+    const rpcQuery = `SELECT * FROM public.${rpcName}($1::uuid, $2::text, $3::text, $4::double precision, $5::double precision, $6::text, $7::jsonb)`;
+    rpcResult = await prisma.$queryRawUnsafe(
+      rpcQuery,
+      assignment.id,
+      ACTION_TO_PUNCH_TYPE[action],
+      enteredCode || null,
+      latitude,
+      longitude,
+      clientTz,
+      JSON.stringify(rpcPayload),
+    );
+  }
 
   return res.status(200).json({
     ok: true,
