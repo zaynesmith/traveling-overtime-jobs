@@ -374,7 +374,9 @@ async function handlePost(req, res, session) {
   const requiredClockCodes = await getClockCodeRequirement(assignment);
   const enteredCode = String(req.body?.clockCode || "").trim();
 
-  if (requiredClockCodes.has(action) && !/^\d{4}$/.test(enteredCode)) {
+  const requiresClockCode = action === "clock_in" || requiredClockCodes.has(action);
+
+  if (requiresClockCode && !/^\d{4}$/.test(enteredCode)) {
     return res.status(400).json({ error: "A valid 4-digit clock code is required for this punch." });
   }
 
