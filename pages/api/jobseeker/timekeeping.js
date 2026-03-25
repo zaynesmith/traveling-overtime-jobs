@@ -324,20 +324,25 @@ async function handlePost(req, res, session) {
 
   const assignmentRows = await prisma.$queryRaw(
     Prisma.sql`
-      SELECT id, employer_id, project_id, job_order_id
-      FROM public.job_order_assignments
-      WHERE id = ${assignmentId}::uuid
-        AND jobseeker_id = ${jobseekerProfileId}::uuid
+      SELECT
+        a.id,
+        a.employer_id,
+        jo.project_id,
+        a.job_order_id
+      FROM public.job_order_assignments a
+      INNER JOIN public.job_orders jo ON jo.id = a.job_order_id
+      WHERE a.id = ${assignmentId}::uuid
+        AND a.jobseeker_id = ${jobseekerProfileId}::uuid
         AND (
-          status IS NULL
-          OR LOWER(status) <> ALL (${TIMEKEEPING_BLOCKED_ASSIGNMENT_STATUSES}::text[])
+          a.status IS NULL
+          OR LOWER(a.status) <> ALL (${TIMEKEEPING_BLOCKED_ASSIGNMENT_STATUSES}::text[])
         )
         AND (
-          assignment_request_id IS NULL
+          a.assignment_request_id IS NULL
           OR EXISTS (
             SELECT 1
             FROM public.assignment_requests ar
-            WHERE ar.id = assignment_request_id
+            WHERE ar.id = a.assignment_request_id
               AND LOWER(ar.status) = 'accepted'
           )
         )
