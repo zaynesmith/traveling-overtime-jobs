@@ -43,6 +43,19 @@ function statusTone(status) {
   return "bg-slate-100 text-slate-700 ring-slate-200";
 }
 
+function humanizeTimekeepingError(message, code) {
+  if (code === "INVALID_CLOCK_CODE") {
+    return "Invalid 4-digit code. Verify today’s code with your employer and try again.";
+  }
+  if (code === "EXPIRED_CLOCK_CODE") {
+    return "That code is expired/inactive. Ask your employer for today’s active code.";
+  }
+
+  const normalized = String(message || "").toLowerCase();
+  if (normalized.includes("4-digit")) return "Enter a numeric 4-digit code (example: 0428).";
+  return message || "Punch action failed";
+}
+
 async function getCurrentLocation() {
   if (typeof window === "undefined" || !window.navigator?.geolocation) return null;
 
@@ -137,7 +150,7 @@ export default function TimekeepingHomeCard() {
       const payload = await response.json();
 
       if (!response.ok) {
-        throw new Error(payload?.error || "Punch action failed");
+        throw new Error(humanizeTimekeepingError(payload?.error, payload?.code));
       }
 
       setToast(`${actionLabel(action)} saved.`);
@@ -293,13 +306,17 @@ export default function TimekeepingHomeCard() {
               <input
                 id="clock-code-input"
                 inputMode="numeric"
+                pattern="[0-9]{4}"
+                autoComplete="one-time-code"
                 maxLength={4}
                 value={clockCode}
                 onChange={(event) => setClockCode(event.target.value.replace(/\D/g, "").slice(0, 4))}
                 className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3 text-lg tracking-[0.4em]"
                 placeholder="0000"
               />
-              <p className="mt-2 text-xs text-slate-500">Required for: {requiredClockCodes.map(actionLabel).join(", ")}.</p>
+              <p className="mt-2 text-xs text-slate-500">
+                Numeric 4-digit code required for: {requiredClockCodes.map(actionLabel).join(", ")}.
+              </p>
             </div>
           ) : null}
 

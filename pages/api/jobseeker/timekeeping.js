@@ -46,6 +46,39 @@ function sanitizeLocation(value) {
   return value;
 }
 
+function mapClockCodeErrorMessage(raw) {
+  const message = String(raw || "");
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes("invalid code") ||
+    normalized.includes("invalid clock code") ||
+    normalized.includes("code mismatch") ||
+    normalized.includes("does not match")
+  ) {
+    return {
+      status: 400,
+      code: "INVALID_CLOCK_CODE",
+      error: "The 4-digit clock-in code is invalid. Confirm today’s code with your employer and try again.",
+    };
+  }
+
+  if (
+    normalized.includes("expired code") ||
+    normalized.includes("code expired") ||
+    normalized.includes("outside valid window") ||
+    normalized.includes("not active")
+  ) {
+    return {
+      status: 409,
+      code: "EXPIRED_CLOCK_CODE",
+      error: "That clock-in code has expired or is no longer active. Ask your employer for today’s current code.",
+    };
+  }
+
+  return null;
+}
+
 function formatIso(value) {
   if (!value) return null;
   const date = new Date(value);
@@ -403,43 +436,53 @@ async function handlePost(req, res, session) {
   };
 
   let rpcResult;
-
-  if (rpcName === "clock_in") {
-    const rpcQuery = `SELECT * FROM public.clock_in($1::uuid, $2::text, $3::text, $4::numeric, $5::numeric, $6::jsonb, $7::text)`;
-    rpcResult = await prisma.$queryRawUnsafe(
-      rpcQuery,
-      assignment.id,
-      enteredCode || null,
-      clientTz,
-      latitude,
-      longitude,
-      JSON.stringify(rpcPayload),
-      null,
-    );
-  } else if (rpcName === "clock_out") {
-    const rpcQuery = `SELECT * FROM public.clock_out($1::uuid, $2::text, $3::numeric, $4::numeric, $5::jsonb, $6::text)`;
-    rpcResult = await prisma.$queryRawUnsafe(
-      rpcQuery,
-      assignment.id,
-      clientTz,
-      latitude,
-      longitude,
-      JSON.stringify(rpcPayload),
-      null,
-    );
-  } else {
-    // Reuse legacy backend RPC for punch creation instead of duplicating payroll/timecard logic in frontend.
-    const rpcQuery = `SELECT * FROM public.${rpcName}($1::uuid, $2::text, $3::text, $4::double precision, $5::double precision, $6::text, $7::jsonb)`;
-    rpcResult = await prisma.$queryRawUnsafe(
-      rpcQuery,
-      assignment.id,
-      ACTION_TO_PUNCH_TYPE[action],
-      enteredCode || null,
-      latitude,
-      longitude,
-      clientTz,
-      JSON.stringify(rpcPayload),
-    );
+  try {
+    if (rpcName === "clock_in") {
+      const rpcQuery = `SELECT * FROM public.clock_in($1::uuid, $2::text, $3::text, $4::numeric, $5::numeric, $6::jsonb, $7::text)`;
+      rpcResult = await prisma.$queryRawUnsafe(
+        rpcQuery,
+        assignment.id,
+        enteredCode || null,
+        clientTz,
+        latitude,
+        longitude,
+        JSON.stringify(rpcPayload),
+        null,
+      );
+    } else if (rpcName === "clock_out") {
+      const rpcQuery = `SELECT * FROM public.clock_out($1::uuid, $2::text, $3::numeric, $4::numeric, $5::jsonb, $6::text)`;
+      rpcResult = await prisma.$queryRawUnsafe(
+        rpcQuery,
+        assignment.id,
+        clientTz,
+        latitude,
+        longitude,
+        JSON.stringify(rpcPayload),
+        null,
+      );
+    } else {
+      // Reuse legacy backend RPC for punch creation instead of duplicating payroll/timecard logic in frontend.
+      const rpcQuery = `SELECT * FROM public.${rpcName}($1::uuid, $2::text, $3::text, $4::double precision, $5::double precision, $6::text, $7::jsonb)`;
+      rpcResult = await prisma.$queryRawUnsafe(
+        rpcQuery,
+        assignment.id,
+        ACTION_TO_PUNCH_TYPE[action],
+        enteredCode || null,
+        latitude,
+        longitude,
+        clientTz,
+        JSON.stringify(rpcPayload),
+      );
+    }
+  } catch (error) {
+    const mappedClockCodeError = mapClockCodeErrorMessage(error?.message);
+    if (mappedClockCodeError) {
+      return res.status(mappedClockCodeError.status).json({
+        error: mappedClockCodeError.error,
+        code: mappedClockCodeError.code,
+      });
+    }
+    throw error;
   }
 
   return res.status(200).json({
