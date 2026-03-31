@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
+import withSupabaseDbAuthContext from "@/lib/withSupabaseDbAuthContext";
 
 const PHASE_II_EMAIL = "zayne.smith18@gmail.com";
 const TIMEKEEPING_BLOCKED_ASSIGNMENT_STATUSES = ["cancelled", "canceled", "rejected", "ended", "inactive"];
@@ -77,6 +78,30 @@ function mapClockCodeErrorMessage(raw) {
   }
 
   return null;
+}
+
+function mapKnownDatabaseError(error) {
+  const message = String(error?.meta?.message || error?.message || "");
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("no jobseeker context for user")) {
+    return {
+      status: 403,
+      code: "MISSING_JOBSEEKER_CONTEXT",
+      error: "Your session could not be verified for timekeeping. Please sign in again and retry.",
+    };
+  }
+
+  return null;
+}
+
+function logDatabaseError(context, error) {
+  console.error(context, {
+    prismaCode: error?.code || null,
+    sqlstate: error?.meta?.code || null,
+    message: error?.meta?.message || error?.message || "Unknown database error",
+    clientVersion: error?.clientVersion || null,
+  });
 }
 
 function formatIso(value) {
@@ -435,46 +460,65 @@ async function handlePost(req, res, session) {
     action,
   };
 
+  const debugAuthContext = process.env.TIMEKEEPING_DEBUG_AUTH_CONTEXT === "true";
+
   let rpcResult;
   try {
-    if (rpcName === "clock_in") {
-      const rpcQuery = `SELECT * FROM public.clock_in($1::uuid, $2::text, $3::text, $4::numeric, $5::numeric, $6::jsonb, $7::text)`;
-      rpcResult = await prisma.$queryRawUnsafe(
-        rpcQuery,
-        assignment.id,
-        enteredCode || null,
-        clientTz,
-        latitude,
-        longitude,
-        JSON.stringify(rpcPayload),
-        null,
-      );
-    } else if (rpcName === "clock_out") {
-      const rpcQuery = `SELECT * FROM public.clock_out($1::uuid, $2::text, $3::numeric, $4::numeric, $5::jsonb, $6::text)`;
-      rpcResult = await prisma.$queryRawUnsafe(
-        rpcQuery,
-        assignment.id,
-        clientTz,
-        latitude,
-        longitude,
-        JSON.stringify(rpcPayload),
-        null,
-      );
-    } else {
-      // Reuse legacy backend RPC for punch creation instead of duplicating payroll/timecard logic in frontend.
-      const rpcQuery = `SELECT * FROM public.${rpcName}($1::uuid, $2::text, $3::text, $4::double precision, $5::double precision, $6::text, $7::jsonb)`;
-      rpcResult = await prisma.$queryRawUnsafe(
-        rpcQuery,
-        assignment.id,
-        ACTION_TO_PUNCH_TYPE[action],
-        enteredCode || null,
-        latitude,
-        longitude,
-        clientTz,
-        JSON.stringify(rpcPayload),
-      );
-    }
+    rpcResult = await withSupabaseDbAuthContext(
+      prisma,
+      session.user.id,
+      async (tx, contextInfo) => {
+        if (debugAuthContext) {
+          console.debug("[timekeeping] Supabase DB context initialized", {
+            hasAuthUid: Boolean(contextInfo?.authUid),
+          });
+        }
+
+        if (rpcName === "clock_in") {
+          const rpcQuery = `SELECT * FROM public.clock_in($1::uuid, $2::text, $3::text, $4::numeric, $5::numeric, $6::jsonb, $7::text)`;
+          return await tx.$queryRawUnsafe(
+            rpcQuery,
+            assignment.id,
+            enteredCode || null,
+            clientTz,
+            latitude,
+            longitude,
+            JSON.stringify(rpcPayload),
+            null,
+          );
+        }
+
+        if (rpcName === "clock_out") {
+          const rpcQuery = `SELECT * FROM public.clock_out($1::uuid, $2::text, $3::numeric, $4::numeric, $5::jsonb, $6::text)`;
+          return await tx.$queryRawUnsafe(
+            rpcQuery,
+            assignment.id,
+            clientTz,
+            latitude,
+            longitude,
+            JSON.stringify(rpcPayload),
+            null,
+          );
+        }
+
+        // Reuse legacy backend RPC for punch creation instead of duplicating payroll/timecard logic in frontend.
+        const rpcQuery = `SELECT * FROM public.${rpcName}($1::uuid, $2::text, $3::text, $4::double precision, $5::double precision, $6::text, $7::jsonb)`;
+        return await tx.$queryRawUnsafe(
+          rpcQuery,
+          assignment.id,
+          ACTION_TO_PUNCH_TYPE[action],
+          enteredCode || null,
+          latitude,
+          longitude,
+          clientTz,
+          JSON.stringify(rpcPayload),
+        );
+      },
+      { debug: debugAuthContext },
+    );
   } catch (error) {
+    logDatabaseError("Timekeeping punch RPC failed", error);
+
     const mappedClockCodeError = mapClockCodeErrorMessage(error?.message);
     if (mappedClockCodeError) {
       return res.status(mappedClockCodeError.status).json({
@@ -482,6 +526,15 @@ async function handlePost(req, res, session) {
         code: mappedClockCodeError.code,
       });
     }
+
+    const mappedDatabaseError = mapKnownDatabaseError(error);
+    if (mappedDatabaseError) {
+      return res.status(mappedDatabaseError.status).json({
+        error: mappedDatabaseError.error,
+        code: mappedDatabaseError.code,
+      });
+    }
+
     throw error;
   }
 
@@ -512,7 +565,7 @@ export default async function handler(req, res) {
 
     return await handlePost(req, res, session);
   } catch (error) {
-    console.error("Timekeeping API failed", error);
+    logDatabaseError("Timekeeping API failed", error);
     return res.status(500).json({ error: "Failed to load or update timekeeping" });
   }
 }
