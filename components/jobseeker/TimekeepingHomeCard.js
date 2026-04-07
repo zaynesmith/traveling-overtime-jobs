@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { captureCurrentLocation, LOCATION_CAPTURE_STATUS } from "@/lib/utils/locationCapture";
 
 function formatTimestamp(value) {
   if (!value) return "—";
@@ -56,24 +57,22 @@ function humanizeTimekeepingError(message, code) {
   return message || "Punch action failed";
 }
 
-async function getCurrentLocation() {
-  if (typeof window === "undefined" || !window.navigator?.geolocation) return null;
+function parseGeofenceUiState(payload) {
+  const geofence = payload?.geofence || null;
+  const enforcement = String(geofence?.enforcement || geofence?.mode || "").toLowerCase();
+  const inside = geofence?.inside === true;
+  const outside = geofence?.inside === false || geofence?.status === "outside";
+  const overrideRequested = geofence?.canRequestOverride === true;
 
-  return new Promise((resolve) => {
-    window.navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          latitude: position.coords?.latitude ?? null,
-          longitude: position.coords?.longitude ?? null,
-        });
-      },
-      () => resolve(null),
-      {
-        maximumAge: 60_000,
-        timeout: 5000,
-      },
-    );
-  });
+  if (inside) return { type: "success", message: "Clocked in successfully" };
+  if (!outside) return null;
+
+  if (enforcement === "hard") {
+    if (overrideRequested) return { type: "warning", message: "Request override" };
+    return { type: "error", message: "You must be at the jobsite to clock in." };
+  }
+
+  return { type: "warning", message: "You're outside the jobsite. Continue?" };
 }
 
 export default function TimekeepingHomeCard() {
@@ -82,7 +81,9 @@ export default function TimekeepingHomeCard() {
   const [data, setData] = useState({ assignments: [], selectedAssignmentId: null, status: null });
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+  const [warning, setWarning] = useState("");
   const [clockCode, setClockCode] = useState("");
+  const [locationStatus, setLocationStatus] = useState("");
 
   const selectedAssignment = useMemo(
     () => data.assignments.find((assignment) => assignment.id === data.selectedAssignmentId) || null,
@@ -124,6 +125,7 @@ export default function TimekeepingHomeCard() {
   async function handlePunchAction(action, assignmentOverrideId) {
     setError("");
     setToast("");
+    setWarning("");
 
     if (needsCodeFor(action) && !/^\d{4}$/.test(clockCode.trim())) {
       setError("Enter the required 4-digit daily code before punching.");
@@ -133,7 +135,17 @@ export default function TimekeepingHomeCard() {
     setSubmittingAction(action);
 
     try {
-      const location = await getCurrentLocation();
+      setLocationStatus("Getting your location...");
+      const location = await captureCurrentLocation();
+      setLocationStatus("");
+      if (location.status === LOCATION_CAPTURE_STATUS.PERMISSION_DENIED) {
+        setError("Location permission required");
+      }
+
+      if (location.status === LOCATION_CAPTURE_STATUS.TIMEOUT) {
+        setWarning("Location timeout. Please retry.");
+      }
+
       const response = await fetch("/api/jobseeker/timekeeping", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -143,6 +155,8 @@ export default function TimekeepingHomeCard() {
           clockCode: needsCodeFor(action) ? clockCode.trim() : "",
           latitude: location?.latitude ?? null,
           longitude: location?.longitude ?? null,
+          accuracy: location?.accuracy ?? null,
+          locationStatus: location?.status || LOCATION_CAPTURE_STATUS.UNAVAILABLE,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
         }),
       });
@@ -153,7 +167,12 @@ export default function TimekeepingHomeCard() {
         throw new Error(humanizeTimekeepingError(payload?.error, payload?.code));
       }
 
-      setToast(`${actionLabel(action)} saved.`);
+      const geofenceUiState = parseGeofenceUiState(payload);
+      if (geofenceUiState?.type === "error") setError(geofenceUiState.message);
+      if (geofenceUiState?.type === "warning") setWarning(geofenceUiState.message);
+
+      const successMessage = action === "clock_in" ? "Clocked in successfully" : `${actionLabel(action)} saved.`;
+      setToast(geofenceUiState?.message || successMessage);
       setClockCode("");
       await load(assignmentOverrideId || data.selectedAssignmentId);
     } catch (err) {
@@ -171,7 +190,9 @@ export default function TimekeepingHomeCard() {
       </div>
 
       {loading ? <p className="mt-4 text-sm text-slate-600">Loading timekeeping...</p> : null}
+      {locationStatus ? <p className="mt-4 text-sm text-slate-600">{locationStatus}</p> : null}
       {error ? <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
+      {warning ? <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-700">{warning}</p> : null}
       {toast ? <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">{toast}</p> : null}
 
       {!loading && !data.assignments.length ? (

@@ -42,9 +42,39 @@ function normalizeAction(value) {
   return ACTION_TO_PUNCH_TYPE[action] ? action : null;
 }
 
-function sanitizeLocation(value) {
+export function sanitizeLocation(value) {
   if (typeof value !== "number" || Number.isNaN(value)) return null;
   return value;
+}
+
+export function sanitizeAccuracy(value) {
+  if (typeof value !== "number" || Number.isNaN(value)) return null;
+  if (value < 0) return null;
+  return value;
+}
+
+export function sanitizeLocationStatus(value) {
+  const status = String(value || "").toLowerCase();
+  const allowed = new Set(["available", "unavailable", "permission_denied", "timeout", "not_supported"]);
+  return allowed.has(status) ? status : "unavailable";
+}
+
+export function extractGeofenceOutcome(rpcResult) {
+  const row = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
+  if (!row || typeof row !== "object") return null;
+
+  if (row.geofence && typeof row.geofence === "object") return row.geofence;
+
+  if (Object.prototype.hasOwnProperty.call(row, "geofence_inside")) {
+    return {
+      inside: row.geofence_inside === true,
+      enforcement: row.geofence_enforcement || row.enforcement_mode || null,
+      canRequestOverride: row.geofence_override_available === true,
+      reason: row.geofence_reason || null,
+    };
+  }
+
+  return null;
 }
 
 function mapClockCodeErrorMessage(raw) {
@@ -440,6 +470,8 @@ async function handlePost(req, res, session) {
 
   const latitude = sanitizeLocation(req.body?.latitude);
   const longitude = sanitizeLocation(req.body?.longitude);
+  const accuracy = sanitizeAccuracy(req.body?.accuracy);
+  const locationStatus = sanitizeLocationStatus(req.body?.locationStatus);
   const clientTz = String(req.body?.timezone || "").slice(0, 100) || "UTC";
 
   const rpcCandidates = ACTION_RPC_CANDIDATES[action] || LEGACY_PUNCH_WRITE_RPC_CANDIDATES;
@@ -455,9 +487,16 @@ async function handlePost(req, res, session) {
 
   const rpcPayload = {
     assignment_id: assignment.id,
+    punch_type: ACTION_TO_PUNCH_TYPE[action],
     source: "web",
     requested_by: session.user.id,
     action,
+    location: {
+      status: locationStatus,
+      latitude,
+      longitude,
+      accuracy,
+    },
   };
 
   const debugAuthContext = process.env.TIMEKEEPING_DEBUG_AUTH_CONTEXT === "true";
@@ -542,6 +581,7 @@ async function handlePost(req, res, session) {
     ok: true,
     action,
     rpcUsed: rpcName,
+    geofence: extractGeofenceOutcome(rpcResult),
     result: rpcResult,
   });
 }
