@@ -22,6 +22,7 @@ const blankJob = {
   showFirstName: false,
   showEmail: false,
   showPhone: false,
+  postAsEmployerId: "",
 };
 
 function Field({ label, htmlFor, children }) {
@@ -33,7 +34,7 @@ function Field({ label, htmlFor, children }) {
   );
 }
 
-export default function PostJobPage({ jobId, contactDetails, isSubscribed }) {
+export default function PostJobPage({ jobId, contactDetails, isSubscribed, isAdmin, employerOptions = [] }) {
   const router = useRouter();
   const [form, setForm] = useState(blankJob);
   const [loading, setLoading] = useState(false);
@@ -96,6 +97,7 @@ export default function PostJobPage({ jobId, contactDetails, isSubscribed }) {
             showFirstName: Boolean(data.showFirstName),
             showEmail: Boolean(data.showEmail),
             showPhone: Boolean(data.showPhone),
+            postAsEmployerId: data.employer_id || "",
           });
           setZipFeedback(null);
         }
@@ -159,6 +161,7 @@ export default function PostJobPage({ jobId, contactDetails, isSubscribed }) {
         showFirstName: form.showFirstName,
         showEmail: form.showEmail,
         showPhone: form.showPhone,
+        postAsEmployerId: form.postAsEmployerId || null,
       };
 
       const endpoint = jobId ? `/api/jobs/${jobId}` : "/api/jobs/create";
@@ -273,6 +276,25 @@ export default function PostJobPage({ jobId, contactDetails, isSubscribed }) {
                   ))}
                 </select>
               </Field>
+
+              {isAdmin === true ? (
+                <Field label="Post Job As Employer" htmlFor="postAsEmployerId">
+                  <select
+                    id="postAsEmployerId"
+                    name="postAsEmployerId"
+                    value={form.postAsEmployerId}
+                    onChange={handleChange}
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  >
+                    <option value="">Select an employer</option>
+                    {employerOptions.map((employer) => (
+                      <option key={employer.id} value={employer.id}>
+                        {`${employer.companyName || "Unknown Company"} - ${employer.firstName || ""} ${employer.lastName || ""}`.trim()}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              ) : null}
 
               <Field label="Hourly Pay" htmlFor="hourly_pay">
                 <input
@@ -493,6 +515,7 @@ export async function getServerSideProps(context) {
     };
   }
 
+  const isAdmin = session.user?.isAdmin === true;
   const { isSubscribed } = await getEmployerSubscriptionStatus(session.user.id);
 
   const employerProfile = await prisma.employerProfile.findUnique({
@@ -516,11 +539,26 @@ export async function getServerSideProps(context) {
       "",
   };
 
+  const employerOptions = isAdmin
+    ? await prisma.employerProfile.findMany({
+        select: {
+          id: true,
+          companyName: true,
+          firstName: true,
+          lastName: true,
+          userId: true,
+        },
+        orderBy: [{ companyName: "asc" }, { firstName: "asc" }, { lastName: "asc" }],
+      })
+    : [];
+
   return {
     props: {
       jobId: context.query?.id || null,
       contactDetails,
       isSubscribed,
+      isAdmin,
+      employerOptions,
     },
   };
 }
