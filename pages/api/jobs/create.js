@@ -48,6 +48,7 @@ export default async function handler(req, res) {
       showFirstName,
       showEmail,
       showPhone,
+      postAsEmployerId,
     } = req.body || {};
 
     const trimmedCity = typeof city === "string" ? city.trim() : city;
@@ -89,6 +90,20 @@ export default async function handler(req, res) {
     const finalState = normalizedState || resolvedState || null;
 
     const combinedLocation = [finalCity, finalState].filter(Boolean).join(", ");
+    let employerProfileIdForJob = employerProfile.id;
+
+    if (isAdminSeeded && postAsEmployerId) {
+      const selectedEmployer = await prisma.employerProfile.findUnique({
+        where: { id: postAsEmployerId },
+        select: { id: true },
+      });
+
+      if (!selectedEmployer) {
+        return res.status(400).json({ error: "Selected employer not found" });
+      }
+
+      employerProfileIdForJob = selectedEmployer.id;
+    }
 
     const job = await prisma.jobs.create({
       data: {
@@ -103,7 +118,7 @@ export default async function handler(req, res) {
         hourly_pay: hourly_pay || null,
         per_diem: per_diem || null,
         additional_requirements: additional_requirements || null,
-        employerprofile: { connect: { id: employerProfile.id } },
+        employerprofile: { connect: { id: employerProfileIdForJob } },
         showFirstName: Boolean(showFirstName),
         showEmail: Boolean(showEmail),
         showPhone: Boolean(showPhone),
