@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { normalizeTrade } from "@/lib/trades";
 import TurnstileWidget from "@/components/TurnstileWidget";
+import { canDirectApply, EXTERNAL_ONLY_APPLICATION_MESSAGE } from "@/lib/jobs/applicationMode";
 
 const detailPanelClasses =
   "bg-white border border-gray-100 rounded-3xl shadow-2xl p-10";
@@ -61,6 +62,14 @@ export default function JobDetails({ job }) {
   }
 
   const handleApply = async () => {
+    if (!canApplyDirectly) {
+      setStatus({
+        type: "info",
+        message: EXTERNAL_ONLY_APPLICATION_MESSAGE,
+      });
+      return;
+    }
+
     setSubmitting(true);
     setStatus(null);
     try {
@@ -100,8 +109,8 @@ export default function JobDetails({ job }) {
   };
 
   const isJobseeker = session?.user?.role === "jobseeker";
-  const canApply = isJobseeker;
-  const isAdminSeeded = job?.is_admin_seeded === true;
+  const canApplyDirectly = canDirectApply(job);
+  const canApply = isJobseeker && canApplyDirectly;
   const disableApplyButton = submitting || hasApplied;
   const callbackUrl = `/jobs/${job.id}`;
   const loginHref = {
@@ -210,28 +219,24 @@ export default function JobDetails({ job }) {
               </div>
             ) : null}
             {canApply ? (
-              isAdminSeeded ? (
-                <p className="w-full max-w-md text-center text-sm text-slate-600">
-                  This job was created by a TravelingOvertimeJobs.com administrator.
-                  <br />
-                  To apply, contact the employer using the information listed in the description.
-                </p>
-              ) : (
-                <>
-                  <TurnstileWidget ref={turnstileRef} siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} />
-                  <button
-                    onClick={handleApply}
-                    disabled={disableApplyButton}
-                    className="w-full max-w-md rounded-full bg-sky-600 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {submitting
-                      ? "Sending application…"
-                      : hasApplied
-                      ? "Application submitted"
-                      : "Apply Now"}
-                  </button>
-                </>
-              )
+              <>
+                <TurnstileWidget ref={turnstileRef} siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} />
+                <button
+                  onClick={handleApply}
+                  disabled={disableApplyButton}
+                  className="w-full max-w-md rounded-full bg-sky-600 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {submitting
+                    ? "Sending application…"
+                    : hasApplied
+                    ? "Application submitted"
+                    : "Apply Now"}
+                </button>
+              </>
+            ) : isJobseeker ? (
+              <p className="w-full max-w-md text-center text-sm text-slate-600">
+                {EXTERNAL_ONLY_APPLICATION_MESSAGE}
+              </p>
             ) : (
               <Link
                 href={loginHref}
@@ -280,7 +285,7 @@ export async function getServerSideProps({ params }) {
       props: {
         job: {
           ...JSON.parse(JSON.stringify(job)),
-          is_admin_seeded: job.is_admin_seeded ?? false,
+          application_mode: job.application_mode ?? "external_only",
           trade: normalizeTrade(job.trade),
           employerName: job.employerprofile?.companyName || null,
           employerLocation: employerLocation || null,

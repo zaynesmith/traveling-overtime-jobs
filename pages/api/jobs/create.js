@@ -91,6 +91,7 @@ export default async function handler(req, res) {
 
     const combinedLocation = [finalCity, finalState].filter(Boolean).join(", ");
     let employerProfileIdForJob = employerProfile.id;
+    let applicationMode = "direct_apply";
 
     if (isAdminSeeded && postAsEmployerId) {
       const selectedEmployer = await prisma.employerProfile.findUnique({
@@ -103,6 +104,10 @@ export default async function handler(req, res) {
       }
 
       employerProfileIdForJob = selectedEmployer.id;
+    }
+
+    if (isAdminSeeded && !postAsEmployerId) {
+      applicationMode = "external_only";
     }
 
     const job = await prisma.jobs.create({
@@ -118,6 +123,7 @@ export default async function handler(req, res) {
         hourly_pay: hourly_pay || null,
         per_diem: per_diem || null,
         additional_requirements: additional_requirements || null,
+        application_mode: applicationMode,
         employerprofile: { connect: { id: employerProfileIdForJob } },
         showFirstName: Boolean(showFirstName),
         showEmail: Boolean(showEmail),
