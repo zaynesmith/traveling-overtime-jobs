@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import JobSearchFilters, { filterPanelClasses } from "@/components/jobs/JobSearchFilters";
 import { getStateNameFromCode } from "@/lib/constants/states";
 import { defaultJobFilters, useJobSearch } from "@/lib/hooks/useJobSearch";
+import { canDirectApply, EXTERNAL_ONLY_APPLICATION_MESSAGE } from "@/lib/jobs/applicationMode";
 import { normalizeTrade } from "@/lib/trades";
 
 const listingCardClasses =
@@ -199,6 +200,11 @@ export default function Jobs() {
                     {job.description ? (
                       <p className="mt-4 text-sm text-slate-500 line-clamp-3">
                         {job.description}
+                      </p>
+                    ) : null}
+                    {!canDirectApply(job) ? (
+                      <p className="mt-4 text-sm text-slate-600">
+                        {EXTERNAL_ONLY_APPLICATION_MESSAGE}
                       </p>
                     ) : null}
 

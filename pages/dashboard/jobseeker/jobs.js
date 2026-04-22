@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth/next";
 import JobSearchFilters, { filterPanelClasses } from "@/components/jobs/JobSearchFilters";
 import { useJobSearch } from "@/lib/hooks/useJobSearch";
 import authOptions from "@/lib/authOptions";
+import { canDirectApply, EXTERNAL_ONLY_APPLICATION_MESSAGE } from "@/lib/jobs/applicationMode";
 import { normalizeTrade } from "@/lib/trades";
 
 function JobCard({ job }) {
@@ -25,6 +26,9 @@ function JobCard({ job }) {
             {job.hourly_pay && job.per_diem ? " • " : ""}
             {job.per_diem ? `Per diem: ${job.per_diem}` : null}
           </p>
+        ) : null}
+        {!canDirectApply(job) ? (
+          <p className="text-sm text-slate-600">{EXTERNAL_ONLY_APPLICATION_MESSAGE}</p>
         ) : null}
         <Link
           href={`/jobs/${job.id}`}
@@ -230,7 +234,7 @@ export async function getServerSideProps(context) {
           zip: job.zip,
           hourly_pay: job.hourly_pay,
           per_diem: job.per_diem,
-          is_admin_seeded: job.is_admin_seeded ?? false,
+          application_mode: job.application_mode ?? "external_only",
           distance: job.distance ?? null,
         }))
       : [];

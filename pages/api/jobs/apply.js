@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/lib/authOptions";
+import { canDirectApply } from "@/lib/jobs/applicationMode";
 import prisma from "@/lib/prisma";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 
@@ -36,11 +37,18 @@ export default async function handler(req, res) {
 
     const job = await prisma.jobs.findUnique({
       where: { id: jobId },
-      select: { id: true, employer_id: true },
+      select: { id: true, employer_id: true, application_mode: true },
     });
 
     if (!job) {
       return res.status(404).json({ error: "Job not found" });
+    }
+
+    if (!canDirectApply(job)) {
+      return res.status(400).json({
+        error:
+          "This job is not accepting in-app applications. Contact the employer using the details in the description.",
+      });
     }
 
     const existingApplication = await prisma.applications.findFirst({
