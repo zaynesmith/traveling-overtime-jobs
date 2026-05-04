@@ -13,7 +13,7 @@ import prisma from "@/lib/prisma";
 export default function ResumeSearchPage({ employerId, initialSavedIds, isSubscribed }) {
   const router = useRouter();
   const PAGE_SIZE = 15;
-  const [filters, setFilters] = useState({ trade: "", state: "", zip: "", radius: "50", keyword: "" });
+  const [filters, setFilters] = useState({ trade: "", state: "", zip: "", radius: "50", keyword: "", licensedOnly: false });
   const [results, setResults] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -40,12 +40,13 @@ export default function ResumeSearchPage({ employerId, initialSavedIds, isSubscr
       zip: router.query?.zip?.toString() ?? current.zip,
       radius: router.query?.radius?.toString() ?? current.radius,
       keyword: router.query?.keyword?.toString() ?? current.keyword,
+      licensedOnly: router.query?.licensedOnly === "true",
     }));
   }, [isSubscribed, router.isReady]);
 
   const handleChange = (event) => {
-    const { name, value } = event.target;
-    setFilters((current) => ({ ...current, [name]: value }));
+    const { name, value, type, checked } = event.target;
+    setFilters((current) => ({ ...current, [name]: type === "checkbox" ? checked : value }));
   };
 
   const updateRoute = (filtersForQuery, targetPage) => {
@@ -55,6 +56,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds, isSubscr
     if (filtersForQuery.zip) params.set("zip", filtersForQuery.zip);
     if (filtersForQuery.radius) params.set("radius", filtersForQuery.radius);
     if (filtersForQuery.keyword) params.set("keyword", filtersForQuery.keyword);
+    if (filtersForQuery.licensedOnly) params.set("licensedOnly", "true");
     params.set("page", targetPage.toString());
     params.set("pageSize", PAGE_SIZE.toString());
 
@@ -76,6 +78,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds, isSubscr
       if (filtersToUse.zip) params.set("zip", filtersToUse.zip);
       if (filtersToUse.radius) params.set("radius", filtersToUse.radius);
       if (filtersToUse.keyword) params.set("keyword", filtersToUse.keyword);
+      if (filtersToUse.licensedOnly) params.set("licensedOnly", "true");
       params.set("page", targetPage.toString());
       params.set("pageSize", PAGE_SIZE.toString());
 
@@ -103,6 +106,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds, isSubscr
       zip: filters.zip,
       radius: filters.radius,
       keyword: filters.keyword,
+      licensedOnly: filters.licensedOnly,
     };
 
     await performSearch(1, currentFilters);
@@ -231,7 +235,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds, isSubscr
           <p className="text-sm font-semibold uppercase tracking-wide text-sky-600">Resume Search</p>
           <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Find traveling pros by trade</h1>
           <p className="max-w-2xl text-base text-slate-600">
-            Filter by trade, location, and keywords to surface candidates ready for your assignments.
+            Filter by trade, location, keywords, and license status to surface candidates ready for your assignments.
           </p>
         </header>
 
@@ -285,6 +289,18 @@ export default function ResumeSearchPage({ employerId, initialSavedIds, isSubscr
               />
             </label>
 
+
+
+            <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 md:col-span-2">
+              <input
+                type="checkbox"
+                name="licensedOnly"
+                checked={Boolean(filters.licensedOnly)}
+                onChange={handleChange}
+                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-200"
+              />
+              Licensed Journeyman only
+            </label>
             <label className="text-sm font-semibold text-slate-700">
               Keyword
               <input
