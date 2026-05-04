@@ -39,12 +39,13 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: "Employer authentication required" });
     }
 
-    const { trade, zip, radius, keyword, state } = req.query;
+    const { trade, zip, radius, keyword, state, licensedOnly } = req.query;
     const zipCode = Array.isArray(zip) ? zip[0] : zip;
     const parsedRadius = radius !== undefined ? Number.parseFloat(radius) : undefined;
     const distance = Number.isFinite(parsedRadius) ? Math.min(Math.max(parsedRadius, 0), 500) : undefined;
     const stateFilter = normalizeStateCode(state) || undefined;
     const pagination = parsePagination(req.query);
+    const licensedJourneymanOnly = licensedOnly === "true" || licensedOnly === true;
 
     let resumes = [];
     let totalCount = 0;
@@ -62,6 +63,7 @@ export default async function handler(req, res) {
             AND jsp."resumeUrl" <> ''
             ${trade ? Prisma.sql`AND jsp.trade = ${trade.toString()}` : Prisma.empty}
             ${stateFilter ? Prisma.sql`AND jsp.state = ${stateFilter}` : Prisma.empty}
+            ${licensedJourneymanOnly ? Prisma.sql`AND jsp."hasJourneymanLicense" = true` : Prisma.empty}
             ${keyword ? Prisma.sql`AND (
               jsp."firstName" ILIKE ${radiusKeywordLike}
               OR jsp."lastName" ILIKE ${radiusKeywordLike}
@@ -193,6 +195,7 @@ export default async function handler(req, res) {
             AND jsp."resumeUrl" <> ''
             ${trade ? Prisma.sql`AND jsp.trade = ${trade.toString()}` : Prisma.empty}
             ${stateFilter ? Prisma.sql`AND jsp.state = ${stateFilter}` : Prisma.empty}
+            ${licensedJourneymanOnly ? Prisma.sql`AND jsp."hasJourneymanLicense" = true` : Prisma.empty}
             ${zipCode ? Prisma.sql`AND jsp.zip = ${zipCode.toString()}` : Prisma.empty}
             ${keyword ? Prisma.sql`AND (
               jsp."firstName" ILIKE ${fallbackKeywordLike}
@@ -230,6 +233,7 @@ export default async function handler(req, res) {
             AND jsp."resumeUrl" <> ''
             ${trade ? Prisma.sql`AND jsp.trade = ${trade.toString()}` : Prisma.empty}
             ${stateFilter ? Prisma.sql`AND jsp.state = ${stateFilter}` : Prisma.empty}
+            ${licensedJourneymanOnly ? Prisma.sql`AND jsp."hasJourneymanLicense" = true` : Prisma.empty}
             ${zipCode ? Prisma.sql`AND jsp.zip = ${zipCode.toString()}` : Prisma.empty}
             ${keyword ? Prisma.sql`AND (
               jsp."firstName" ILIKE ${fallbackKeywordLike}
