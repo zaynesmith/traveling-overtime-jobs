@@ -1,0 +1,106 @@
+name: Supabase Full Audit & Rewrite
+
+on:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+
+      - name: Link Supabase project
+        run: supabase link --project-ref "${SUPABASE_PROJECT_REF}" --db-url "${SUPABASE_DB_URL}"
+
+      - name: Generate SQL diff between Prisma schema and Supabase
+        id: generate_diff
+        shell: bash
+        run: |
+          mkdir -p supabase/migrations
+
+          previous_latest=""
+          if compgen -G "supabase/migrations/*.sql" > /dev/null; then
+            previous_latest=$(ls -t supabase/migrations/*.sql | head -n 1)
+          fi
+
+          echo "Generating diff using migra to include DROP statements for obsolete objects."
+
+          supabase db diff \
+            --linked \
+            --use-migra \
+            --schema public \
+            --db-url "${SUPABASE_DB_URL}" \
+            --non-interactive
+
+          newest_diff=""
+          if compgen -G "supabase/migrations/*.sql" > /dev/null; then
+            newest_diff=$(ls -t supabase/migrations/*.sql | head -n 1)
+          fi
+
+          if [ -z "${newest_diff}" ] || [ "${previous_latest}" = "${newest_diff}" ]; then
+            echo "No schema differences detected."
+            echo "has_changes=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          echo "Diff file generated at: ${newest_diff}"
+          echo "has_changes=true" >> "${GITHUB_OUTPUT}"
+          printf 'diff_file=%s\n' "${newest_diff}" >> "${GITHUB_OUTPUT}"
+
+          echo "--- Begin SQL Diff ---"
+          cat "${newest_diff}"
+          echo "--- End SQL Diff ---"
+
+      - name: Log added, removed, and changed database objects
+        if: steps.generate_diff.outputs.has_changes == 'true'
+        env:
+          DIFF_FILE: ${{ steps.generate_diff.outputs.diff_file }}
+        shell: bash
+        run: |
+          echo "Summary of database object changes:" 
+          changes_found=false
+          while IFS= read -r raw_line; do
+            line=$(echo "${raw_line}" | sed -e 's/^[[:space:]]*//')
+            case "${line}" in
+              "")
+                continue
+                ;;
+              CREATE\ TABLE*|CREATE\ VIEW*|CREATE\ INDEX*|CREATE\ TYPE*|CREATE\ SEQUENCE*|CREATE\ FUNCTION*)
+                echo "ADDED: ${line}"
+                changes_found=true
+                ;;
+              DROP\ TABLE*|DROP\ VIEW*|DROP\ INDEX*|DROP\ TYPE*|DROP\ SEQUENCE*|DROP\ FUNCTION*)
+                echo "REMOVED: ${line}"
+                changes_found=true
+                ;;
+              ALTER\ TABLE*|ALTER\ VIEW*|ALTER\ TYPE*|ALTER\ FUNCTION*)
+                echo "CHANGED: ${line}"
+                changes_found=true
+                ;;
+              *ADD\ COLUMN*|*DROP\ COLUMN*|*ALTER\ COLUMN*)
+                echo "CHANGED: ${line}"
+                changes_found=true
+                ;;
+            esac
+          done < "${DIFF_FILE}"
+
+          if [ "${changes_found}" = false ]; then
+            echo "No structural changes detected within the diff."
+          fi
+
+      - name: Apply Prisma schema to Supabase
+        if: steps.generate_diff.outputs.has_changes == 'true'
+        run: supabase db push --db-url "${SUPABASE_DB_URL}" --non-interactive
+
+      - name: Confirm Supabase schema is synchronized
+        if: steps.generate_diff.outputs.has_changes == 'true'
+        run: |
+          echo "Supabase schema successfully synchronized with Prisma models."
