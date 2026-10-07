@@ -45,20 +45,13 @@ export default async function handler(req, res) {
     const keywordLike = keywordText
       ? `%${keywordText.replace(/[\\%_]/g, "\\$&")}%`
       : null;
-    const keywordSql = keywordLike ? Prisma.sql`AND (
-      jsp."firstName" ILIKE ${keywordLike}
-      OR jsp."lastName" ILIKE ${keywordLike}
-      OR jsp.city ILIKE ${keywordLike}
-      OR jsp.trade ILIKE ${keywordLike}
-      OR jsp.certifications ILIKE ${keywordLike}
-      OR EXISTS (
-        SELECT 1
-        FROM public.jobseekerprofile_certifications selected_certification
-        JOIN public.certifications_catalog certification
-          ON certification.id = selected_certification.certification_id
-        WHERE selected_certification.jobseekerprofile_id = jsp.id
-          AND certification.name ILIKE ${keywordLike}
-      )
+    const keywordSql = keywordLike ? Prisma.sql`AND EXISTS (
+      SELECT 1
+      FROM public.jobseekerprofile_certifications selected_certification
+      JOIN public.certifications_catalog certification
+        ON certification.id = selected_certification.certification_id
+      WHERE selected_certification.jobseekerprofile_id = jsp.id
+        AND certification.name ILIKE ${keywordLike}
     )` : Prisma.empty;
     const zipCode = Array.isArray(zip) ? zip[0] : zip;
     const parsedRadius = radius !== undefined ? Number.parseFloat(radius) : undefined;

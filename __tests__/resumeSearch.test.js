@@ -19,14 +19,14 @@ async function search(query) {
 }
 
 function expectCertificationPredicate(query, pattern) {
-  expect(query.text).toContain('OR jsp.certifications ILIKE');
-  expect(query.text).toContain('OR EXISTS');
+  expect(query.text).toContain('AND EXISTS');
+  expect(query.text).not.toMatch(/jsp\.(?:"firstName"|"lastName"|city|trade|certifications) ILIKE/);
   expect(query.text).toContain('public.jobseekerprofile_certifications');
   expect(query.text).toContain('public.certifications_catalog');
   expect(query.text).toContain('certification.id = selected_certification.certification_id');
   expect(query.text).toContain('selected_certification.jobseekerprofile_id = jsp.id');
   expect(query.text).toContain('certification.name ILIKE');
-  expect(query.values.filter(value => value === pattern)).toHaveLength(6);
+  expect(query.values.filter(value => value === pattern)).toHaveLength(1);
   expect(query.text).toContain('jsp."resumeUrl" IS NOT NULL');
 }
 

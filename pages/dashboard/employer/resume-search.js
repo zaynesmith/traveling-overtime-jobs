@@ -302,7 +302,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds, isSubscr
               Licensed Journeyman only
             </label>
             <label className="text-sm font-semibold text-slate-700">
-              Keyword or certification
+              Keyword
               <input
                 name="keyword"
                 placeholder="e.g. OSHA, OSHA 30, forklift"
@@ -314,7 +314,7 @@ export default function ResumeSearchPage({ employerId, initialSavedIds, isSubscr
             </label>
 
             <p id="keyword-help" className="text-sm text-slate-500 md:col-span-2">
-              Search by a word, phrase, or full certification name. Partial matches are included.
+              Search certifications selected by candidates. Enter part or all of a certification name.
             </p>
 
             <div className="md:col-span-2 flex items-center justify-end gap-3">
