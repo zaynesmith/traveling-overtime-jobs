@@ -40,6 +40,26 @@ export default async function handler(req, res) {
     }
 
     const { trade, zip, radius, keyword, state, licensedOnly } = req.query;
+    const keywordText = (Array.isArray(keyword) ? keyword[0] : keyword)?.toString().trim();
+    // Escape LIKE wildcards so keywords are literal, case-insensitive substrings.
+    const keywordLike = keywordText
+      ? `%${keywordText.replace(/[\\%_]/g, "\\$&")}%`
+      : null;
+    const keywordSql = keywordLike ? Prisma.sql`AND (
+      jsp."firstName" ILIKE ${keywordLike}
+      OR jsp."lastName" ILIKE ${keywordLike}
+      OR jsp.city ILIKE ${keywordLike}
+      OR jsp.trade ILIKE ${keywordLike}
+      OR jsp.certifications ILIKE ${keywordLike}
+      OR EXISTS (
+        SELECT 1
+        FROM public.jobseekerprofile_certifications selected_certification
+        JOIN public.certifications_catalog certification
+          ON certification.id = selected_certification.certification_id
+        WHERE selected_certification.jobseekerprofile_id = jsp.id
+          AND certification.name ILIKE ${keywordLike}
+      )
+    )` : Prisma.empty;
     const zipCode = Array.isArray(zip) ? zip[0] : zip;
     const parsedRadius = radius !== undefined ? Number.parseFloat(radius) : undefined;
     const distance = Number.isFinite(parsedRadius) ? Math.min(Math.max(parsedRadius, 0), 500) : undefined;
@@ -57,19 +77,13 @@ export default async function handler(req, res) {
       if (coordinates?.lat !== undefined && coordinates?.lon !== undefined) {
         radiusFilterApplied = true;
         const radiusMeters = distance * 1609.34;
-        const radiusKeywordLike = keyword ? `%${keyword}%` : null;
         const radiusWhereSql = Prisma.sql`
           WHERE jsp."resumeUrl" IS NOT NULL
             AND jsp."resumeUrl" <> ''
             ${trade ? Prisma.sql`AND jsp.trade = ${trade.toString()}` : Prisma.empty}
             ${stateFilter ? Prisma.sql`AND jsp.state = ${stateFilter}` : Prisma.empty}
             ${licensedJourneymanOnly ? Prisma.sql`AND jsp."hasJourneymanLicense" = true` : Prisma.empty}
-            ${keyword ? Prisma.sql`AND (
-              jsp."firstName" ILIKE ${radiusKeywordLike}
-              OR jsp."lastName" ILIKE ${radiusKeywordLike}
-              OR jsp.city ILIKE ${radiusKeywordLike}
-              OR jsp.trade ILIKE ${radiusKeywordLike}
-            )` : Prisma.empty}
+            ${keywordSql}
         `;
         const paginationSql = pagination.shouldPaginate
           ? Prisma.sql`LIMIT ${pagination.take} OFFSET ${pagination.skip}`
@@ -182,7 +196,6 @@ export default async function handler(req, res) {
     }
 
     if (!resumes.length && !radiusFilterApplied) {
-      const fallbackKeywordLike = keyword ? `%${keyword}%` : null;
       const paginationSql = pagination.shouldPaginate
         ? Prisma.sql`LIMIT ${pagination.take} OFFSET ${pagination.skip}`
         : Prisma.empty;
@@ -197,12 +210,7 @@ export default async function handler(req, res) {
             ${stateFilter ? Prisma.sql`AND jsp.state = ${stateFilter}` : Prisma.empty}
             ${licensedJourneymanOnly ? Prisma.sql`AND jsp."hasJourneymanLicense" = true` : Prisma.empty}
             ${zipCode ? Prisma.sql`AND jsp.zip = ${zipCode.toString()}` : Prisma.empty}
-            ${keyword ? Prisma.sql`AND (
-              jsp."firstName" ILIKE ${fallbackKeywordLike}
-              OR jsp."lastName" ILIKE ${fallbackKeywordLike}
-              OR jsp.city ILIKE ${fallbackKeywordLike}
-              OR jsp.trade ILIKE ${fallbackKeywordLike}
-            )` : Prisma.empty}
+            ${keywordSql}
         `;
         const countResult = await prisma.$queryRaw(fallbackCountQuery);
         totalCount = Number(countResult?.[0]?.total_count ?? 0);
@@ -235,12 +243,7 @@ export default async function handler(req, res) {
             ${stateFilter ? Prisma.sql`AND jsp.state = ${stateFilter}` : Prisma.empty}
             ${licensedJourneymanOnly ? Prisma.sql`AND jsp."hasJourneymanLicense" = true` : Prisma.empty}
             ${zipCode ? Prisma.sql`AND jsp.zip = ${zipCode.toString()}` : Prisma.empty}
-            ${keyword ? Prisma.sql`AND (
-              jsp."firstName" ILIKE ${fallbackKeywordLike}
-              OR jsp."lastName" ILIKE ${fallbackKeywordLike}
-              OR jsp.city ILIKE ${fallbackKeywordLike}
-              OR jsp.trade ILIKE ${fallbackKeywordLike}
-            )` : Prisma.empty}
+            ${keywordSql}
           ORDER BY GREATEST(
             jsp."resume_updated_at",
             jsp."lastBump",

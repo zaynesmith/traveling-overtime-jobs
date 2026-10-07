@@ -302,14 +302,20 @@ export default function ResumeSearchPage({ employerId, initialSavedIds, isSubscr
               Licensed Journeyman only
             </label>
             <label className="text-sm font-semibold text-slate-700">
-              Keyword
+              Keyword or certification
               <input
                 name="keyword"
+                placeholder="e.g. OSHA, OSHA 30, forklift"
+                aria-describedby="keyword-help"
                 value={filters.keyword}
                 onChange={handleChange}
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
               />
             </label>
+
+            <p id="keyword-help" className="text-sm text-slate-500 md:col-span-2">
+              Search by a word, phrase, or full certification name. Partial matches are included.
+            </p>
 
             <div className="md:col-span-2 flex items-center justify-end gap-3">
               {error ? <p className="text-sm font-medium text-rose-600">{error}</p> : null}
